@@ -5,6 +5,14 @@ import (
 	"sort"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "mixed-targets-on-shared-runtime",
@@ -37,23 +45,23 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	// as in Go ranging over map is random order, range over them in sorted (hence reproducible) way:
 	keys := make([]string, 0)
-	for k, _ := range model.ParsedModelRoot.SharedRuntimes {
+	for k := range input.SharedRuntimes {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 	for _, key := range keys {
-		sharedRuntime := model.ParsedModelRoot.SharedRuntimes[key]
+		sharedRuntime := input.SharedRuntimes[key]
 		currentTrustBoundaryId := ""
 		hasFrontend, hasBackend := false, false
 		riskAdded := false
 		for _, technicalAssetId := range sharedRuntime.TechnicalAssetsRunning {
-			technicalAsset := model.ParsedModelRoot.TechnicalAssets[technicalAssetId]
+			technicalAsset := input.TechnicalAssets[technicalAssetId]
 			if len(currentTrustBoundaryId) > 0 && currentTrustBoundaryId != technicalAsset.GetTrustBoundaryId() {
-				risks = append(risks, createRisk(sharedRuntime))
+				risks = append(risks, createRisk(input, sharedRuntime))
 				riskAdded = true
 				break
 			}
@@ -66,15 +74,15 @@ func GenerateRisks() []model.Risk {
 			}
 		}
 		if !riskAdded && hasFrontend && hasBackend {
-			risks = append(risks, createRisk(sharedRuntime))
+			risks = append(risks, createRisk(input, sharedRuntime))
 		}
 	}
 	return risks
 }
 
-func createRisk(sharedRuntime model.SharedRuntime) model.Risk {
+func createRisk(input *model.ParsedModel, sharedRuntime model.SharedRuntime) model.Risk {
 	impact := model.LowImpact
-	if isMoreRisky(sharedRuntime) {
+	if isMoreRisky(input, sharedRuntime) {
 		impact = model.MediumImpact
 	}
 	risk := model.Risk{
@@ -92,9 +100,9 @@ func createRisk(sharedRuntime model.SharedRuntime) model.Risk {
 	return risk
 }
 
-func isMoreRisky(sharedRuntime model.SharedRuntime) bool {
+func isMoreRisky(input *model.ParsedModel, sharedRuntime model.SharedRuntime) bool {
 	for _, techAssetId := range sharedRuntime.TechnicalAssetsRunning {
-		techAsset := model.ParsedModelRoot.TechnicalAssets[techAssetId]
+		techAsset := input.TechnicalAssets[techAssetId]
 		if techAsset.Confidentiality == model.StrictlyConfidential || techAsset.Integrity == model.MissionCritical ||
 			techAsset.Availability == model.MissionCritical {
 			return true

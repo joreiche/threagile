@@ -4,6 +4,14 @@ import (
 	"github.com/threagile/threagile/model"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "wrong-communication-link-content",
@@ -31,9 +39,9 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, techAsset := range model.ParsedModelRoot.TechnicalAssets {
+	for _, techAsset := range input.TechnicalAssets {
 		for _, commLink := range techAsset.CommunicationLinks {
 			// check readonly consistency
 			if commLink.Readonly {
@@ -48,7 +56,7 @@ func GenerateRisks() []model.Risk {
 				}
 			}
 			// check for protocol inconsistencies
-			targetAsset := model.ParsedModelRoot.TechnicalAssets[commLink.TargetId]
+			targetAsset := input.TechnicalAssets[commLink.TargetId]
 			if commLink.Protocol == model.InProcessLibraryCall && targetAsset.Technology != model.Library {
 				risks = append(risks, createRisk(techAsset, commLink,
 					"(protocol type \""+model.InProcessLibraryCall.String()+"\" does not match target technology type \""+targetAsset.Technology.String()+"\": expected \""+model.Library.String()+"\")"))

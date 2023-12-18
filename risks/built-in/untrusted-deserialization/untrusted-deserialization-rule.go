@@ -4,6 +4,14 @@ import (
 	"github.com/threagile/threagile/model"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "untrusted-deserialization",
@@ -36,10 +44,10 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := model.ParsedModelRoot.TechnicalAssets[id]
+		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope {
 			continue
 		}
@@ -55,8 +63,8 @@ func GenerateRisks() []model.Risk {
 		}
 		// check for any incoming IIOP and JRMP protocols
 		for _, commLink := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
-			if commLink.Protocol == model.IIOP || commLink.Protocol == model.IIOP_encrypted ||
-				commLink.Protocol == model.JRMP || commLink.Protocol == model.JRMP_encrypted {
+			if commLink.Protocol == model.IIOP || commLink.Protocol == model.IiopEncrypted ||
+				commLink.Protocol == model.JRMP || commLink.Protocol == model.JrmpEncrypted {
 				hasOne = true
 				if commLink.IsAcrossTrustBoundaryNetworkOnly() {
 					acrossTrustBoundary = true

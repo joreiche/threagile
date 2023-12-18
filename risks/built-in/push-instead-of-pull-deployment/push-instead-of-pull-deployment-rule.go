@@ -4,6 +4,14 @@ import (
 	"github.com/threagile/threagile/model"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "push-instead-of-pull-deployment",
@@ -35,13 +43,13 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	impact := model.LowImpact
-	for _, buildPipeline := range model.ParsedModelRoot.TechnicalAssets {
+	for _, buildPipeline := range input.TechnicalAssets {
 		if buildPipeline.Technology == model.BuildPipeline {
 			for _, deploymentLink := range buildPipeline.CommunicationLinks {
-				targetAsset := model.ParsedModelRoot.TechnicalAssets[deploymentLink.TargetId]
+				targetAsset := input.TechnicalAssets[deploymentLink.TargetId]
 				if !deploymentLink.Readonly && deploymentLink.Usage == model.DevOps &&
 					!targetAsset.OutOfScope && !targetAsset.Technology.IsDevelopmentRelevant() && targetAsset.Usage == model.Business {
 					if targetAsset.HighestConfidentiality() >= model.Confidential ||

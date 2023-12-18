@@ -4,6 +4,14 @@ import (
 	"github.com/threagile/threagile/model"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:          "service-registry-poisoning",
@@ -32,24 +40,24 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := model.ParsedModelRoot.TechnicalAssets[id]
+		technicalAsset := input.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope && technicalAsset.Technology == model.ServiceRegistry {
 			incomingFlows := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
-			risks = append(risks, createRisk(technicalAsset, incomingFlows))
+			risks = append(risks, createRisk(input, technicalAsset, incomingFlows))
 		}
 	}
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset, incomingFlows []model.CommunicationLink) model.Risk {
+func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingFlows []model.CommunicationLink) model.Risk {
 	title := "<b>Service Registry Poisoning</b> risk at <b>" + technicalAsset.Title + "</b>"
 	impact := model.LowImpact
 
 	for _, incomingFlow := range incomingFlows {
-		caller := model.ParsedModelRoot.TechnicalAssets[incomingFlow.SourceId]
+		caller := input.TechnicalAssets[incomingFlow.SourceId]
 		if technicalAsset.HighestConfidentiality() == model.StrictlyConfidential || technicalAsset.HighestIntegrity() == model.MissionCritical || technicalAsset.HighestAvailability() == model.MissionCritical ||
 			caller.HighestConfidentiality() == model.StrictlyConfidential || caller.HighestIntegrity() == model.MissionCritical || caller.HighestAvailability() == model.MissionCritical ||
 			incomingFlow.HighestConfidentiality() == model.StrictlyConfidential || incomingFlow.HighestIntegrity() == model.MissionCritical || incomingFlow.HighestAvailability() == model.MissionCritical {

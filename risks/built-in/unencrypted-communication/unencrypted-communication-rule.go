@@ -4,6 +4,14 @@ import (
 	"github.com/threagile/threagile/model"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "unencrypted-communication",
@@ -33,38 +41,39 @@ func SupportedTags() []string {
 }
 
 // check for communication links that should be encrypted due to their confidentiality and/or integrity
-func GenerateRisks() []model.Risk {
+
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, technicalAsset := range model.ParsedModelRoot.TechnicalAssets {
+	for _, technicalAsset := range input.TechnicalAssets {
 		for _, dataFlow := range technicalAsset.CommunicationLinks {
 			transferringAuthData := dataFlow.Authentication != model.NoneAuthentication
-			sourceAsset := model.ParsedModelRoot.TechnicalAssets[dataFlow.SourceId]
-			targetAsset := model.ParsedModelRoot.TechnicalAssets[dataFlow.TargetId]
+			sourceAsset := input.TechnicalAssets[dataFlow.SourceId]
+			targetAsset := input.TechnicalAssets[dataFlow.TargetId]
 			if !technicalAsset.OutOfScope || !sourceAsset.OutOfScope {
 				if !dataFlow.Protocol.IsEncrypted() && !dataFlow.Protocol.IsProcessLocal() &&
-					!sourceAsset.Technology.IsUnprotectedCommsTolerated() &&
-					!targetAsset.Technology.IsUnprotectedCommsTolerated() {
+					!sourceAsset.Technology.IsUnprotectedCommunicationsTolerated() &&
+					!targetAsset.Technology.IsUnprotectedCommunicationsTolerated() {
 					addedOne := false
 					for _, sentDataAsset := range dataFlow.DataAssetsSent {
-						dataAsset := model.ParsedModelRoot.DataAssets[sentDataAsset]
+						dataAsset := input.DataAssets[sentDataAsset]
 						if isHighSensitivity(dataAsset) || transferringAuthData {
-							risks = append(risks, createRisk(technicalAsset, dataFlow, true, transferringAuthData))
+							risks = append(risks, createRisk(input, technicalAsset, dataFlow, true, transferringAuthData))
 							addedOne = true
 							break
 						} else if !dataFlow.VPN && isMediumSensitivity(dataAsset) {
-							risks = append(risks, createRisk(technicalAsset, dataFlow, false, transferringAuthData))
+							risks = append(risks, createRisk(input, technicalAsset, dataFlow, false, transferringAuthData))
 							addedOne = true
 							break
 						}
 					}
 					if !addedOne {
 						for _, receivedDataAsset := range dataFlow.DataAssetsReceived {
-							dataAsset := model.ParsedModelRoot.DataAssets[receivedDataAsset]
+							dataAsset := input.DataAssets[receivedDataAsset]
 							if isHighSensitivity(dataAsset) || transferringAuthData {
-								risks = append(risks, createRisk(technicalAsset, dataFlow, true, transferringAuthData))
+								risks = append(risks, createRisk(input, technicalAsset, dataFlow, true, transferringAuthData))
 								break
 							} else if !dataFlow.VPN && isMediumSensitivity(dataAsset) {
-								risks = append(risks, createRisk(technicalAsset, dataFlow, false, transferringAuthData))
+								risks = append(risks, createRisk(input, technicalAsset, dataFlow, false, transferringAuthData))
 								break
 							}
 						}
@@ -76,12 +85,12 @@ func GenerateRisks() []model.Risk {
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset, dataFlow model.CommunicationLink, highRisk bool, transferringAuthData bool) model.Risk {
+func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, dataFlow model.CommunicationLink, highRisk bool, transferringAuthData bool) model.Risk {
 	impact := model.MediumImpact
 	if highRisk {
 		impact = model.HighImpact
 	}
-	target := model.ParsedModelRoot.TechnicalAssets[dataFlow.TargetId]
+	target := input.TechnicalAssets[dataFlow.TargetId]
 	title := "<b>Unencrypted Communication</b> named <b>" + dataFlow.Title + "</b> between <b>" + technicalAsset.Title + "</b> and <b>" + target.Title + "</b>"
 	if transferringAuthData {
 		title += " transferring authentication data (like credentials, token, session-id, etc.)"

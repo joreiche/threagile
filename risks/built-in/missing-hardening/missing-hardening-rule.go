@@ -8,6 +8,14 @@ import (
 const raaLimit = 55
 const raaLimitReduced = 40
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "missing-hardening",
@@ -24,7 +32,7 @@ func Category() model.RiskCategory {
 		Function: model.Operations,
 		STRIDE:   model.Tampering,
 		DetectionLogic: "In-scope technical assets with RAA values of " + strconv.Itoa(raaLimit) + " % or higher. " +
-			"Generally for high-value targets like datastores, application servers, identity providers and ERP systems this limit is reduced to " + strconv.Itoa(raaLimitReduced) + " %",
+			"Generally for high-value targets like data stores, application servers, identity providers and ERP systems this limit is reduced to " + strconv.Itoa(raaLimitReduced) + " %",
 		RiskAssessment:             "The risk rating depends on the sensitivity of the data processed or stored in the technical asset.",
 		FalsePositives:             "Usually no false positives.",
 		ModelFailurePossibleReason: false,
@@ -36,10 +44,10 @@ func SupportedTags() []string {
 	return []string{"tomcat"}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := model.ParsedModelRoot.TechnicalAssets[id]
+		technicalAsset := input.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope {
 			if technicalAsset.RAA >= raaLimit || (technicalAsset.RAA >= raaLimitReduced &&
 				(technicalAsset.Type == model.Datastore || technicalAsset.Technology == model.ApplicationServer || technicalAsset.Technology == model.IdentityProvider || technicalAsset.Technology == model.ERP)) {

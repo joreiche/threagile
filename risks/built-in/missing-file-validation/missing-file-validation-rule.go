@@ -4,6 +4,14 @@ import (
 	"github.com/threagile/threagile/model"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:          "missing-file-validation",
@@ -15,7 +23,7 @@ func Category() model.RiskCategory {
 		Action:      "File Validation",
 		Mitigation: "Filter by file extension and discard (if feasible) the name provided. Whitelist the accepted file types " +
 			"and determine the mime-type on the server-side (for example via \"Apache Tika\" or similar checks). If the file is retrievable by " +
-			"endusers and/or backoffice employees, consider performing scans for popular malware (if the files can be retrieved much later than they " +
+			"end users and/or backoffice employees, consider performing scans for popular malware (if the files can be retrieved much later than they " +
 			"were uploaded, also apply a fresh malware scan during retrieval to scan with newer signatures of popular malware). Also enforce " +
 			"limits on maximum file size to avoid denial-of-service like scenarios.",
 		Check:          "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
@@ -34,10 +42,10 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := model.ParsedModelRoot.TechnicalAssets[id]
+		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope || !technicalAsset.CustomDevelopedParts {
 			continue
 		}

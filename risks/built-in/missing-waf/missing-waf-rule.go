@@ -4,6 +4,14 @@ import (
 	"github.com/threagile/threagile/model"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "missing-waf",
@@ -33,15 +41,15 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, technicalAsset := range model.ParsedModelRoot.TechnicalAssets {
+	for _, technicalAsset := range input.TechnicalAssets {
 		if !technicalAsset.OutOfScope &&
 			(technicalAsset.Technology.IsWebApplication() || technicalAsset.Technology.IsWebService()) {
 			for _, incomingAccess := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
 				if incomingAccess.IsAcrossTrustBoundaryNetworkOnly() &&
 					incomingAccess.Protocol.IsPotentialWebAccessProtocol() &&
-					model.ParsedModelRoot.TechnicalAssets[incomingAccess.SourceId].Technology != model.WAF {
+					input.TechnicalAssets[incomingAccess.SourceId].Technology != model.WAF {
 					risks = append(risks, createRisk(technicalAsset))
 					break
 				}

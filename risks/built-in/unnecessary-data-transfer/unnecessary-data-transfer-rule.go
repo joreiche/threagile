@@ -5,6 +5,14 @@ import (
 	"sort"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "unnecessary-data-transfer",
@@ -38,47 +46,47 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := model.ParsedModelRoot.TechnicalAssets[id]
+		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope {
 			continue
 		}
 		// outgoing data flows
 		for _, outgoingDataFlow := range technicalAsset.CommunicationLinks {
-			targetAsset := model.ParsedModelRoot.TechnicalAssets[outgoingDataFlow.TargetId]
+			targetAsset := input.TechnicalAssets[outgoingDataFlow.TargetId]
 			if targetAsset.Technology.IsUnnecessaryDataTolerated() {
 				continue
 			}
-			risks = checkRisksAgainstTechnicalAsset(risks, technicalAsset, outgoingDataFlow, false)
+			risks = checkRisksAgainstTechnicalAsset(input, risks, technicalAsset, outgoingDataFlow, false)
 		}
 		// incoming data flows
 		commLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 		sort.Sort(model.ByTechnicalCommunicationLinkIdSort(commLinks))
 		for _, incomingDataFlow := range commLinks {
-			targetAsset := model.ParsedModelRoot.TechnicalAssets[incomingDataFlow.SourceId]
+			targetAsset := input.TechnicalAssets[incomingDataFlow.SourceId]
 			if targetAsset.Technology.IsUnnecessaryDataTolerated() {
 				continue
 			}
-			risks = checkRisksAgainstTechnicalAsset(risks, technicalAsset, incomingDataFlow, true)
+			risks = checkRisksAgainstTechnicalAsset(input, risks, technicalAsset, incomingDataFlow, true)
 		}
 	}
 	return risks
 }
 
-func checkRisksAgainstTechnicalAsset(risks []model.Risk, technicalAsset model.TechnicalAsset,
+func checkRisksAgainstTechnicalAsset(input *model.ParsedModel, risks []model.Risk, technicalAsset model.TechnicalAsset,
 	dataFlow model.CommunicationLink, inverseDirection bool) []model.Risk {
 	for _, transferredDataAssetId := range dataFlow.DataAssetsSent {
 		if !technicalAsset.ProcessesOrStoresDataAsset(transferredDataAssetId) {
-			transferredDataAsset := model.ParsedModelRoot.DataAssets[transferredDataAssetId]
+			transferredDataAsset := input.DataAssets[transferredDataAssetId]
 			//fmt.Print("--->>> Checking "+technicalAsset.Id+": "+transferredDataAsset.Id+" sent via "+dataFlow.Id+"\n")
 			if transferredDataAsset.Confidentiality >= model.Confidential || transferredDataAsset.Integrity >= model.Critical {
 				commPartnerId := dataFlow.TargetId
 				if inverseDirection {
 					commPartnerId = dataFlow.SourceId
 				}
-				commPartnerAsset := model.ParsedModelRoot.TechnicalAssets[commPartnerId]
+				commPartnerAsset := input.TechnicalAssets[commPartnerId]
 				risk := createRisk(technicalAsset, transferredDataAsset, commPartnerAsset)
 				if isNewRisk(risks, risk) {
 					risks = append(risks, risk)
@@ -88,14 +96,14 @@ func checkRisksAgainstTechnicalAsset(risks []model.Risk, technicalAsset model.Te
 	}
 	for _, transferredDataAssetId := range dataFlow.DataAssetsReceived {
 		if !technicalAsset.ProcessesOrStoresDataAsset(transferredDataAssetId) {
-			transferredDataAsset := model.ParsedModelRoot.DataAssets[transferredDataAssetId]
+			transferredDataAsset := input.DataAssets[transferredDataAssetId]
 			//fmt.Print("--->>> Checking "+technicalAsset.Id+": "+transferredDataAsset.Id+" received via "+dataFlow.Id+"\n")
 			if transferredDataAsset.Confidentiality >= model.Confidential || transferredDataAsset.Integrity >= model.Critical {
 				commPartnerId := dataFlow.TargetId
 				if inverseDirection {
 					commPartnerId = dataFlow.SourceId
 				}
-				commPartnerAsset := model.ParsedModelRoot.TechnicalAssets[commPartnerId]
+				commPartnerAsset := input.TechnicalAssets[commPartnerId]
 				risk := createRisk(technicalAsset, transferredDataAsset, commPartnerAsset)
 				if isNewRisk(risks, risk) {
 					risks = append(risks, risk)

@@ -4,18 +4,26 @@ import (
 	"github.com/threagile/threagile/model"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "missing-vault-isolation",
 		Title: "Missing Vault Isolation",
-		Description: "Highly sensitive vault assets and their datastores should be isolated from other assets " +
+		Description: "Highly sensitive vault assets and their data stores should be isolated from other assets " +
 			"by their own network segmentation trust-boundary (" + model.ExecutionEnvironment.String() + " boundaries do not count as network isolation).",
 		Impact: "If this risk is unmitigated, attackers successfully attacking other components of the system might have an easy path towards " +
-			"highly sensitive vault assets and their datastores, as they are not separated by network segmentation.",
+			"highly sensitive vault assets and their data stores, as they are not separated by network segmentation.",
 		ASVS:       "V1 - Architecture, Design and Threat Modeling Requirements",
 		CheatSheet: "https://cheatsheetseries.owasp.org/cheatsheets/Attack_Surface_Analysis_Cheat_Sheet.html",
 		Action:     "Network Segmentation",
-		Mitigation: "Apply a network segmentation trust-boundary around the highly sensitive vault assets and their datastores.",
+		Mitigation: "Apply a network segmentation trust-boundary around the highly sensitive vault assets and their data stores.",
 		Check:      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
 		Function:   model.Operations,
 		STRIDE:     model.ElevationOfPrivilege,
@@ -35,9 +43,9 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, technicalAsset := range model.ParsedModelRoot.TechnicalAssets {
+	for _, technicalAsset := range input.TechnicalAssets {
 		if !technicalAsset.OutOfScope && technicalAsset.Technology == model.Vault {
 			moreImpact := technicalAsset.Confidentiality == model.StrictlyConfidential ||
 				technicalAsset.Integrity == model.MissionCritical ||
@@ -45,9 +53,9 @@ func GenerateRisks() []model.Risk {
 			sameExecutionEnv := false
 			createRiskEntry := false
 			// now check for any other same-network assets of non-vault-related types
-			for sparringAssetCandidateId, _ := range model.ParsedModelRoot.TechnicalAssets { // so inner loop again over all assets
+			for sparringAssetCandidateId := range input.TechnicalAssets { // so inner loop again over all assets
 				if technicalAsset.Id != sparringAssetCandidateId {
-					sparringAssetCandidate := model.ParsedModelRoot.TechnicalAssets[sparringAssetCandidateId]
+					sparringAssetCandidate := input.TechnicalAssets[sparringAssetCandidateId]
 					if sparringAssetCandidate.Technology != model.Vault && !isVaultStorage(technicalAsset, sparringAssetCandidate) {
 						if technicalAsset.IsSameExecutionEnvironment(sparringAssetCandidateId) {
 							createRiskEntry = true

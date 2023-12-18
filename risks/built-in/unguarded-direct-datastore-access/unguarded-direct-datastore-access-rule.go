@@ -4,12 +4,20 @@ import (
 	"github.com/threagile/threagile/model"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:          "unguarded-direct-datastore-access",
 		Title:       "Unguarded Direct Datastore Access",
-		Description: "Datastores accessed across trust boundaries must be guarded by some protecting service or application.",
-		Impact:      "If this risk is unmitigated, attackers might be able to directly attack sensitive datastores without any protecting components in-between.",
+		Description: "Data stores accessed across trust boundaries must be guarded by some protecting service or application.",
+		Impact:      "If this risk is unmitigated, attackers might be able to directly attack sensitive data stores without any protecting components in-between.",
 		ASVS:        "V1 - Architecture, Design and Threat Modeling Requirements",
 		CheatSheet:  "https://cheatsheetseries.owasp.org/cheatsheets/Attack_Surface_Analysis_Cheat_Sheet.html",
 		Action:      "Encapsulation of Datastore",
@@ -34,14 +42,15 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-// check for datastores that should not be accessed directly across trust boundaries
-func GenerateRisks() []model.Risk {
+// check for data stores that should not be accessed directly across trust boundaries
+
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := model.ParsedModelRoot.TechnicalAssets[id]
+		technicalAsset := input.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope && technicalAsset.Type == model.Datastore {
 			for _, incomingAccess := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
-				sourceAsset := model.ParsedModelRoot.TechnicalAssets[incomingAccess.SourceId]
+				sourceAsset := input.TechnicalAssets[incomingAccess.SourceId]
 				if (technicalAsset.Technology == model.IdentityStoreLDAP || technicalAsset.Technology == model.IdentityStoreDatabase) &&
 					sourceAsset.Technology == model.IdentityProvider {
 					continue
@@ -52,7 +61,7 @@ func GenerateRisks() []model.Risk {
 						highRisk := technicalAsset.Confidentiality == model.StrictlyConfidential ||
 							technicalAsset.Integrity == model.MissionCritical
 						risks = append(risks, createRisk(technicalAsset, incomingAccess,
-							model.ParsedModelRoot.TechnicalAssets[incomingAccess.SourceId], highRisk))
+							input.TechnicalAssets[incomingAccess.SourceId], highRisk))
 					}
 				}
 			}

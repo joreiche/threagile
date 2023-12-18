@@ -4,6 +4,14 @@ import (
 	"github.com/threagile/threagile/model"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "code-backdooring",
@@ -40,13 +48,13 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := model.ParsedModelRoot.TechnicalAssets[id]
+		technicalAsset := input.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope && technicalAsset.Technology.IsDevelopmentRelevant() {
 			if technicalAsset.Internet {
-				risks = append(risks, createRisk(technicalAsset, true))
+				risks = append(risks, createRisk(input, technicalAsset, true))
 				continue
 			}
 
@@ -54,9 +62,9 @@ func GenerateRisks() []model.Risk {
 
 			//riskByLinkAdded := false
 			for _, callerLink := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
-				caller := model.ParsedModelRoot.TechnicalAssets[callerLink.SourceId]
+				caller := input.TechnicalAssets[callerLink.SourceId]
 				if (!callerLink.VPN && caller.Internet) || caller.OutOfScope {
-					risks = append(risks, createRisk(technicalAsset, true))
+					risks = append(risks, createRisk(input, technicalAsset, true))
 					//riskByLinkAdded = true
 					break
 				}
@@ -66,7 +74,7 @@ func GenerateRisks() []model.Risk {
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset, elevatedRisk bool) model.Risk {
+func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, elevatedRisk bool) model.Risk {
 	title := "<b>Code Backdooring</b> risk at <b>" + technicalAsset.Title + "</b>"
 	impact := model.LowImpact
 	if technicalAsset.Technology != model.CodeInspectionPlatform {
@@ -87,7 +95,7 @@ func createRisk(technicalAsset model.TechnicalAsset, elevatedRisk bool) model.Ri
 		if codeDeploymentTargetCommLink.Usage == model.DevOps {
 			for _, dataAssetID := range codeDeploymentTargetCommLink.DataAssetsSent {
 				// it appears to be code when elevated integrity rating of sent data asset
-				if model.ParsedModelRoot.DataAssets[dataAssetID].Integrity >= model.Important {
+				if input.DataAssets[dataAssetID].Integrity >= model.Important {
 					// here we've got a deployment target which has its data assets at risk via deployment of backdoored code
 					uniqueDataBreachTechnicalAssetIDs[codeDeploymentTargetCommLink.TargetId] = true
 					break
@@ -96,7 +104,7 @@ func createRisk(technicalAsset model.TechnicalAsset, elevatedRisk bool) model.Ri
 		}
 	}
 	dataBreachTechnicalAssetIDs := make([]string, 0)
-	for key, _ := range uniqueDataBreachTechnicalAssetIDs {
+	for key := range uniqueDataBreachTechnicalAssetIDs {
 		dataBreachTechnicalAssetIDs = append(dataBreachTechnicalAssetIDs, key)
 	}
 	// create risk

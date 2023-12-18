@@ -7,11 +7,19 @@ import (
 
 const raaLimit = 50
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "missing-network-segmentation",
 		Title: "Missing Network Segmentation",
-		Description: "Highly sensitive assets and/or datastores residing in the same network segment than other " +
+		Description: "Highly sensitive assets and/or data stores residing in the same network segment than other " +
 			"lower sensitive assets (like webservers or content management systems etc.) should be better protected " +
 			"by a network segmentation trust-boundary.",
 		Impact: "If this risk is unmitigated, attackers successfully attacking other components of the system might have an easy path towards " +
@@ -19,11 +27,11 @@ func Category() model.RiskCategory {
 		ASVS:       "V1 - Architecture, Design and Threat Modeling Requirements",
 		CheatSheet: "https://cheatsheetseries.owasp.org/cheatsheets/Attack_Surface_Analysis_Cheat_Sheet.html",
 		Action:     "Network Segmentation",
-		Mitigation: "Apply a network segmentation trust-boundary around the highly sensitive assets and/or datastores.",
+		Mitigation: "Apply a network segmentation trust-boundary around the highly sensitive assets and/or data stores.",
 		Check:      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
 		Function:   model.Operations,
 		STRIDE:     model.ElevationOfPrivilege,
-		DetectionLogic: "In-scope technical assets with high sensitivity and RAA values as well as datastores " +
+		DetectionLogic: "In-scope technical assets with high sensitivity and RAA values as well as data stores " +
 			"when surrounded by assets (without a network trust-boundary in-between) which are of type " + model.ClientSystem.String() + ", " +
 			model.WebServer.String() + ", " + model.WebApplication.String() + ", " + model.CMS.String() + ", " + model.WebServiceREST.String() + ", " + model.WebServiceSOAP.String() + ", " +
 			model.BuildPipeline.String() + ", " + model.SourcecodeRepository.String() + ", " + model.Monitoring.String() + ", or similar and there is no direct connection between these " +
@@ -41,24 +49,24 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	// first create them in memory (see the link replacement below for nested trust boundaries) - otherwise in Go ranging over map is random order
 	// range over them in sorted (hence re-producible) way:
 	keys := make([]string, 0)
-	for k, _ := range model.ParsedModelRoot.TechnicalAssets {
+	for k := range input.TechnicalAssets {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 	for _, key := range keys {
-		technicalAsset := model.ParsedModelRoot.TechnicalAssets[key]
+		technicalAsset := input.TechnicalAssets[key]
 		if !technicalAsset.OutOfScope && technicalAsset.Technology != model.ReverseProxy && technicalAsset.Technology != model.WAF && technicalAsset.Technology != model.IDS && technicalAsset.Technology != model.IPS && technicalAsset.Technology != model.ServiceRegistry {
 			if technicalAsset.RAA >= raaLimit && (technicalAsset.Type == model.Datastore || technicalAsset.Confidentiality >= model.Confidential ||
 				technicalAsset.Integrity >= model.Critical || technicalAsset.Availability >= model.Critical) {
 				// now check for any other same-network assets of certain types which have no direct connection
 				for _, sparringAssetCandidateId := range keys { // so inner loop again over all assets
 					if technicalAsset.Id != sparringAssetCandidateId {
-						sparringAssetCandidate := model.ParsedModelRoot.TechnicalAssets[sparringAssetCandidateId]
+						sparringAssetCandidate := input.TechnicalAssets[sparringAssetCandidateId]
 						if sparringAssetCandidate.Technology.IsLessProtectedType() &&
 							technicalAsset.IsSameTrustBoundaryNetworkOnly(sparringAssetCandidateId) &&
 							!technicalAsset.HasDirectConnection(sparringAssetCandidateId) &&

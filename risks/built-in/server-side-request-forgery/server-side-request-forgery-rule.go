@@ -4,6 +4,14 @@ import (
 	"github.com/threagile/threagile/model"
 )
 
+func Rule() model.CustomRiskRule {
+	return model.CustomRiskRule{
+		Category:      Category,
+		SupportedTags: SupportedTags,
+		GenerateRisks: GenerateRisks,
+	}
+}
+
 func Category() model.RiskCategory {
 	return model.RiskCategory{
 		Id:    "server-side-request-forgery",
@@ -35,24 +43,24 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks() []model.Risk {
+func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := model.ParsedModelRoot.TechnicalAssets[id]
+		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope || technicalAsset.Technology.IsClient() || technicalAsset.Technology == model.LoadBalancer {
 			continue
 		}
 		for _, outgoingFlow := range technicalAsset.CommunicationLinks {
 			if outgoingFlow.Protocol.IsPotentialWebAccessProtocol() {
-				risks = append(risks, createRisk(technicalAsset, outgoingFlow))
+				risks = append(risks, createRisk(input, technicalAsset, outgoingFlow))
 			}
 		}
 	}
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset, outgoingFlow model.CommunicationLink) model.Risk {
-	target := model.ParsedModelRoot.TechnicalAssets[outgoingFlow.TargetId]
+func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, outgoingFlow model.CommunicationLink) model.Risk {
+	target := input.TechnicalAssets[outgoingFlow.TargetId]
 	title := "<b>Server-Side Request Forgery (SSRF)</b> risk at <b>" + technicalAsset.Title + "</b> server-side web-requesting " +
 		"the target <b>" + target.Title + "</b> via <b>" + outgoingFlow.Title + "</b>"
 	impact := model.LowImpact
@@ -63,7 +71,7 @@ func createRisk(technicalAsset model.TechnicalAsset, outgoingFlow model.Communic
 	// check all potential attack targets within the same trust boundary (accessible via web protocols)
 	uniqueDataBreachTechnicalAssetIDs := make(map[string]interface{})
 	uniqueDataBreachTechnicalAssetIDs[technicalAsset.Id] = true
-	for _, potentialTargetAsset := range model.ParsedModelRoot.TechnicalAssets {
+	for _, potentialTargetAsset := range input.TechnicalAssets {
 		if technicalAsset.IsSameTrustBoundaryNetworkOnly(potentialTargetAsset.Id) {
 			for _, commLinkIncoming := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[potentialTargetAsset.Id] {
 				if commLinkIncoming.Protocol.IsPotentialWebAccessProtocol() {
@@ -76,11 +84,11 @@ func createRisk(technicalAsset model.TechnicalAsset, outgoingFlow model.Communic
 		}
 	}
 	// adjust for cloud-based special risks
-	if impact == model.LowImpact && model.ParsedModelRoot.TrustBoundaries[technicalAsset.GetTrustBoundaryId()].Type.IsWithinCloud() {
+	if impact == model.LowImpact && input.TrustBoundaries[technicalAsset.GetTrustBoundaryId()].Type.IsWithinCloud() {
 		impact = model.MediumImpact
 	}
 	dataBreachTechnicalAssetIDs := make([]string, 0)
-	for key, _ := range uniqueDataBreachTechnicalAssetIDs {
+	for key := range uniqueDataBreachTechnicalAssetIDs {
 		dataBreachTechnicalAssetIDs = append(dataBreachTechnicalAssetIDs, key)
 	}
 	likelihood := model.Likely
