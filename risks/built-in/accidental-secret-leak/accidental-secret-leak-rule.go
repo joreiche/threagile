@@ -2,6 +2,7 @@ package accidental_secret_leak
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -28,8 +29,8 @@ func Category() model.RiskCategory {
 			"See for example tools like <i>\"git-secrets\" or \"Talisman\"</i> to have check-in preventive measures for secrets. " +
 			"Consider also to regularly scan your repositories for secrets accidentally checked-in using scanning tools like <i>\"gitleaks\" or \"gitrob\"</i>.",
 		Check:                      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:                   model.Operations,
-		STRIDE:                     model.InformationDisclosure,
+		Function:                   types.Operations,
+		STRIDE:                     types.InformationDisclosure,
 		DetectionLogic:             "In-scope sourcecode repositories and artifact registries.",
 		RiskAssessment:             "The risk rating depends on the sensitivity of the technical asset itself and of the data assets processed and stored.",
 		FalsePositives:             "Usually no false positives.",
@@ -47,7 +48,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	for _, id := range model.SortedTechnicalAssetIDs() {
 		techAsset := input.TechnicalAssets[id]
 		if !techAsset.OutOfScope &&
-			(techAsset.Technology == model.SourcecodeRepository || techAsset.Technology == model.ArtifactRegistry) {
+			(techAsset.Technology == types.SourcecodeRepository || techAsset.Technology == types.ArtifactRegistry) {
 			var risk model.Risk
 			if techAsset.IsTaggedWithAny("git") {
 				risk = createRisk(techAsset, "Git", "Git Leak Prevention")
@@ -68,26 +69,26 @@ func createRisk(technicalAsset model.TechnicalAsset, prefix, details string) mod
 	if len(details) > 0 {
 		title += ": <u>" + details + "</u>"
 	}
-	impact := model.LowImpact
-	if technicalAsset.HighestConfidentiality() >= model.Confidential ||
-		technicalAsset.HighestIntegrity() >= model.Critical ||
-		technicalAsset.HighestAvailability() >= model.Critical {
-		impact = model.MediumImpact
+	impact := types.LowImpact
+	if technicalAsset.HighestConfidentiality() >= types.Confidential ||
+		technicalAsset.HighestIntegrity() >= types.Critical ||
+		technicalAsset.HighestAvailability() >= types.Critical {
+		impact = types.MediumImpact
 	}
-	if technicalAsset.HighestConfidentiality() == model.StrictlyConfidential ||
-		technicalAsset.HighestIntegrity() == model.MissionCritical ||
-		technicalAsset.HighestAvailability() == model.MissionCritical {
-		impact = model.HighImpact
+	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
+		technicalAsset.HighestIntegrity() == types.MissionCritical ||
+		technicalAsset.HighestAvailability() == types.MissionCritical {
+		impact = types.HighImpact
 	}
 	// create risk
 	risk := model.Risk{
 		Category:                     Category(),
-		Severity:                     model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood:       model.Unlikely,
+		Severity:                     model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood:       types.Unlikely,
 		ExploitationImpact:           impact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
-		DataBreachProbability:        model.Probable,
+		DataBreachProbability:        types.Probable,
 		DataBreachTechnicalAssetIDs:  []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id

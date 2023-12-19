@@ -2,6 +2,7 @@ package missing_identity_store
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -25,8 +26,8 @@ func Category() model.RiskCategory {
 		Action:         "Identity Store",
 		Mitigation:     "Include an identity store in the model if the application has a login.",
 		Check:          "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:       model.Architecture,
-		STRIDE:         model.Spoofing,
+		Function:       types.Architecture,
+		STRIDE:         types.Spoofing,
 		DetectionLogic: "Models with authenticated data-flows authorized via end user identity missing an in-scope identity store.",
 		RiskAssessment: "The risk rating depends on the sensitivity of the end user-identity authorized technical assets and " +
 			"their data assets processed and stored.",
@@ -45,7 +46,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, technicalAsset := range input.TechnicalAssets {
 		if !technicalAsset.OutOfScope &&
-			(technicalAsset.Technology == model.IdentityStoreLDAP || technicalAsset.Technology == model.IdentityStoreDatabase) {
+			(technicalAsset.Technology == types.IdentityStoreLDAP || technicalAsset.Technology == types.IdentityStoreDatabase) {
 			// everything fine, no risk, as we have an in-scope identity store in the model
 			return risks
 		}
@@ -53,25 +54,25 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	// now check if we have end user identity authorized communication links, then it's a risk
 	riskIdentified := false
 	var mostRelevantAsset model.TechnicalAsset
-	impact := model.LowImpact
+	impact := types.LowImpact
 	for _, id := range model.SortedTechnicalAssetIDs() { // use the sorted one to always get the same tech asset with the highest sensitivity as example asset
 		technicalAsset := input.TechnicalAssets[id]
 		for _, commLink := range technicalAsset.CommunicationLinksSorted() { // use the sorted one to always get the same tech asset with the highest sensitivity as example asset
-			if commLink.Authorization == model.EndUserIdentityPropagation {
+			if commLink.Authorization == types.EndUserIdentityPropagation {
 				riskIdentified = true
 				targetAsset := input.TechnicalAssets[commLink.TargetId]
-				if impact == model.LowImpact {
+				if impact == types.LowImpact {
 					mostRelevantAsset = targetAsset
-					if targetAsset.HighestConfidentiality() >= model.Confidential ||
-						targetAsset.HighestIntegrity() >= model.Critical ||
-						targetAsset.HighestAvailability() >= model.Critical {
-						impact = model.MediumImpact
+					if targetAsset.HighestConfidentiality() >= types.Confidential ||
+						targetAsset.HighestIntegrity() >= types.Critical ||
+						targetAsset.HighestAvailability() >= types.Critical {
+						impact = types.MediumImpact
 					}
 				}
-				if targetAsset.Confidentiality >= model.Confidential ||
-					targetAsset.Integrity >= model.Critical ||
-					targetAsset.Availability >= model.Critical {
-					impact = model.MediumImpact
+				if targetAsset.Confidentiality >= types.Confidential ||
+					targetAsset.Integrity >= types.Critical ||
+					targetAsset.Availability >= types.Critical {
+					impact = types.MediumImpact
 				}
 				// just for referencing the most interesting asset
 				if technicalAsset.HighestSensitivityScore() > mostRelevantAsset.HighestSensitivityScore() {
@@ -86,16 +87,16 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset, impact model.RiskExploitationImpact) model.Risk {
+func createRisk(technicalAsset model.TechnicalAsset, impact types.RiskExploitationImpact) model.Risk {
 	title := "<b>Missing Identity Store</b> in the threat model (referencing asset <b>" + technicalAsset.Title + "</b> as an example)"
 	risk := model.Risk{
 		Category:                     Category(),
-		Severity:                     model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood:       model.Unlikely,
+		Severity:                     model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood:       types.Unlikely,
 		ExploitationImpact:           impact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
-		DataBreachProbability:        model.Improbable,
+		DataBreachProbability:        types.Improbable,
 		DataBreachTechnicalAssetIDs:  []string{},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id

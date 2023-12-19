@@ -2,6 +2,7 @@ package unnecessary_technical_asset
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -25,10 +26,10 @@ func Category() model.RiskCategory {
 		Action:                     "Attack Surface Reduction",
 		Mitigation:                 "Try to avoid using technical assets that do not process or store anything.",
 		Check:                      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:                   model.Architecture,
-		STRIDE:                     model.ElevationOfPrivilege,
+		Function:                   types.Architecture,
+		STRIDE:                     types.ElevationOfPrivilege,
 		DetectionLogic:             "Technical assets not processing or storing any data assets.",
-		RiskAssessment:             model.LowSeverity.String(),
+		RiskAssessment:             types.LowSeverity.String(),
 		FalsePositives:             "Usually no false positives as this looks like an incomplete model.",
 		ModelFailurePossibleReason: true,
 		CWE:                        1008,
@@ -55,12 +56,12 @@ func createRisk(technicalAsset model.TechnicalAsset) model.Risk {
 	title := "<b>Unnecessary Technical Asset</b> named <b>" + technicalAsset.Title + "</b>"
 	risk := model.Risk{
 		Category:                     Category(),
-		Severity:                     model.CalculateSeverity(model.Unlikely, model.LowImpact),
-		ExploitationLikelihood:       model.Unlikely,
-		ExploitationImpact:           model.LowImpact,
+		Severity:                     model.CalculateSeverity(types.Unlikely, types.LowImpact),
+		ExploitationLikelihood:       types.Unlikely,
+		ExploitationImpact:           types.LowImpact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
-		DataBreachProbability:        model.Improbable,
+		DataBreachProbability:        types.Improbable,
 		DataBreachTechnicalAssetIDs:  []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id

@@ -2,6 +2,7 @@ package unnecessary_communication_link
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -24,10 +25,10 @@ func Category() model.RiskCategory {
 		Action:                     "Attack Surface Reduction",
 		Mitigation:                 "Try to avoid using technical communication links that do not send or receive anything.",
 		Check:                      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:                   model.Architecture,
-		STRIDE:                     model.ElevationOfPrivilege,
+		Function:                   types.Architecture,
+		STRIDE:                     types.ElevationOfPrivilege,
 		DetectionLogic:             "In-scope technical assets' technical communication links not sending or receiving any data assets.",
-		RiskAssessment:             model.LowSeverity.String(),
+		RiskAssessment:             types.LowSeverity.String(),
 		FalsePositives:             "Usually no false positives as this looks like an incomplete model.",
 		ModelFailurePossibleReason: true,
 		CWE:                        1008,
@@ -57,13 +58,13 @@ func createRisk(technicalAsset model.TechnicalAsset, commLink model.Communicatio
 	title := "<b>Unnecessary Communication Link</b> titled <b>" + commLink.Title + "</b> at technical asset <b>" + technicalAsset.Title + "</b>"
 	risk := model.Risk{
 		Category:                        Category(),
-		Severity:                        model.CalculateSeverity(model.Unlikely, model.LowImpact),
-		ExploitationLikelihood:          model.Unlikely,
-		ExploitationImpact:              model.LowImpact,
+		Severity:                        model.CalculateSeverity(types.Unlikely, types.LowImpact),
+		ExploitationLikelihood:          types.Unlikely,
+		ExploitationImpact:              types.LowImpact,
 		Title:                           title,
 		MostRelevantTechnicalAssetId:    technicalAsset.Id,
 		MostRelevantCommunicationLinkId: commLink.Id,
-		DataBreachProbability:           model.Improbable,
+		DataBreachProbability:           types.Improbable,
 		DataBreachTechnicalAssetIDs:     []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + commLink.Id + "@" + technicalAsset.Id

@@ -1,8 +1,10 @@
 package missing_cloud_hardening
 
 import (
-	"github.com/threagile/threagile/model"
 	"sort"
+
+	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -33,8 +35,8 @@ func Category() model.RiskCategory {
 			"<br><br>For <b>Google Cloud Platform</b>: Follow the <i>CIS Benchmark for Google Cloud Computing Platform</i> (see also the automated checks of cloud audit tools like <i>\"CloudSploit\" or \"ScoutSuite\"</i>). " +
 			"<br><br>For <b>Oracle Cloud Platform</b>: Follow the hardening best practices (see also the automated checks of cloud audit tools like <i>\"CloudSploit\"</i>).",
 		Check:          "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:       model.Operations,
-		STRIDE:         model.Tampering,
+		Function:       types.Operations,
+		STRIDE:         types.Tampering,
 		DetectionLogic: "In-scope cloud components (either residing in cloud trust boundaries or more specifically tagged with cloud provider types).",
 		RiskAssessment: "The risk rating depends on the sensitivity of the technical asset itself and of the data assets processed and stored.",
 		FalsePositives: "Cloud components not running parts of the target architecture can be considered " +
@@ -372,26 +374,26 @@ func createRiskForSharedRuntime(input *model.ParsedModel, sharedRuntime model.Sh
 	if len(details) > 0 {
 		title += ": <u>" + details + "</u>"
 	}
-	impact := model.MediumImpact
-	if sharedRuntime.HighestConfidentiality() >= model.Confidential ||
-		sharedRuntime.HighestIntegrity() >= model.Critical ||
-		sharedRuntime.HighestAvailability() >= model.Critical {
-		impact = model.HighImpact
+	impact := types.MediumImpact
+	if sharedRuntime.HighestConfidentiality() >= types.Confidential ||
+		sharedRuntime.HighestIntegrity() >= types.Critical ||
+		sharedRuntime.HighestAvailability() >= types.Critical {
+		impact = types.HighImpact
 	}
-	if sharedRuntime.HighestConfidentiality() == model.StrictlyConfidential ||
-		sharedRuntime.HighestIntegrity() == model.MissionCritical ||
-		sharedRuntime.HighestAvailability() == model.MissionCritical {
-		impact = model.VeryHighImpact
+	if sharedRuntime.HighestConfidentiality() == types.StrictlyConfidential ||
+		sharedRuntime.HighestIntegrity() == types.MissionCritical ||
+		sharedRuntime.HighestAvailability() == types.MissionCritical {
+		impact = types.VeryHighImpact
 	}
 	// create risk
 	risk := model.Risk{
 		Category:                    Category(),
-		Severity:                    model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood:      model.Unlikely,
+		Severity:                    model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood:      types.Unlikely,
 		ExploitationImpact:          impact,
 		Title:                       title,
 		MostRelevantSharedRuntimeId: sharedRuntime.Id,
-		DataBreachProbability:       model.Probable,
+		DataBreachProbability:       types.Probable,
 		DataBreachTechnicalAssetIDs: sharedRuntime.TechnicalAssetsRunning,
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + sharedRuntime.Id
@@ -406,26 +408,26 @@ func createRiskForTrustBoundary(trustBoundary model.TrustBoundary, prefix, detai
 	if len(details) > 0 {
 		title += ": <u>" + details + "</u>"
 	}
-	impact := model.MediumImpact
-	if trustBoundary.HighestConfidentiality() >= model.Confidential ||
-		trustBoundary.HighestIntegrity() >= model.Critical ||
-		trustBoundary.HighestAvailability() >= model.Critical {
-		impact = model.HighImpact
+	impact := types.MediumImpact
+	if trustBoundary.HighestConfidentiality() >= types.Confidential ||
+		trustBoundary.HighestIntegrity() >= types.Critical ||
+		trustBoundary.HighestAvailability() >= types.Critical {
+		impact = types.HighImpact
 	}
-	if trustBoundary.HighestConfidentiality() == model.StrictlyConfidential ||
-		trustBoundary.HighestIntegrity() == model.MissionCritical ||
-		trustBoundary.HighestAvailability() == model.MissionCritical {
-		impact = model.VeryHighImpact
+	if trustBoundary.HighestConfidentiality() == types.StrictlyConfidential ||
+		trustBoundary.HighestIntegrity() == types.MissionCritical ||
+		trustBoundary.HighestAvailability() == types.MissionCritical {
+		impact = types.VeryHighImpact
 	}
 	// create risk
 	risk := model.Risk{
 		Category:                    Category(),
-		Severity:                    model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood:      model.Unlikely,
+		Severity:                    model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood:      types.Unlikely,
 		ExploitationImpact:          impact,
 		Title:                       title,
 		MostRelevantTrustBoundaryId: trustBoundary.Id,
-		DataBreachProbability:       model.Probable,
+		DataBreachProbability:       types.Probable,
 		DataBreachTechnicalAssetIDs: trustBoundary.RecursivelyAllTechnicalAssetIDsInside(),
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + trustBoundary.Id
@@ -440,26 +442,26 @@ func createRiskForTechnicalAsset(technicalAsset model.TechnicalAsset, prefix, de
 	if len(details) > 0 {
 		title += ": <u>" + details + "</u>"
 	}
-	impact := model.MediumImpact
-	if technicalAsset.HighestConfidentiality() >= model.Confidential ||
-		technicalAsset.HighestIntegrity() >= model.Critical ||
-		technicalAsset.HighestAvailability() >= model.Critical {
-		impact = model.HighImpact
+	impact := types.MediumImpact
+	if technicalAsset.HighestConfidentiality() >= types.Confidential ||
+		technicalAsset.HighestIntegrity() >= types.Critical ||
+		technicalAsset.HighestAvailability() >= types.Critical {
+		impact = types.HighImpact
 	}
-	if technicalAsset.HighestConfidentiality() == model.StrictlyConfidential ||
-		technicalAsset.HighestIntegrity() == model.MissionCritical ||
-		technicalAsset.HighestAvailability() == model.MissionCritical {
-		impact = model.VeryHighImpact
+	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
+		technicalAsset.HighestIntegrity() == types.MissionCritical ||
+		technicalAsset.HighestAvailability() == types.MissionCritical {
+		impact = types.VeryHighImpact
 	}
 	// create risk
 	risk := model.Risk{
 		Category:                     Category(),
-		Severity:                     model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood:       model.Unlikely,
+		Severity:                     model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood:       types.Unlikely,
 		ExploitationImpact:           impact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
-		DataBreachProbability:        model.Probable,
+		DataBreachProbability:        types.Probable,
 		DataBreachTechnicalAssetIDs:  []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id

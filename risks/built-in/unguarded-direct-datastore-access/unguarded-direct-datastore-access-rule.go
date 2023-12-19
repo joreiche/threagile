@@ -2,6 +2,7 @@ package unguarded_direct_datastore_access
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -23,14 +24,14 @@ func Category() model.RiskCategory {
 		Action:      "Encapsulation of Datastore",
 		Mitigation:  "Encapsulate the datastore access behind a guarding service or application.",
 		Check:       "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:    model.Architecture,
-		STRIDE:      model.ElevationOfPrivilege,
-		DetectionLogic: "In-scope technical assets of type " + model.Datastore.String() + " (except " + model.IdentityStoreLDAP.String() + " when accessed from " + model.IdentityProvider.String() + " and " + model.FileServer.String() + " when accessed via file transfer protocols) with confidentiality rating " +
-			"of " + model.Confidential.String() + " (or higher) or with integrity rating of " + model.Critical.String() + " (or higher) " +
+		Function:    types.Architecture,
+		STRIDE:      types.ElevationOfPrivilege,
+		DetectionLogic: "In-scope technical assets of type " + types.Datastore.String() + " (except " + types.IdentityStoreLDAP.String() + " when accessed from " + types.IdentityProvider.String() + " and " + types.FileServer.String() + " when accessed via file transfer protocols) with confidentiality rating " +
+			"of " + types.Confidential.String() + " (or higher) or with integrity rating of " + types.Critical.String() + " (or higher) " +
 			"which have incoming data-flows from assets outside across a network trust-boundary. DevOps config and deployment access is excluded from this risk.", // TODO new rule "missing bastion host"?
-		RiskAssessment: "The matching technical assets are at " + model.LowSeverity.String() + " risk. When either the " +
-			"confidentiality rating is " + model.StrictlyConfidential.String() + " or the integrity rating " +
-			"is " + model.MissionCritical.String() + ", the risk-rating is considered " + model.MediumSeverity.String() + ". " +
+		RiskAssessment: "The matching technical assets are at " + types.LowSeverity.String() + " risk. When either the " +
+			"confidentiality rating is " + types.StrictlyConfidential.String() + " or the integrity rating " +
+			"is " + types.MissionCritical.String() + ", the risk-rating is considered " + types.MediumSeverity.String() + ". " +
 			"For assets with RAA values higher than 40 % the risk-rating increases.",
 		FalsePositives:             "When the caller is considered fully trusted as if it was part of the datastore itself.",
 		ModelFailurePossibleReason: false,
@@ -48,18 +49,18 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
-		if !technicalAsset.OutOfScope && technicalAsset.Type == model.Datastore {
+		if !technicalAsset.OutOfScope && technicalAsset.Type == types.Datastore {
 			for _, incomingAccess := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
 				sourceAsset := input.TechnicalAssets[incomingAccess.SourceId]
-				if (technicalAsset.Technology == model.IdentityStoreLDAP || technicalAsset.Technology == model.IdentityStoreDatabase) &&
-					sourceAsset.Technology == model.IdentityProvider {
+				if (technicalAsset.Technology == types.IdentityStoreLDAP || technicalAsset.Technology == types.IdentityStoreDatabase) &&
+					sourceAsset.Technology == types.IdentityProvider {
 					continue
 				}
-				if technicalAsset.Confidentiality >= model.Confidential || technicalAsset.Integrity >= model.Critical {
+				if technicalAsset.Confidentiality >= types.Confidential || technicalAsset.Integrity >= types.Critical {
 					if incomingAccess.IsAcrossTrustBoundaryNetworkOnly() && !FileServerAccessViaFTP(technicalAsset, incomingAccess) &&
-						incomingAccess.Usage != model.DevOps && !model.IsSharingSameParentTrustBoundary(technicalAsset, sourceAsset) {
-						highRisk := technicalAsset.Confidentiality == model.StrictlyConfidential ||
-							technicalAsset.Integrity == model.MissionCritical
+						incomingAccess.Usage != types.DevOps && !model.IsSharingSameParentTrustBoundary(technicalAsset, sourceAsset) {
+						highRisk := technicalAsset.Confidentiality == types.StrictlyConfidential ||
+							technicalAsset.Integrity == types.MissionCritical
 						risks = append(risks, createRisk(technicalAsset, incomingAccess,
 							input.TechnicalAssets[incomingAccess.SourceId], highRisk))
 					}
@@ -71,25 +72,25 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 }
 
 func FileServerAccessViaFTP(technicalAsset model.TechnicalAsset, incomingAccess model.CommunicationLink) bool {
-	return technicalAsset.Technology == model.FileServer &&
-		(incomingAccess.Protocol == model.FTP || incomingAccess.Protocol == model.FTPS || incomingAccess.Protocol == model.SFTP)
+	return technicalAsset.Technology == types.FileServer &&
+		(incomingAccess.Protocol == types.FTP || incomingAccess.Protocol == types.FTPS || incomingAccess.Protocol == types.SFTP)
 }
 
 func createRisk(dataStore model.TechnicalAsset, dataFlow model.CommunicationLink, clientOutsideTrustBoundary model.TechnicalAsset, moreRisky bool) model.Risk {
-	impact := model.LowImpact
+	impact := types.LowImpact
 	if moreRisky || dataStore.RAA > 40 {
-		impact = model.MediumImpact
+		impact = types.MediumImpact
 	}
 	risk := model.Risk{
 		Category:               Category(),
-		Severity:               model.CalculateSeverity(model.Likely, impact),
-		ExploitationLikelihood: model.Likely,
+		Severity:               model.CalculateSeverity(types.Likely, impact),
+		ExploitationLikelihood: types.Likely,
 		ExploitationImpact:     impact,
 		Title: "<b>Unguarded Direct Datastore Access</b> of <b>" + dataStore.Title + "</b> by <b>" +
 			clientOutsideTrustBoundary.Title + "</b> via <b>" + dataFlow.Title + "</b>",
 		MostRelevantTechnicalAssetId:    dataStore.Id,
 		MostRelevantCommunicationLinkId: dataFlow.Id,
-		DataBreachProbability:           model.Improbable,
+		DataBreachProbability:           types.Improbable,
 		DataBreachTechnicalAssetIDs:     []string{dataStore.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + dataFlow.Id + "@" + clientOutsideTrustBoundary.Id + "@" + dataStore.Id

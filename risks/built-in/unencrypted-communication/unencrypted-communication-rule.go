@@ -2,6 +2,7 @@ package unencrypted_communication
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -24,9 +25,9 @@ func Category() model.RiskCategory {
 		Action:     "Encryption of Communication Links",
 		Mitigation: "Apply transport layer encryption to the communication link.",
 		Check:      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:   model.Operations,
-		STRIDE:     model.InformationDisclosure,
-		DetectionLogic: "Unencrypted technical communication links of in-scope technical assets (excluding " + model.Monitoring.String() + " traffic as well as " + model.LocalFileAccess.String() + " and " + model.InProcessLibraryCall.String() + ") " +
+		Function:   types.Operations,
+		STRIDE:     types.InformationDisclosure,
+		DetectionLogic: "Unencrypted technical communication links of in-scope technical assets (excluding " + types.Monitoring.String() + " traffic as well as " + types.LocalFileAccess.String() + " and " + types.InProcessLibraryCall.String() + ") " +
 			"transferring sensitive data.", // TODO more detailed text required here
 		RiskAssessment: "Depending on the confidentiality rating of the transferred data-assets either medium or high risk.",
 		FalsePositives: "When all sensitive data sent over the communication link is already fully encrypted on document or data level. " +
@@ -46,7 +47,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, technicalAsset := range input.TechnicalAssets {
 		for _, dataFlow := range technicalAsset.CommunicationLinks {
-			transferringAuthData := dataFlow.Authentication != model.NoneAuthentication
+			transferringAuthData := dataFlow.Authentication != types.NoneAuthentication
 			sourceAsset := input.TechnicalAssets[dataFlow.SourceId]
 			targetAsset := input.TechnicalAssets[dataFlow.TargetId]
 			if !technicalAsset.OutOfScope || !sourceAsset.OutOfScope {
@@ -86,9 +87,9 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 }
 
 func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, dataFlow model.CommunicationLink, highRisk bool, transferringAuthData bool) model.Risk {
-	impact := model.MediumImpact
+	impact := types.MediumImpact
 	if highRisk {
-		impact = model.HighImpact
+		impact = types.HighImpact
 	}
 	target := input.TechnicalAssets[dataFlow.TargetId]
 	title := "<b>Unencrypted Communication</b> named <b>" + dataFlow.Title + "</b> between <b>" + technicalAsset.Title + "</b> and <b>" + target.Title + "</b>"
@@ -97,11 +98,11 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, d
 	}
 	if dataFlow.VPN {
 		title += " (even VPN-protected connections need to encrypt their data in-transit when confidentiality is " +
-			"rated " + model.StrictlyConfidential.String() + " or integrity is rated " + model.MissionCritical.String() + ")"
+			"rated " + types.StrictlyConfidential.String() + " or integrity is rated " + types.MissionCritical.String() + ")"
 	}
-	likelihood := model.Unlikely
+	likelihood := types.Unlikely
 	if dataFlow.IsAcrossTrustBoundaryNetworkOnly() {
-		likelihood = model.Likely
+		likelihood = types.Likely
 	}
 	risk := model.Risk{
 		Category:                        Category(),
@@ -111,7 +112,7 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, d
 		Title:                           title,
 		MostRelevantTechnicalAssetId:    technicalAsset.Id,
 		MostRelevantCommunicationLinkId: dataFlow.Id,
-		DataBreachProbability:           model.Possible,
+		DataBreachProbability:           types.Possible,
 		DataBreachTechnicalAssetIDs:     []string{target.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + dataFlow.Id + "@" + technicalAsset.Id + "@" + target.Id
@@ -119,9 +120,9 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, d
 }
 
 func isHighSensitivity(dataAsset model.DataAsset) bool {
-	return dataAsset.Confidentiality == model.StrictlyConfidential || dataAsset.Integrity == model.MissionCritical
+	return dataAsset.Confidentiality == types.StrictlyConfidential || dataAsset.Integrity == types.MissionCritical
 }
 
 func isMediumSensitivity(dataAsset model.DataAsset) bool {
-	return dataAsset.Confidentiality == model.Confidential || dataAsset.Integrity == model.Critical
+	return dataAsset.Confidentiality == types.Confidential || dataAsset.Integrity == types.Critical
 }

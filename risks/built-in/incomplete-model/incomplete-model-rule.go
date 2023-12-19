@@ -2,6 +2,7 @@ package incomplete_model
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -24,10 +25,10 @@ func Category() model.RiskCategory {
 		Action:                     "Threat Modeling Completeness",
 		Mitigation:                 "Try to find out what technology or protocol is used instead of specifying that it is unknown.",
 		Check:                      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:                   model.Architecture,
-		STRIDE:                     model.InformationDisclosure,
+		Function:                   types.Architecture,
+		STRIDE:                     types.InformationDisclosure,
 		DetectionLogic:             "All technical assets and communication links with technology type or protocol type specified as unknown.",
-		RiskAssessment:             model.LowSeverity.String(),
+		RiskAssessment:             types.LowSeverity.String(),
 		FalsePositives:             "Usually no false positives as this looks like an incomplete model.",
 		ModelFailurePossibleReason: true,
 		CWE:                        1008,
@@ -43,11 +44,11 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	for _, id := range model.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope {
-			if technicalAsset.Technology == model.UnknownTechnology {
+			if technicalAsset.Technology == types.UnknownTechnology {
 				risks = append(risks, createRiskTechAsset(technicalAsset))
 			}
 			for _, commLink := range technicalAsset.CommunicationLinks {
-				if commLink.Protocol == model.UnknownProtocol {
+				if commLink.Protocol == types.UnknownProtocol {
 					risks = append(risks, createRiskCommLink(technicalAsset, commLink))
 				}
 			}
@@ -60,12 +61,12 @@ func createRiskTechAsset(technicalAsset model.TechnicalAsset) model.Risk {
 	title := "<b>Unknown Technology</b> specified at technical asset <b>" + technicalAsset.Title + "</b>"
 	risk := model.Risk{
 		Category:                     Category(),
-		Severity:                     model.CalculateSeverity(model.Unlikely, model.LowImpact),
-		ExploitationLikelihood:       model.Unlikely,
-		ExploitationImpact:           model.LowImpact,
+		Severity:                     model.CalculateSeverity(types.Unlikely, types.LowImpact),
+		ExploitationLikelihood:       types.Unlikely,
+		ExploitationImpact:           types.LowImpact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
-		DataBreachProbability:        model.Improbable,
+		DataBreachProbability:        types.Improbable,
 		DataBreachTechnicalAssetIDs:  []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id
@@ -76,13 +77,13 @@ func createRiskCommLink(technicalAsset model.TechnicalAsset, commLink model.Comm
 	title := "<b>Unknown Protocol</b> specified for communication link <b>" + commLink.Title + "</b> at technical asset <b>" + technicalAsset.Title + "</b>"
 	risk := model.Risk{
 		Category:                        Category(),
-		Severity:                        model.CalculateSeverity(model.Unlikely, model.LowImpact),
-		ExploitationLikelihood:          model.Unlikely,
-		ExploitationImpact:              model.LowImpact,
+		Severity:                        model.CalculateSeverity(types.Unlikely, types.LowImpact),
+		ExploitationLikelihood:          types.Unlikely,
+		ExploitationImpact:              types.LowImpact,
 		Title:                           title,
 		MostRelevantTechnicalAssetId:    technicalAsset.Id,
 		MostRelevantCommunicationLinkId: commLink.Id,
-		DataBreachProbability:           model.Improbable,
+		DataBreachProbability:           types.Improbable,
 		DataBreachTechnicalAssetIDs:     []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + commLink.Id + "@" + technicalAsset.Id

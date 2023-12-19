@@ -2,6 +2,7 @@ package sql_nosql_injection
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -25,8 +26,8 @@ func Category() model.RiskCategory {
 		Mitigation: "Try to use parameter binding to be safe from injection vulnerabilities. " +
 			"When a third-party product is used instead of custom developed software, check if the product applies the proper mitigation and ensure a reasonable patch-level.",
 		Check:          "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:       model.Development,
-		STRIDE:         model.Tampering,
+		Function:       types.Development,
+		STRIDE:         types.Tampering,
 		DetectionLogic: "Database accessed via typical database access protocols by in-scope clients.",
 		RiskAssessment: "The risk rating depends on the sensitivity of the data stored inside the database.",
 		FalsePositives: "Database accesses by queries not consisting of parts controllable by the caller can be considered " +
@@ -49,7 +50,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 			if input.TechnicalAssets[incomingFlow.SourceId].OutOfScope {
 				continue
 			}
-			if incomingFlow.Protocol.IsPotentialDatabaseAccessProtocol(true) && (technicalAsset.Technology == model.Database || technicalAsset.Technology == model.IdentityStoreDatabase) ||
+			if incomingFlow.Protocol.IsPotentialDatabaseAccessProtocol(true) && (technicalAsset.Technology == types.Database || technicalAsset.Technology == types.IdentityStoreDatabase) ||
 				(incomingFlow.Protocol.IsPotentialDatabaseAccessProtocol(false)) {
 				risks = append(risks, createRisk(input, technicalAsset, incomingFlow))
 			}
@@ -62,13 +63,13 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, i
 	caller := input.TechnicalAssets[incomingFlow.SourceId]
 	title := "<b>SQL/NoSQL-Injection</b> risk at <b>" + caller.Title + "</b> against database <b>" + technicalAsset.Title + "</b>" +
 		" via <b>" + incomingFlow.Title + "</b>"
-	impact := model.MediumImpact
-	if technicalAsset.HighestConfidentiality() == model.StrictlyConfidential || technicalAsset.HighestIntegrity() == model.MissionCritical {
-		impact = model.HighImpact
+	impact := types.MediumImpact
+	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential || technicalAsset.HighestIntegrity() == types.MissionCritical {
+		impact = types.HighImpact
 	}
-	likelihood := model.VeryLikely
-	if incomingFlow.Usage == model.DevOps {
-		likelihood = model.Likely
+	likelihood := types.VeryLikely
+	if incomingFlow.Usage == types.DevOps {
+		likelihood = types.Likely
 	}
 	risk := model.Risk{
 		Category:                        Category(),
@@ -78,7 +79,7 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, i
 		Title:                           title,
 		MostRelevantTechnicalAssetId:    caller.Id,
 		MostRelevantCommunicationLinkId: incomingFlow.Id,
-		DataBreachProbability:           model.Probable,
+		DataBreachProbability:           types.Probable,
 		DataBreachTechnicalAssetIDs:     []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + caller.Id + "@" + technicalAsset.Id + "@" + incomingFlow.Id

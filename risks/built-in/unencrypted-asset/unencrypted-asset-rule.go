@@ -2,6 +2,7 @@ package unencrypted_asset
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -24,14 +25,14 @@ func Category() model.RiskCategory {
 		Action:     "Encryption of Technical Asset",
 		Mitigation: "Apply encryption to the technical asset.",
 		Check:      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:   model.Operations,
-		STRIDE:     model.InformationDisclosure,
-		DetectionLogic: "In-scope unencrypted technical assets (excluding " + model.ReverseProxy.String() +
-			", " + model.LoadBalancer.String() + ", " + model.WAF.String() + ", " + model.IDS.String() +
-			", " + model.IPS.String() + " and embedded components like " + model.Library.String() + ") " +
-			"storing data assets rated at least as " + model.Confidential.String() + " or " + model.Critical.String() + ". " +
-			"For technical assets storing data assets rated as " + model.StrictlyConfidential.String() + " or " + model.MissionCritical.String() + " the " +
-			"encryption must be of type " + model.DataWithEndUserIndividualKey.String() + ".",
+		Function:   types.Operations,
+		STRIDE:     types.InformationDisclosure,
+		DetectionLogic: "In-scope unencrypted technical assets (excluding " + types.ReverseProxy.String() +
+			", " + types.LoadBalancer.String() + ", " + types.WAF.String() + ", " + types.IDS.String() +
+			", " + types.IPS.String() + " and embedded components like " + types.Library.String() + ") " +
+			"storing data assets rated at least as " + types.Confidential.String() + " or " + types.Critical.String() + ". " +
+			"For technical assets storing data assets rated as " + types.StrictlyConfidential.String() + " or " + types.MissionCritical.String() + " the " +
+			"encryption must be of type " + types.DataWithEndUserIndividualKey.String() + ".",
 		RiskAssessment:             "Depending on the confidentiality rating of the stored data-assets either medium or high risk.",
 		FalsePositives:             "When all sensitive data stored within the asset is already fully encrypted on document or data level.",
 		ModelFailurePossibleReason: false,
@@ -50,20 +51,20 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	for _, id := range model.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope && !IsEncryptionWaiver(technicalAsset) &&
-			(technicalAsset.HighestConfidentiality() >= model.Confidential ||
-				technicalAsset.HighestIntegrity() >= model.Critical) {
-			verySensitive := technicalAsset.HighestConfidentiality() == model.StrictlyConfidential ||
-				technicalAsset.HighestIntegrity() == model.MissionCritical
+			(technicalAsset.HighestConfidentiality() >= types.Confidential ||
+				technicalAsset.HighestIntegrity() >= types.Critical) {
+			verySensitive := technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
+				technicalAsset.HighestIntegrity() == types.MissionCritical
 			requiresEndUserKey := verySensitive && technicalAsset.Technology.IsUsuallyStoringEndUserData()
-			if technicalAsset.Encryption == model.NoneEncryption {
-				impact := model.MediumImpact
+			if technicalAsset.Encryption == types.NoneEncryption {
+				impact := types.MediumImpact
 				if verySensitive {
-					impact = model.HighImpact
+					impact = types.HighImpact
 				}
 				risks = append(risks, createRisk(technicalAsset, impact, requiresEndUserKey))
 			} else if requiresEndUserKey &&
-				(technicalAsset.Encryption == model.Transparent || technicalAsset.Encryption == model.DataWithSymmetricSharedKey || technicalAsset.Encryption == model.DataWithAsymmetricSharedKey) {
-				risks = append(risks, createRisk(technicalAsset, model.MediumImpact, requiresEndUserKey))
+				(technicalAsset.Encryption == types.Transparent || technicalAsset.Encryption == types.DataWithSymmetricSharedKey || technicalAsset.Encryption == types.DataWithAsymmetricSharedKey) {
+				risks = append(risks, createRisk(technicalAsset, types.MediumImpact, requiresEndUserKey))
 			}
 		}
 	}
@@ -74,24 +75,24 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 // encryption requirement for the asset itself (though for the communication, but that's a different rule)
 
 func IsEncryptionWaiver(asset model.TechnicalAsset) bool {
-	return asset.Technology == model.ReverseProxy || asset.Technology == model.LoadBalancer ||
-		asset.Technology == model.WAF || asset.Technology == model.IDS || asset.Technology == model.IPS ||
+	return asset.Technology == types.ReverseProxy || asset.Technology == types.LoadBalancer ||
+		asset.Technology == types.WAF || asset.Technology == types.IDS || asset.Technology == types.IPS ||
 		asset.Technology.IsEmbeddedComponent()
 }
 
-func createRisk(technicalAsset model.TechnicalAsset, impact model.RiskExploitationImpact, requiresEndUserKey bool) model.Risk {
+func createRisk(technicalAsset model.TechnicalAsset, impact types.RiskExploitationImpact, requiresEndUserKey bool) model.Risk {
 	title := "<b>Unencrypted Technical Asset</b> named <b>" + technicalAsset.Title + "</b>"
 	if requiresEndUserKey {
-		title += " missing end user individual encryption with " + model.DataWithEndUserIndividualKey.String()
+		title += " missing end user individual encryption with " + types.DataWithEndUserIndividualKey.String()
 	}
 	risk := model.Risk{
 		Category:                     Category(),
-		Severity:                     model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood:       model.Unlikely,
+		Severity:                     model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood:       types.Unlikely,
 		ExploitationImpact:           impact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
-		DataBreachProbability:        model.Improbable,
+		DataBreachProbability:        types.Improbable,
 		DataBreachTechnicalAssetIDs:  []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id

@@ -1,12 +1,14 @@
 package report
 
 import (
-	"github.com/threagile/threagile/colors"
-	"github.com/threagile/threagile/model"
-	"github.com/xuri/excelize/v2"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/threagile/threagile/colors"
+	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
+	"github.com/xuri/excelize/v2"
 )
 
 var excelRow int
@@ -361,7 +363,7 @@ func WriteRisksExcelToFile(filename string) {
 			err = excel.SetCellValue(sheetName, "N"+strconv.Itoa(excelRow), risk.Category.Check)
 			err = excel.SetCellValue(sheetName, "O"+strconv.Itoa(excelRow), risk.SyntheticId)
 			err = excel.SetCellValue(sheetName, "P"+strconv.Itoa(excelRow), riskTrackingStatus.Title())
-			if riskTrackingStatus != model.Unchecked {
+			if riskTrackingStatus != types.Unchecked {
 				riskTracking := risk.GetRiskTracking()
 				err = excel.SetCellValue(sheetName, "Q"+strconv.Itoa(excelRow), riskTracking.Justification)
 				if !riskTracking.Date.IsZero() {
@@ -373,19 +375,19 @@ func WriteRisksExcelToFile(filename string) {
 			// styles
 			if riskTrackingStatus.IsStillAtRisk() {
 				switch risk.Severity {
-				case model.CriticalSeverity:
+				case types.CriticalSeverity:
 					err = excel.SetCellStyle(sheetName, "A"+strconv.Itoa(excelRow), "F"+strconv.Itoa(excelRow), styleSeverityCriticalCenter)
 					err = excel.SetCellStyle(sheetName, "G"+strconv.Itoa(excelRow), "I"+strconv.Itoa(excelRow), styleSeverityCriticalBold)
-				case model.HighSeverity:
+				case types.HighSeverity:
 					err = excel.SetCellStyle(sheetName, "A"+strconv.Itoa(excelRow), "F"+strconv.Itoa(excelRow), styleSeverityHighCenter)
 					err = excel.SetCellStyle(sheetName, "G"+strconv.Itoa(excelRow), "I"+strconv.Itoa(excelRow), styleSeverityHighBold)
-				case model.ElevatedSeverity:
+				case types.ElevatedSeverity:
 					err = excel.SetCellStyle(sheetName, "A"+strconv.Itoa(excelRow), "F"+strconv.Itoa(excelRow), styleSeverityElevatedCenter)
 					err = excel.SetCellStyle(sheetName, "G"+strconv.Itoa(excelRow), "I"+strconv.Itoa(excelRow), styleSeverityElevatedBold)
-				case model.MediumSeverity:
+				case types.MediumSeverity:
 					err = excel.SetCellStyle(sheetName, "A"+strconv.Itoa(excelRow), "F"+strconv.Itoa(excelRow), styleSeverityMediumCenter)
 					err = excel.SetCellStyle(sheetName, "G"+strconv.Itoa(excelRow), "I"+strconv.Itoa(excelRow), styleSeverityMediumBold)
-				case model.LowSeverity:
+				case types.LowSeverity:
 					err = excel.SetCellStyle(sheetName, "A"+strconv.Itoa(excelRow), "F"+strconv.Itoa(excelRow), styleSeverityLowCenter)
 					err = excel.SetCellStyle(sheetName, "G"+strconv.Itoa(excelRow), "I"+strconv.Itoa(excelRow), styleSeverityLowBold)
 				}
@@ -395,17 +397,17 @@ func WriteRisksExcelToFile(filename string) {
 			}
 			styleFromRiskTracking := styleBlackCenter
 			switch riskTrackingStatus {
-			case model.Unchecked:
+			case types.Unchecked:
 				styleFromRiskTracking = styleRedCenter
-			case model.Mitigated:
+			case types.Mitigated:
 				styleFromRiskTracking = styleGreenCenter
-			case model.InProgress:
+			case types.InProgress:
 				styleFromRiskTracking = styleBlueCenter
-			case model.Accepted:
+			case types.Accepted:
 				styleFromRiskTracking = styleYellowCenter
-			case model.InDiscussion:
+			case types.InDiscussion:
 				styleFromRiskTracking = styleOrangeCenter
-			case model.FalsePositive:
+			case types.FalsePositive:
 				styleFromRiskTracking = styleGrayCenter
 			default:
 				styleFromRiskTracking = styleBlackCenter

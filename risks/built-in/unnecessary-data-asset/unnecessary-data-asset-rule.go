@@ -1,8 +1,10 @@
 package unnecessary_data_asset
 
 import (
-	"github.com/threagile/threagile/model"
 	"sort"
+
+	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -26,11 +28,11 @@ func Category() model.RiskCategory {
 		Action:     "Attack Surface Reduction",
 		Mitigation: "Try to avoid having data assets that are not required/used.",
 		Check:      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:   model.Architecture,
-		STRIDE:     model.ElevationOfPrivilege,
+		Function:   types.Architecture,
+		STRIDE:     types.ElevationOfPrivilege,
 		DetectionLogic: "Modelled data assets not processed or stored by any data assets and also not transferred by any " +
 			"communication links.",
-		RiskAssessment:             model.LowSeverity.String(),
+		RiskAssessment:             types.LowSeverity.String(),
 		FalsePositives:             "Usually no false positives as this looks like an incomplete model.",
 		ModelFailurePossibleReason: true,
 		CWE:                        1008,
@@ -81,12 +83,12 @@ func createRisk(input *model.ParsedModel, unusedDataAssetID string) model.Risk {
 	title := "<b>Unnecessary Data Asset</b> named <b>" + unusedDataAsset.Title + "</b>"
 	risk := model.Risk{
 		Category:                    Category(),
-		Severity:                    model.CalculateSeverity(model.Unlikely, model.LowImpact),
-		ExploitationLikelihood:      model.Unlikely,
-		ExploitationImpact:          model.LowImpact,
+		Severity:                    model.CalculateSeverity(types.Unlikely, types.LowImpact),
+		ExploitationLikelihood:      types.Unlikely,
+		ExploitationImpact:          types.LowImpact,
 		Title:                       title,
 		MostRelevantDataAssetId:     unusedDataAsset.Id,
-		DataBreachProbability:       model.Improbable,
+		DataBreachProbability:       types.Improbable,
 		DataBreachTechnicalAssetIDs: []string{unusedDataAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + unusedDataAsset.Id

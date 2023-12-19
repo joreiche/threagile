@@ -2,7 +2,8 @@ package missing_authentication_second_factor
 
 import (
 	"github.com/threagile/threagile/model"
-	"github.com/threagile/threagile/risks/built-in/missing-authentication"
+	"github.com/threagile/threagile/pkg/security/types"
+	missing_authentication "github.com/threagile/threagile/risks/built-in/missing-authentication"
 )
 
 func Rule() model.CustomRiskRule {
@@ -26,11 +27,11 @@ func Category() model.RiskCategory {
 		Mitigation: "Apply an authentication method to the technical asset protecting highly sensitive data via " +
 			"two-factor authentication for human users.",
 		Check:    "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function: model.BusinessSide,
-		STRIDE:   model.ElevationOfPrivilege,
-		DetectionLogic: "In-scope technical assets (except " + model.LoadBalancer.String() + ", " + model.ReverseProxy.String() + ", " + model.WAF.String() + ", " + model.IDS.String() + ", and " + model.IPS.String() + ") should authenticate incoming requests via two-factor authentication (2FA) " +
+		Function: types.BusinessSide,
+		STRIDE:   types.ElevationOfPrivilege,
+		DetectionLogic: "In-scope technical assets (except " + types.LoadBalancer.String() + ", " + types.ReverseProxy.String() + ", " + types.WAF.String() + ", " + types.IDS.String() + ", and " + types.IPS.String() + ") should authenticate incoming requests via two-factor authentication (2FA) " +
 			"when the asset processes or stores highly sensitive data (in terms of confidentiality, integrity, and availability) and is accessed by a client used by a human user.",
-		RiskAssessment: model.MediumSeverity.String(),
+		RiskAssessment: types.MediumSeverity.String(),
 		FalsePositives: "Technical assets which do not process requests regarding functionality or data linked to end-users (customers) " +
 			"can be considered as false positives after individual review.",
 		ModelFailurePossibleReason: false,
@@ -51,36 +52,36 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 			technicalAsset.Technology.IsUnprotectedCommunicationsTolerated() {
 			continue
 		}
-		if technicalAsset.HighestConfidentiality() >= model.Confidential ||
-			technicalAsset.HighestIntegrity() >= model.Critical ||
-			technicalAsset.HighestAvailability() >= model.Critical ||
+		if technicalAsset.HighestConfidentiality() >= types.Confidential ||
+			technicalAsset.HighestIntegrity() >= types.Critical ||
+			technicalAsset.HighestAvailability() >= types.Critical ||
 			technicalAsset.MultiTenant {
 			// check each incoming data flow
 			commLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 			for _, commLink := range commLinks {
 				caller := input.TechnicalAssets[commLink.SourceId]
-				if caller.Technology.IsUnprotectedCommunicationsTolerated() || caller.Type == model.Datastore {
+				if caller.Technology.IsUnprotectedCommunicationsTolerated() || caller.Type == types.Datastore {
 					continue
 				}
 				if caller.UsedAsClientByHuman {
-					moreRisky := commLink.HighestConfidentiality() >= model.Confidential ||
-						commLink.HighestIntegrity() >= model.Critical
-					if moreRisky && commLink.Authentication != model.TwoFactor {
-						risks = append(risks, missing_authentication.CreateRisk(input, technicalAsset, commLink, commLink, "", model.MediumImpact, model.Unlikely, true, Category()))
+					moreRisky := commLink.HighestConfidentiality() >= types.Confidential ||
+						commLink.HighestIntegrity() >= types.Critical
+					if moreRisky && commLink.Authentication != types.TwoFactor {
+						risks = append(risks, missing_authentication.CreateRisk(input, technicalAsset, commLink, commLink, "", types.MediumImpact, types.Unlikely, true, Category()))
 					}
 				} else if caller.Technology.IsTrafficForwarding() {
 					// Now try to walk a call chain up (1 hop only) to find a caller's caller used by human
 					callersCommLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[caller.Id]
 					for _, callersCommLink := range callersCommLinks {
 						callersCaller := input.TechnicalAssets[callersCommLink.SourceId]
-						if callersCaller.Technology.IsUnprotectedCommunicationsTolerated() || callersCaller.Type == model.Datastore {
+						if callersCaller.Technology.IsUnprotectedCommunicationsTolerated() || callersCaller.Type == types.Datastore {
 							continue
 						}
 						if callersCaller.UsedAsClientByHuman {
-							moreRisky := callersCommLink.HighestConfidentiality() >= model.Confidential ||
-								callersCommLink.HighestIntegrity() >= model.Critical
-							if moreRisky && callersCommLink.Authentication != model.TwoFactor {
-								risks = append(risks, missing_authentication.CreateRisk(input, technicalAsset, commLink, callersCommLink, caller.Title, model.MediumImpact, model.Unlikely, true, Category()))
+							moreRisky := callersCommLink.HighestConfidentiality() >= types.Confidential ||
+								callersCommLink.HighestIntegrity() >= types.Critical
+							if moreRisky && callersCommLink.Authentication != types.TwoFactor {
+								risks = append(risks, missing_authentication.CreateRisk(input, technicalAsset, commLink, callersCommLink, caller.Title, types.MediumImpact, types.Unlikely, true, Category()))
 							}
 						}
 					}

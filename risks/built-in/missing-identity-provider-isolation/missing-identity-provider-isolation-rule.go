@@ -2,6 +2,7 @@ package missing_identity_provider_isolation
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -17,7 +18,7 @@ func Category() model.RiskCategory {
 		Id:    "missing-identity-provider-isolation",
 		Title: "Missing Identity Provider Isolation",
 		Description: "Highly sensitive identity provider assets and their identity data stores should be isolated from other assets " +
-			"by their own network segmentation trust-boundary (" + model.ExecutionEnvironment.String() + " boundaries do not count as network isolation).",
+			"by their own network segmentation trust-boundary (" + types.ExecutionEnvironment.String() + " boundaries do not count as network isolation).",
 		Impact: "If this risk is unmitigated, attackers successfully attacking other components of the system might have an easy path towards " +
 			"highly sensitive identity provider assets and their identity data stores, as they are not separated by network segmentation.",
 		ASVS:       "V1 - Architecture, Design and Threat Modeling Requirements",
@@ -25,13 +26,13 @@ func Category() model.RiskCategory {
 		Action:     "Network Segmentation",
 		Mitigation: "Apply a network segmentation trust-boundary around the highly sensitive identity provider assets and their identity data stores.",
 		Check:      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:   model.Operations,
-		STRIDE:     model.ElevationOfPrivilege,
+		Function:   types.Operations,
+		STRIDE:     types.ElevationOfPrivilege,
 		DetectionLogic: "In-scope identity provider assets and their identity data stores " +
 			"when surrounded by other (not identity-related) assets (without a network trust-boundary in-between). " +
 			"This risk is especially prevalent when other non-identity related assets are within the same execution environment (i.e. same database or same application server).",
-		RiskAssessment: "Default is " + model.HighImpact.String() + " impact. The impact is increased to " + model.VeryHighImpact.String() + " when the asset missing the " +
-			"trust-boundary protection is rated as " + model.StrictlyConfidential.String() + " or " + model.MissionCritical.String() + ".",
+		RiskAssessment: "Default is " + types.HighImpact.String() + " impact. The impact is increased to " + types.VeryHighImpact.String() + " when the asset missing the " +
+			"trust-boundary protection is rated as " + types.StrictlyConfidential.String() + " or " + types.MissionCritical.String() + ".",
 		FalsePositives: "When all assets within the network segmentation trust-boundary are hardened and protected to the same extend as if all were " +
 			"identity providers with data of highest sensitivity.",
 		ModelFailurePossibleReason: false,
@@ -47,9 +48,9 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, technicalAsset := range input.TechnicalAssets {
 		if !technicalAsset.OutOfScope && technicalAsset.Technology.IsIdentityRelated() {
-			moreImpact := technicalAsset.Confidentiality == model.StrictlyConfidential ||
-				technicalAsset.Integrity == model.MissionCritical ||
-				technicalAsset.Availability == model.MissionCritical
+			moreImpact := technicalAsset.Confidentiality == types.StrictlyConfidential ||
+				technicalAsset.Integrity == types.MissionCritical ||
+				technicalAsset.Availability == types.MissionCritical
 			sameExecutionEnv := false
 			createRiskEntry := false
 			// now check for any other same-network assets of non-identity-related types
@@ -75,14 +76,14 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 }
 
 func createRisk(techAsset model.TechnicalAsset, moreImpact bool, sameExecutionEnv bool) model.Risk {
-	impact := model.HighImpact
-	likelihood := model.Unlikely
+	impact := types.HighImpact
+	likelihood := types.Unlikely
 	others := "<b>in the same network segment</b>"
 	if moreImpact {
-		impact = model.VeryHighImpact
+		impact = types.VeryHighImpact
 	}
 	if sameExecutionEnv {
-		likelihood = model.Likely
+		likelihood = types.Likely
 		others = "<b>in the same execution environment</b>"
 	}
 	risk := model.Risk{
@@ -93,7 +94,7 @@ func createRisk(techAsset model.TechnicalAsset, moreImpact bool, sameExecutionEn
 		Title: "<b>Missing Identity Provider Isolation</b> to further encapsulate and protect identity-related asset <b>" + techAsset.Title + "</b> against unrelated " +
 			"lower protected assets " + others + ", which might be easier to compromise by attackers",
 		MostRelevantTechnicalAssetId: techAsset.Id,
-		DataBreachProbability:        model.Improbable,
+		DataBreachProbability:        types.Improbable,
 		DataBreachTechnicalAssetIDs:  []string{techAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + techAsset.Id

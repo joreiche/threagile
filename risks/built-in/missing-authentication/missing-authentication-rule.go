@@ -2,6 +2,7 @@ package missing_authentication
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -24,9 +25,9 @@ func Category() model.RiskCategory {
 		Mitigation: "Apply an authentication method to the technical asset. To protect highly sensitive data consider " +
 			"the use of two-factor authentication for human users.",
 		Check:    "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function: model.Architecture,
-		STRIDE:   model.ElevationOfPrivilege,
-		DetectionLogic: "In-scope technical assets (except " + model.LoadBalancer.String() + ", " + model.ReverseProxy.String() + ", " + model.ServiceRegistry.String() + ", " + model.WAF.String() + ", " + model.IDS.String() + ", and " + model.IPS.String() + " and in-process calls) should authenticate incoming requests when the asset processes or stores " +
+		Function: types.Architecture,
+		STRIDE:   types.ElevationOfPrivilege,
+		DetectionLogic: "In-scope technical assets (except " + types.LoadBalancer.String() + ", " + types.ReverseProxy.String() + ", " + types.ServiceRegistry.String() + ", " + types.WAF.String() + ", " + types.IDS.String() + ", and " + types.IPS.String() + " and in-process calls) should authenticate incoming requests when the asset processes or stores " +
 			"sensitive data. This is especially the case for all multi-tenant assets (there even non-sensitive ones).",
 		RiskAssessment: "The risk rating (medium or high) " +
 			"depends on the sensitivity of the data sent across the communication link. Monitoring callers are exempted from this risk.",
@@ -45,33 +46,33 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
-		if technicalAsset.OutOfScope || technicalAsset.Technology == model.LoadBalancer ||
-			technicalAsset.Technology == model.ReverseProxy || technicalAsset.Technology == model.ServiceRegistry || technicalAsset.Technology == model.WAF || technicalAsset.Technology == model.IDS || technicalAsset.Technology == model.IPS {
+		if technicalAsset.OutOfScope || technicalAsset.Technology == types.LoadBalancer ||
+			technicalAsset.Technology == types.ReverseProxy || technicalAsset.Technology == types.ServiceRegistry || technicalAsset.Technology == types.WAF || technicalAsset.Technology == types.IDS || technicalAsset.Technology == types.IPS {
 			continue
 		}
-		if technicalAsset.HighestConfidentiality() >= model.Confidential ||
-			technicalAsset.HighestIntegrity() >= model.Critical ||
-			technicalAsset.HighestAvailability() >= model.Critical ||
+		if technicalAsset.HighestConfidentiality() >= types.Confidential ||
+			technicalAsset.HighestIntegrity() >= types.Critical ||
+			technicalAsset.HighestAvailability() >= types.Critical ||
 			technicalAsset.MultiTenant {
 			// check each incoming data flow
 			commLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 			for _, commLink := range commLinks {
 				caller := input.TechnicalAssets[commLink.SourceId]
-				if caller.Technology.IsUnprotectedCommunicationsTolerated() || caller.Type == model.Datastore {
+				if caller.Technology.IsUnprotectedCommunicationsTolerated() || caller.Type == types.Datastore {
 					continue
 				}
-				highRisk := commLink.HighestConfidentiality() == model.StrictlyConfidential ||
-					commLink.HighestIntegrity() == model.MissionCritical
-				lowRisk := commLink.HighestConfidentiality() <= model.Internal &&
-					commLink.HighestIntegrity() == model.Operational
-				impact := model.MediumImpact
+				highRisk := commLink.HighestConfidentiality() == types.StrictlyConfidential ||
+					commLink.HighestIntegrity() == types.MissionCritical
+				lowRisk := commLink.HighestConfidentiality() <= types.Internal &&
+					commLink.HighestIntegrity() == types.Operational
+				impact := types.MediumImpact
 				if highRisk {
-					impact = model.HighImpact
+					impact = types.HighImpact
 				} else if lowRisk {
-					impact = model.LowImpact
+					impact = types.LowImpact
 				}
-				if commLink.Authentication == model.NoneAuthentication && !commLink.Protocol.IsProcessLocal() {
-					risks = append(risks, CreateRisk(input, technicalAsset, commLink, commLink, "", impact, model.Likely, false, Category()))
+				if commLink.Authentication == types.NoneAuthentication && !commLink.Protocol.IsProcessLocal() {
+					risks = append(risks, CreateRisk(input, technicalAsset, commLink, commLink, "", impact, types.Likely, false, Category()))
 				}
 			}
 		}
@@ -80,7 +81,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 }
 
 func CreateRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingAccess, incomingAccessOrigin model.CommunicationLink, hopBetween string,
-	impact model.RiskExploitationImpact, likelihood model.RiskExploitationLikelihood, twoFactor bool, category model.RiskCategory) model.Risk {
+	impact types.RiskExploitationImpact, likelihood types.RiskExploitationLikelihood, twoFactor bool, category model.RiskCategory) model.Risk {
 	factorString := ""
 	if twoFactor {
 		factorString = "Two-Factor "
@@ -98,7 +99,7 @@ func CreateRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, i
 			"to <b>" + technicalAsset.Title + "</b>",
 		MostRelevantTechnicalAssetId:    technicalAsset.Id,
 		MostRelevantCommunicationLinkId: incomingAccess.Id,
-		DataBreachProbability:           model.Possible,
+		DataBreachProbability:           types.Possible,
 		DataBreachTechnicalAssetIDs:     []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + incomingAccess.Id + "@" + input.TechnicalAssets[incomingAccess.SourceId].Id + "@" + technicalAsset.Id

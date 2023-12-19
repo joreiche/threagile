@@ -2,6 +2,7 @@ package missing_identity_propagation
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -28,8 +29,8 @@ func Category() model.RiskCategory {
 			"identity of the end user. This can be achieved in passing JWTs or similar tokens and checking them in the backend " +
 			"services. For DevOps usages apply at least a technical-user authorization.",
 		Check:    "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function: model.Architecture,
-		STRIDE:   model.ElevationOfPrivilege,
+		Function: types.Architecture,
+		STRIDE:   types.ElevationOfPrivilege,
 		DetectionLogic: "In-scope service-like technical assets which usually process data based on end user requests, if authenticated " +
 			"(i.e. non-public), should authorize incoming requests based on the propagated end user identity when their rating is sensitive. " +
 			"This is especially the case for all multi-tenant assets (there even less-sensitive rated ones). " +
@@ -55,28 +56,28 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 			continue
 		}
 		if technicalAsset.Technology.IsUsuallyProcessingEndUserRequests() &&
-			(technicalAsset.Confidentiality >= model.Confidential ||
-				technicalAsset.Integrity >= model.Critical ||
-				technicalAsset.Availability >= model.Critical ||
+			(technicalAsset.Confidentiality >= types.Confidential ||
+				technicalAsset.Integrity >= types.Critical ||
+				technicalAsset.Availability >= types.Critical ||
 				(technicalAsset.MultiTenant &&
-					(technicalAsset.Confidentiality >= model.Restricted ||
-						technicalAsset.Integrity >= model.Important ||
-						technicalAsset.Availability >= model.Important))) {
+					(technicalAsset.Confidentiality >= types.Restricted ||
+						technicalAsset.Integrity >= types.Important ||
+						technicalAsset.Availability >= types.Important))) {
 			// check each incoming authenticated data flow
 			commLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 			for _, commLink := range commLinks {
 				caller := input.TechnicalAssets[commLink.SourceId]
-				if !caller.Technology.IsUsuallyAbleToPropagateIdentityToOutgoingTargets() || caller.Type == model.Datastore {
+				if !caller.Technology.IsUsuallyAbleToPropagateIdentityToOutgoingTargets() || caller.Type == types.Datastore {
 					continue
 				}
-				if commLink.Authentication != model.NoneAuthentication &&
-					commLink.Authorization != model.EndUserIdentityPropagation {
-					if commLink.Usage == model.DevOps && commLink.Authorization != model.NoneAuthorization {
+				if commLink.Authentication != types.NoneAuthentication &&
+					commLink.Authorization != types.EndUserIdentityPropagation {
+					if commLink.Usage == types.DevOps && commLink.Authorization != types.NoneAuthorization {
 						continue
 					}
-					highRisk := technicalAsset.Confidentiality == model.StrictlyConfidential ||
-						technicalAsset.Integrity == model.MissionCritical ||
-						technicalAsset.Availability == model.MissionCritical
+					highRisk := technicalAsset.Confidentiality == types.StrictlyConfidential ||
+						technicalAsset.Integrity == types.MissionCritical ||
+						technicalAsset.Availability == types.MissionCritical
 					risks = append(risks, createRisk(input, technicalAsset, commLink, highRisk))
 				}
 			}
@@ -86,21 +87,21 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 }
 
 func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingAccess model.CommunicationLink, moreRisky bool) model.Risk {
-	impact := model.LowImpact
+	impact := types.LowImpact
 	if moreRisky {
-		impact = model.MediumImpact
+		impact = types.MediumImpact
 	}
 	risk := model.Risk{
 		Category:               Category(),
-		Severity:               model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood: model.Unlikely,
+		Severity:               model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood: types.Unlikely,
 		ExploitationImpact:     impact,
 		Title: "<b>Missing End User Identity Propagation</b> over communication link <b>" + incomingAccess.Title + "</b> " +
 			"from <b>" + input.TechnicalAssets[incomingAccess.SourceId].Title + "</b> " +
 			"to <b>" + technicalAsset.Title + "</b>",
 		MostRelevantTechnicalAssetId:    technicalAsset.Id,
 		MostRelevantCommunicationLinkId: incomingAccess.Id,
-		DataBreachProbability:           model.Improbable,
+		DataBreachProbability:           types.Improbable,
 		DataBreachTechnicalAssetIDs:     []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + incomingAccess.Id + "@" + input.TechnicalAssets[incomingAccess.SourceId].Id + "@" + technicalAsset.Id

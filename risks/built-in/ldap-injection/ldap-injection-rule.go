@@ -2,6 +2,7 @@ package ldap_injection
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -26,8 +27,8 @@ func Category() model.RiskCategory {
 			"the LDAP sever in order to stay safe from LDAP-Injection vulnerabilities. " +
 			"When a third-party product is used instead of custom developed software, check if the product applies the proper mitigation and ensure a reasonable patch-level.",
 		Check:          "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:       model.Development,
-		STRIDE:         model.Tampering,
+		Function:       types.Development,
+		STRIDE:         types.Tampering,
 		DetectionLogic: "In-scope clients accessing LDAP servers via typical LDAP access protocols.",
 		RiskAssessment: "The risk rating depends on the sensitivity of the LDAP server itself and of the data assets processed or stored.",
 		FalsePositives: "LDAP server queries by search values not consisting of parts controllable by the caller can be considered " +
@@ -45,10 +46,10 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 			if input.TechnicalAssets[incomingFlow.SourceId].OutOfScope {
 				continue
 			}
-			if incomingFlow.Protocol == model.LDAP || incomingFlow.Protocol == model.LDAPS {
-				likelihood := model.Likely
-				if incomingFlow.Usage == model.DevOps {
-					likelihood = model.Unlikely
+			if incomingFlow.Protocol == types.LDAP || incomingFlow.Protocol == types.LDAPS {
+				likelihood := types.Likely
+				if incomingFlow.Usage == types.DevOps {
+					likelihood = types.Unlikely
 				}
 				risks = append(risks, createRisk(input, technicalAsset, incomingFlow, likelihood))
 			}
@@ -61,13 +62,13 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingFlow model.CommunicationLink, likelihood model.RiskExploitationLikelihood) model.Risk {
+func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingFlow model.CommunicationLink, likelihood types.RiskExploitationLikelihood) model.Risk {
 	caller := input.TechnicalAssets[incomingFlow.SourceId]
 	title := "<b>LDAP-Injection</b> risk at <b>" + caller.Title + "</b> against LDAP server <b>" + technicalAsset.Title + "</b>" +
 		" via <b>" + incomingFlow.Title + "</b>"
-	impact := model.MediumImpact
-	if technicalAsset.HighestConfidentiality() == model.StrictlyConfidential || technicalAsset.HighestIntegrity() == model.MissionCritical {
-		impact = model.HighImpact
+	impact := types.MediumImpact
+	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential || technicalAsset.HighestIntegrity() == types.MissionCritical {
+		impact = types.HighImpact
 	}
 	risk := model.Risk{
 		Category:                        Category(),
@@ -77,7 +78,7 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, i
 		Title:                           title,
 		MostRelevantTechnicalAssetId:    caller.Id,
 		MostRelevantCommunicationLinkId: incomingFlow.Id,
-		DataBreachProbability:           model.Probable,
+		DataBreachProbability:           types.Probable,
 		DataBreachTechnicalAssetIDs:     []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + caller.Id + "@" + technicalAsset.Id + "@" + incomingFlow.Id

@@ -1,8 +1,10 @@
 package unnecessary_data_transfer
 
 import (
-	"github.com/threagile/threagile/model"
 	"sort"
+
+	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -27,13 +29,13 @@ func Category() model.RiskCategory {
 		Mitigation: "Try to avoid sending or receiving sensitive data assets which are not required (i.e. neither " +
 			"processed or stored) by the involved technical asset.",
 		Check:    "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function: model.Architecture,
-		STRIDE:   model.ElevationOfPrivilege,
+		Function: types.Architecture,
+		STRIDE:   types.ElevationOfPrivilege,
 		DetectionLogic: "In-scope technical assets sending or receiving sensitive data assets which are neither processed nor " +
 			"stored by the technical asset are flagged with this risk. The risk rating (low or medium) depends on the " +
 			"confidentiality, integrity, and availability rating of the technical asset. Monitoring data is exempted from this risk.",
 		RiskAssessment: "The risk assessment is depending on the confidentiality and integrity rating of the transferred data asset " +
-			"either " + model.LowSeverity.String() + " or " + model.MediumSeverity.String() + ".",
+			"either " + types.LowSeverity.String() + " or " + types.MediumSeverity.String() + ".",
 		FalsePositives: "Technical assets missing the model entries of either processing or storing the mentioned data assets " +
 			"can be considered as false positives (incomplete models) after individual review. These should then be addressed by " +
 			"completing the model so that all necessary data assets are processed and/or stored by the technical asset involved.",
@@ -81,7 +83,7 @@ func checkRisksAgainstTechnicalAsset(input *model.ParsedModel, risks []model.Ris
 		if !technicalAsset.ProcessesOrStoresDataAsset(transferredDataAssetId) {
 			transferredDataAsset := input.DataAssets[transferredDataAssetId]
 			//fmt.Print("--->>> Checking "+technicalAsset.Id+": "+transferredDataAsset.Id+" sent via "+dataFlow.Id+"\n")
-			if transferredDataAsset.Confidentiality >= model.Confidential || transferredDataAsset.Integrity >= model.Critical {
+			if transferredDataAsset.Confidentiality >= types.Confidential || transferredDataAsset.Integrity >= types.Critical {
 				commPartnerId := dataFlow.TargetId
 				if inverseDirection {
 					commPartnerId = dataFlow.SourceId
@@ -98,7 +100,7 @@ func checkRisksAgainstTechnicalAsset(input *model.ParsedModel, risks []model.Ris
 		if !technicalAsset.ProcessesOrStoresDataAsset(transferredDataAssetId) {
 			transferredDataAsset := input.DataAssets[transferredDataAssetId]
 			//fmt.Print("--->>> Checking "+technicalAsset.Id+": "+transferredDataAsset.Id+" received via "+dataFlow.Id+"\n")
-			if transferredDataAsset.Confidentiality >= model.Confidential || transferredDataAsset.Integrity >= model.Critical {
+			if transferredDataAsset.Confidentiality >= types.Confidential || transferredDataAsset.Integrity >= types.Critical {
 				commPartnerId := dataFlow.TargetId
 				if inverseDirection {
 					commPartnerId = dataFlow.SourceId
@@ -124,24 +126,24 @@ func isNewRisk(risks []model.Risk, risk model.Risk) bool {
 }
 
 func createRisk(technicalAsset model.TechnicalAsset, dataAssetTransferred model.DataAsset, commPartnerAsset model.TechnicalAsset) model.Risk {
-	moreRisky := dataAssetTransferred.Confidentiality == model.StrictlyConfidential || dataAssetTransferred.Integrity == model.MissionCritical
+	moreRisky := dataAssetTransferred.Confidentiality == types.StrictlyConfidential || dataAssetTransferred.Integrity == types.MissionCritical
 
-	impact := model.LowImpact
+	impact := types.LowImpact
 	if moreRisky {
-		impact = model.MediumImpact
+		impact = types.MediumImpact
 	}
 
 	title := "<b>Unnecessary Data Transfer</b> of <b>" + dataAssetTransferred.Title + "</b> data at <b>" + technicalAsset.Title + "</b> " +
 		"from/to <b>" + commPartnerAsset.Title + "</b>"
 	risk := model.Risk{
 		Category:                     Category(),
-		Severity:                     model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood:       model.Unlikely,
+		Severity:                     model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood:       types.Unlikely,
 		ExploitationImpact:           impact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
 		MostRelevantDataAssetId:      dataAssetTransferred.Id,
-		DataBreachProbability:        model.Improbable,
+		DataBreachProbability:        types.Improbable,
 		DataBreachTechnicalAssetIDs:  []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + dataAssetTransferred.Id + "@" + technicalAsset.Id + "@" + commPartnerAsset.Id

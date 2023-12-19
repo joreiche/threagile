@@ -2,6 +2,7 @@ package cross_site_scripting
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -26,8 +27,8 @@ func Category() model.RiskCategory {
 			"to avoid DOM-based XSS. " +
 			"When a third-party product is used instead of custom developed software, check if the product applies the proper mitigation and ensure a reasonable patch-level.",
 		Check:          "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:       model.Development,
-		STRIDE:         model.Tampering,
+		Function:       types.Development,
+		STRIDE:         types.Tampering,
 		DetectionLogic: "In-scope web applications.",
 		RiskAssessment: "The risk rating depends on the sensitivity of the data processed or stored in the web application.",
 		FalsePositives: "When the technical asset " +
@@ -56,18 +57,18 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 
 func createRisk(technicalAsset model.TechnicalAsset) model.Risk {
 	title := "<b>Cross-Site Scripting (XSS)</b> risk at <b>" + technicalAsset.Title + "</b>"
-	impact := model.MediumImpact
-	if technicalAsset.HighestConfidentiality() == model.StrictlyConfidential || technicalAsset.HighestIntegrity() == model.MissionCritical {
-		impact = model.HighImpact
+	impact := types.MediumImpact
+	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential || technicalAsset.HighestIntegrity() == types.MissionCritical {
+		impact = types.HighImpact
 	}
 	risk := model.Risk{
 		Category:                     Category(),
-		Severity:                     model.CalculateSeverity(model.Likely, impact),
-		ExploitationLikelihood:       model.Likely,
+		Severity:                     model.CalculateSeverity(types.Likely, impact),
+		ExploitationLikelihood:       types.Likely,
 		ExploitationImpact:           impact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
-		DataBreachProbability:        model.Possible,
+		DataBreachProbability:        types.Possible,
 		DataBreachTechnicalAssetIDs:  []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id

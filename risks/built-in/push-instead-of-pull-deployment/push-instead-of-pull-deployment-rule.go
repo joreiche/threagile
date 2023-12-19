@@ -2,6 +2,7 @@ package push_instead_of_pull_deployment
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -27,8 +28,8 @@ func Category() model.RiskCategory {
 		Action:     "Build Pipeline Hardening",
 		Mitigation: "Try to prefer pull-based deployments (like GitOps scenarios offer) over push-based deployments to reduce the attack surface of the production system.",
 		Check:      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:   model.Architecture,
-		STRIDE:     model.Tampering,
+		Function:   types.Architecture,
+		STRIDE:     types.Tampering,
 		DetectionLogic: "Models with build pipeline components accessing in-scope targets of deployment (in a non-readonly way) which " +
 			"are not build-related components themselves.",
 		RiskAssessment: "The risk rating depends on the highest sensitivity of the deployment targets running custom-developed parts.",
@@ -45,17 +46,17 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	impact := model.LowImpact
+	impact := types.LowImpact
 	for _, buildPipeline := range input.TechnicalAssets {
-		if buildPipeline.Technology == model.BuildPipeline {
+		if buildPipeline.Technology == types.BuildPipeline {
 			for _, deploymentLink := range buildPipeline.CommunicationLinks {
 				targetAsset := input.TechnicalAssets[deploymentLink.TargetId]
-				if !deploymentLink.Readonly && deploymentLink.Usage == model.DevOps &&
-					!targetAsset.OutOfScope && !targetAsset.Technology.IsDevelopmentRelevant() && targetAsset.Usage == model.Business {
-					if targetAsset.HighestConfidentiality() >= model.Confidential ||
-						targetAsset.HighestIntegrity() >= model.Critical ||
-						targetAsset.HighestAvailability() >= model.Critical {
-						impact = model.MediumImpact
+				if !deploymentLink.Readonly && deploymentLink.Usage == types.DevOps &&
+					!targetAsset.OutOfScope && !targetAsset.Technology.IsDevelopmentRelevant() && targetAsset.Usage == types.Business {
+					if targetAsset.HighestConfidentiality() >= types.Confidential ||
+						targetAsset.HighestIntegrity() >= types.Critical ||
+						targetAsset.HighestAvailability() >= types.Critical {
+						impact = types.MediumImpact
 					}
 					risks = append(risks, createRisk(buildPipeline, targetAsset, deploymentLink, impact))
 				}
@@ -65,17 +66,17 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	return risks
 }
 
-func createRisk(buildPipeline model.TechnicalAsset, deploymentTarget model.TechnicalAsset, deploymentCommLink model.CommunicationLink, impact model.RiskExploitationImpact) model.Risk {
+func createRisk(buildPipeline model.TechnicalAsset, deploymentTarget model.TechnicalAsset, deploymentCommLink model.CommunicationLink, impact types.RiskExploitationImpact) model.Risk {
 	title := "<b>Push instead of Pull Deployment</b> at <b>" + deploymentTarget.Title + "</b> via build pipeline asset <b>" + buildPipeline.Title + "</b>"
 	risk := model.Risk{
 		Category:                        Category(),
-		Severity:                        model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood:          model.Unlikely,
+		Severity:                        model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood:          types.Unlikely,
 		ExploitationImpact:              impact,
 		Title:                           title,
 		MostRelevantTechnicalAssetId:    deploymentTarget.Id,
 		MostRelevantCommunicationLinkId: deploymentCommLink.Id,
-		DataBreachProbability:           model.Improbable,
+		DataBreachProbability:           types.Improbable,
 		DataBreachTechnicalAssetIDs:     []string{deploymentTarget.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + buildPipeline.Id

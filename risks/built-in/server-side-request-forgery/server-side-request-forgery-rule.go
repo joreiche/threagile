@@ -2,6 +2,7 @@ package server_side_request_forgery
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -26,8 +27,8 @@ func Category() model.RiskCategory {
 			"controllable values. " +
 			"When a third-party product is used instead of custom developed software, check if the product applies the proper mitigation and ensure a reasonable patch-level.",
 		Check:          "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:       model.Development,
-		STRIDE:         model.InformationDisclosure,
+		Function:       types.Development,
+		STRIDE:         types.InformationDisclosure,
 		DetectionLogic: "In-scope non-client systems accessing (using outgoing communication links) targets with either HTTP or HTTPS protocol.",
 		RiskAssessment: "The risk rating (low or medium) depends on the sensitivity of the data assets receivable via web protocols from " +
 			"targets within the same network trust-boundary as well on the sensitivity of the data assets receivable via web protocols from the target asset itself. " +
@@ -47,7 +48,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
-		if technicalAsset.OutOfScope || technicalAsset.Technology.IsClient() || technicalAsset.Technology == model.LoadBalancer {
+		if technicalAsset.OutOfScope || technicalAsset.Technology.IsClient() || technicalAsset.Technology == types.LoadBalancer {
 			continue
 		}
 		for _, outgoingFlow := range technicalAsset.CommunicationLinks {
@@ -63,10 +64,10 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, o
 	target := input.TechnicalAssets[outgoingFlow.TargetId]
 	title := "<b>Server-Side Request Forgery (SSRF)</b> risk at <b>" + technicalAsset.Title + "</b> server-side web-requesting " +
 		"the target <b>" + target.Title + "</b> via <b>" + outgoingFlow.Title + "</b>"
-	impact := model.LowImpact
+	impact := types.LowImpact
 	// check by the target itself (can be in another trust-boundary)
-	if target.HighestConfidentiality() == model.StrictlyConfidential {
-		impact = model.MediumImpact
+	if target.HighestConfidentiality() == types.StrictlyConfidential {
+		impact = types.MediumImpact
 	}
 	// check all potential attack targets within the same trust boundary (accessible via web protocols)
 	uniqueDataBreachTechnicalAssetIDs := make(map[string]interface{})
@@ -76,24 +77,24 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, o
 			for _, commLinkIncoming := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[potentialTargetAsset.Id] {
 				if commLinkIncoming.Protocol.IsPotentialWebAccessProtocol() {
 					uniqueDataBreachTechnicalAssetIDs[potentialTargetAsset.Id] = true
-					if potentialTargetAsset.HighestConfidentiality() == model.StrictlyConfidential {
-						impact = model.MediumImpact
+					if potentialTargetAsset.HighestConfidentiality() == types.StrictlyConfidential {
+						impact = types.MediumImpact
 					}
 				}
 			}
 		}
 	}
 	// adjust for cloud-based special risks
-	if impact == model.LowImpact && input.TrustBoundaries[technicalAsset.GetTrustBoundaryId()].Type.IsWithinCloud() {
-		impact = model.MediumImpact
+	if impact == types.LowImpact && input.TrustBoundaries[technicalAsset.GetTrustBoundaryId()].Type.IsWithinCloud() {
+		impact = types.MediumImpact
 	}
 	dataBreachTechnicalAssetIDs := make([]string, 0)
 	for key := range uniqueDataBreachTechnicalAssetIDs {
 		dataBreachTechnicalAssetIDs = append(dataBreachTechnicalAssetIDs, key)
 	}
-	likelihood := model.Likely
-	if outgoingFlow.Usage == model.DevOps {
-		likelihood = model.Unlikely
+	likelihood := types.Likely
+	if outgoingFlow.Usage == types.DevOps {
+		likelihood = types.Unlikely
 	}
 	risk := model.Risk{
 		Category:                        Category(),
@@ -103,7 +104,7 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, o
 		Title:                           title,
 		MostRelevantTechnicalAssetId:    technicalAsset.Id,
 		MostRelevantCommunicationLinkId: outgoingFlow.Id,
-		DataBreachProbability:           model.Possible,
+		DataBreachProbability:           types.Possible,
 		DataBreachTechnicalAssetIDs:     dataBreachTechnicalAssetIDs,
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id + "@" + target.Id + "@" + outgoingFlow.Id

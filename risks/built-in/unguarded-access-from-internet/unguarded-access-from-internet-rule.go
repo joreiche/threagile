@@ -1,8 +1,10 @@
 package unguarded_access_from_internet
 
 import (
-	"github.com/threagile/threagile/model"
 	"sort"
+
+	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -28,20 +30,20 @@ func Category() model.RiskCategory {
 			"For admin maintenance a bastion-host should be used as a jump-server. " +
 			"For file transfer a store-and-forward-host should be used as an indirect file exchange platform.",
 		Check:    "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function: model.Architecture,
-		STRIDE:   model.ElevationOfPrivilege,
-		DetectionLogic: "In-scope technical assets (excluding " + model.LoadBalancer.String() + ") with confidentiality rating " +
-			"of " + model.Confidential.String() + " (or higher) or with integrity rating of " + model.Critical.String() + " (or higher) when " +
+		Function: types.Architecture,
+		STRIDE:   types.ElevationOfPrivilege,
+		DetectionLogic: "In-scope technical assets (excluding " + types.LoadBalancer.String() + ") with confidentiality rating " +
+			"of " + types.Confidential.String() + " (or higher) or with integrity rating of " + types.Critical.String() + " (or higher) when " +
 			"accessed directly from the internet. All " +
-			model.WebServer.String() + ", " + model.WebApplication.String() + ", " + model.ReverseProxy.String() + ", " + model.WAF.String() + ", and " + model.Gateway.String() + " assets are exempted from this risk when " +
+			types.WebServer.String() + ", " + types.WebApplication.String() + ", " + types.ReverseProxy.String() + ", " + types.WAF.String() + ", and " + types.Gateway.String() + " assets are exempted from this risk when " +
 			"they do not consist of custom developed code and " +
-			"the data-flow only consists of HTTP or FTP protocols. Access from " + model.Monitoring.String() + " systems " +
+			"the data-flow only consists of HTTP or FTP protocols. Access from " + types.Monitoring.String() + " systems " +
 			"as well as VPN-protected connections are exempted.",
-		RiskAssessment: "The matching technical assets are at " + model.LowSeverity.String() + " risk. When either the " +
-			"confidentiality rating is " + model.StrictlyConfidential.String() + " or the integrity rating " +
-			"is " + model.MissionCritical.String() + ", the risk-rating is considered " + model.MediumSeverity.String() + ". " +
+		RiskAssessment: "The matching technical assets are at " + types.LowSeverity.String() + " risk. When either the " +
+			"confidentiality rating is " + types.StrictlyConfidential.String() + " or the integrity rating " +
+			"is " + types.MissionCritical.String() + ", the risk-rating is considered " + types.MediumSeverity.String() + ". " +
 			"For assets with RAA values higher than 40 % the risk-rating increases.",
-		FalsePositives:             "When other means of filtering client requests are applied equivalent of " + model.ReverseProxy.String() + ", " + model.WAF.String() + ", or " + model.Gateway.String() + " components.",
+		FalsePositives:             "When other means of filtering client requests are applied equivalent of " + types.ReverseProxy.String() + ", " + types.WAF.String() + ", or " + types.Gateway.String() + " components.",
 		ModelFailurePossibleReason: false,
 		CWE:                        501,
 	}
@@ -59,26 +61,26 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 			commLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 			sort.Sort(model.ByTechnicalCommunicationLinkIdSort(commLinks))
 			for _, incomingAccess := range commLinks {
-				if technicalAsset.Technology != model.LoadBalancer {
+				if technicalAsset.Technology != types.LoadBalancer {
 					if !technicalAsset.CustomDevelopedParts {
-						if (technicalAsset.Technology == model.WebServer || technicalAsset.Technology == model.WebApplication || technicalAsset.Technology == model.ReverseProxy || technicalAsset.Technology == model.WAF || technicalAsset.Technology == model.Gateway) &&
-							(incomingAccess.Protocol == model.HTTP || incomingAccess.Protocol == model.HTTPS) {
+						if (technicalAsset.Technology == types.WebServer || technicalAsset.Technology == types.WebApplication || technicalAsset.Technology == types.ReverseProxy || technicalAsset.Technology == types.WAF || technicalAsset.Technology == types.Gateway) &&
+							(incomingAccess.Protocol == types.HTTP || incomingAccess.Protocol == types.HTTPS) {
 							continue
 						}
-						if technicalAsset.Technology == model.Gateway &&
-							(incomingAccess.Protocol == model.FTP || incomingAccess.Protocol == model.FTPS || incomingAccess.Protocol == model.SFTP) {
+						if technicalAsset.Technology == types.Gateway &&
+							(incomingAccess.Protocol == types.FTP || incomingAccess.Protocol == types.FTPS || incomingAccess.Protocol == types.SFTP) {
 							continue
 						}
 					}
-					if input.TechnicalAssets[incomingAccess.SourceId].Technology == model.Monitoring ||
+					if input.TechnicalAssets[incomingAccess.SourceId].Technology == types.Monitoring ||
 						incomingAccess.VPN {
 						continue
 					}
-					if technicalAsset.Confidentiality >= model.Confidential || technicalAsset.Integrity >= model.Critical {
+					if technicalAsset.Confidentiality >= types.Confidential || technicalAsset.Integrity >= types.Critical {
 						sourceAsset := input.TechnicalAssets[incomingAccess.SourceId]
 						if sourceAsset.Internet {
-							highRisk := technicalAsset.Confidentiality == model.StrictlyConfidential ||
-								technicalAsset.Integrity == model.MissionCritical
+							highRisk := technicalAsset.Confidentiality == types.StrictlyConfidential ||
+								technicalAsset.Integrity == types.MissionCritical
 							risks = append(risks, createRisk(technicalAsset, incomingAccess,
 								input.TechnicalAssets[incomingAccess.SourceId], highRisk))
 						}
@@ -92,20 +94,20 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 
 func createRisk(dataStore model.TechnicalAsset, dataFlow model.CommunicationLink,
 	clientFromInternet model.TechnicalAsset, moreRisky bool) model.Risk {
-	impact := model.LowImpact
+	impact := types.LowImpact
 	if moreRisky || dataStore.RAA > 40 {
-		impact = model.MediumImpact
+		impact = types.MediumImpact
 	}
 	risk := model.Risk{
 		Category:               Category(),
-		Severity:               model.CalculateSeverity(model.VeryLikely, impact),
-		ExploitationLikelihood: model.VeryLikely,
+		Severity:               model.CalculateSeverity(types.VeryLikely, impact),
+		ExploitationLikelihood: types.VeryLikely,
 		ExploitationImpact:     impact,
 		Title: "<b>Unguarded Access from Internet</b> of <b>" + dataStore.Title + "</b> by <b>" +
 			clientFromInternet.Title + "</b>" + " via <b>" + dataFlow.Title + "</b>",
 		MostRelevantTechnicalAssetId:    dataStore.Id,
 		MostRelevantCommunicationLinkId: dataFlow.Id,
-		DataBreachProbability:           model.Possible,
+		DataBreachProbability:           types.Possible,
 		DataBreachTechnicalAssetIDs:     []string{dataStore.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + dataStore.Id + "@" + clientFromInternet.Id + "@" + dataFlow.Id

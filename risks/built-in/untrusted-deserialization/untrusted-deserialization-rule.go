@@ -2,6 +2,7 @@ package untrusted_deserialization
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -29,8 +30,8 @@ func Category() model.RiskCategory {
 			"Alternatively a strict whitelisting approach of the classes/types/values to deserialize might help as well. " +
 			"When a third-party product is used instead of custom developed software, check if the product applies the proper mitigation and ensure a reasonable patch-level.",
 		Check:          "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:       model.Architecture,
-		STRIDE:         model.Tampering,
+		Function:       types.Architecture,
+		STRIDE:         types.Tampering,
 		DetectionLogic: "In-scope technical assets accepting serialization data formats (including EJB and RMI protocols).",
 		RiskAssessment: "The risk rating depends on the sensitivity of the technical asset itself and of the data assets processed and stored.",
 		FalsePositives: "Fully trusted (i.e. cryptographically signed or similar) data deserialized can be considered " +
@@ -54,17 +55,17 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 		hasOne, acrossTrustBoundary := false, false
 		commLinkTitle := ""
 		for _, format := range technicalAsset.DataFormatsAccepted {
-			if format == model.Serialization {
+			if format == types.Serialization {
 				hasOne = true
 			}
 		}
-		if technicalAsset.Technology == model.EJB {
+		if technicalAsset.Technology == types.EJB {
 			hasOne = true
 		}
 		// check for any incoming IIOP and JRMP protocols
 		for _, commLink := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
-			if commLink.Protocol == model.IIOP || commLink.Protocol == model.IiopEncrypted ||
-				commLink.Protocol == model.JRMP || commLink.Protocol == model.JrmpEncrypted {
+			if commLink.Protocol == types.IIOP || commLink.Protocol == types.IiopEncrypted ||
+				commLink.Protocol == types.JRMP || commLink.Protocol == types.JrmpEncrypted {
 				hasOne = true
 				if commLink.IsAcrossTrustBoundaryNetworkOnly() {
 					acrossTrustBoundary = true
@@ -81,16 +82,16 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 
 func createRisk(technicalAsset model.TechnicalAsset, acrossTrustBoundary bool, commLinkTitle string) model.Risk {
 	title := "<b>Untrusted Deserialization</b> risk at <b>" + technicalAsset.Title + "</b>"
-	impact := model.HighImpact
-	likelihood := model.Likely
+	impact := types.HighImpact
+	likelihood := types.Likely
 	if acrossTrustBoundary {
-		likelihood = model.VeryLikely
+		likelihood = types.VeryLikely
 		title += " across a trust boundary (at least via communication link <b>" + commLinkTitle + "</b>)"
 	}
-	if technicalAsset.HighestConfidentiality() == model.StrictlyConfidential ||
-		technicalAsset.HighestIntegrity() == model.MissionCritical ||
-		technicalAsset.HighestAvailability() == model.MissionCritical {
-		impact = model.VeryHighImpact
+	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
+		technicalAsset.HighestIntegrity() == types.MissionCritical ||
+		technicalAsset.HighestAvailability() == types.MissionCritical {
+		impact = types.VeryHighImpact
 	}
 	risk := model.Risk{
 		Category:                     Category(),
@@ -99,7 +100,7 @@ func createRisk(technicalAsset model.TechnicalAsset, acrossTrustBoundary bool, c
 		ExploitationImpact:           impact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
-		DataBreachProbability:        model.Probable,
+		DataBreachProbability:        types.Probable,
 		DataBreachTechnicalAssetIDs:  []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id

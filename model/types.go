@@ -1,11 +1,7 @@
 package model
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/threagile/threagile/colors"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,9 +9,12 @@ import (
 	"sort"
 	"strings"
 	"time"
-)
 
-const ThreagileVersion = "1.0.0" // Also update into example and stub model files and openapi.yaml
+	"gopkg.in/yaml.v3"
+
+	"github.com/threagile/threagile/colors"
+	"github.com/threagile/threagile/pkg/security/types"
+)
 
 var ParsedModelRoot ParsedModel
 
@@ -30,7 +29,6 @@ var GeneratedRisksBySyntheticId map[string]Risk
 var AllSupportedTags map[string]bool
 
 var (
-	_ = ParseEncryptionStyle
 	_ = SortedKeysOfDataAssets
 	_ = SortedKeysOfTechnicalAssets
 	_ = SortedDataAssetsByDataBreachProbabilityAndTitleStillAtRisk
@@ -437,1063 +435,7 @@ type InputRiskTracking struct {
 	CheckedBy     string `yaml:"checked_by" json:"checked_by"`
 }
 
-// TypeDescription contains a name for a type and its description
-type TypeDescription struct {
-	Name        string
-	Description string
-}
-
-type TypeEnum interface {
-	String() string
-	Explain() string
-}
-
-type Quantity int
-
-const (
-	VeryFew Quantity = iota
-	Few
-	Many
-	VeryMany
-)
-
-func QuantityValues() []TypeEnum {
-	return []TypeEnum{
-		VeryFew,
-		Few,
-		Many,
-		VeryMany,
-	}
-}
-
-func ParseQuantity(value string) (quantity Quantity, err error) {
-	value = strings.TrimSpace(value)
-	for _, candidate := range QuantityValues() {
-		if candidate.String() == value {
-			return candidate.(Quantity), err
-		}
-	}
-	return quantity, errors.New("Unable to parse into type: " + value)
-}
-
-var QuantityTypeDescription = [...]TypeDescription{
-	{"very-few", "Very few"},
-	{"few", "Few"},
-	{"many", "Many"},
-	{"very-many", "Very many"},
-}
-
-func (what Quantity) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return QuantityTypeDescription[what].Name
-}
-
-func (what Quantity) Explain() string {
-	return QuantityTypeDescription[what].Description
-}
-
-func (what Quantity) Title() string {
-	return [...]string{"very few", "few", "many", "very many"}[what]
-}
-
-func (what Quantity) QuantityFactor() float64 {
-	// fibonacci starting at 1
-	return [...]float64{1, 2, 3, 5}[what]
-}
-
-type Confidentiality int
-
-const (
-	Public Confidentiality = iota
-	Internal
-	Restricted
-	Confidential
-	StrictlyConfidential
-)
-
-func ConfidentialityValues() []TypeEnum {
-	return []TypeEnum{
-		Public,
-		Internal,
-		Restricted,
-		Confidential,
-		StrictlyConfidential,
-	}
-}
-
-func ParseConfidentiality(value string) (confidentiality Confidentiality, err error) {
-	value = strings.TrimSpace(value)
-	for _, candidate := range ConfidentialityValues() {
-		if candidate.String() == value {
-			return candidate.(Confidentiality), err
-		}
-	}
-	return confidentiality, errors.New("Unable to parse into type: " + value)
-}
-
-var ConfidentialityTypeDescription = [...]TypeDescription{
-	{"public", "Public available information"},
-	{"internal", "(Company) internal information - but all people in the institution can access it"},
-	{"restricted", "Internal and with restricted access"},
-	{"confidential", "Only a few selected people have access"},
-	{"strictly-confidential", "Highest secrecy level"},
-}
-
-func (what Confidentiality) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return ConfidentialityTypeDescription[what].Name
-}
-
-func (what Confidentiality) Explain() string {
-	return ConfidentialityTypeDescription[what].Description
-}
-
-func (what Confidentiality) AttackerAttractivenessForAsset() float64 {
-	// fibonacci starting at 8
-	return [...]float64{8, 13, 21, 34, 55}[what]
-}
-func (what Confidentiality) AttackerAttractivenessForProcessedOrStoredData() float64 {
-	// fibonacci starting at 5
-	return [...]float64{5, 8, 13, 21, 34}[what]
-}
-func (what Confidentiality) AttackerAttractivenessForInOutTransferredData() float64 {
-	// fibonacci starting at 2
-	return [...]float64{2, 3, 5, 8, 13}[what]
-}
-
-func (what Confidentiality) RatingStringInScale() string {
-	result := "(rated "
-	if what == Public {
-		result += "1"
-	}
-	if what == Internal {
-		result += "2"
-	}
-	if what == Restricted {
-		result += "3"
-	}
-	if what == Confidential {
-		result += "4"
-	}
-	if what == StrictlyConfidential {
-		result += "5"
-	}
-	result += " in scale of 5)"
-	return result
-}
-
-type Criticality int
-
-const (
-	Archive Criticality = iota
-	Operational
-	Important
-	Critical
-	MissionCritical
-)
-
-func CriticalityValues() []TypeEnum {
-	return []TypeEnum{
-		Archive,
-		Operational,
-		Important,
-		Critical,
-		MissionCritical,
-	}
-}
-
-func ParseCriticality(value string) (criticality Criticality, err error) {
-	value = strings.TrimSpace(value)
-	for _, candidate := range CriticalityValues() {
-		if candidate.String() == value {
-			return candidate.(Criticality), err
-		}
-	}
-	return criticality, errors.New("Unable to parse into type: " + value)
-}
-
-var CriticalityTypeDescription = [...]TypeDescription{
-	{"archive", "Stored, not active"},
-	{"operational", "If this fails, people will just have an ad-hoc coffee break until it is back"},
-	{"important", "Issues here results in angry people"},
-	{"critical", "Failure is really expensive or crippling"},
-	{"mission-critical", "This must not fail"},
-}
-
-func (what Criticality) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return CriticalityTypeDescription[what].Name
-}
-
-func (what Criticality) Explain() string {
-	return CriticalityTypeDescription[what].Description
-}
-
-func (what Criticality) AttackerAttractivenessForAsset() float64 {
-	// fibonacci starting at 5
-	return [...]float64{5, 8, 13, 21, 34}[what]
-}
-func (what Criticality) AttackerAttractivenessForProcessedOrStoredData() float64 {
-	// fibonacci starting at 3
-	return [...]float64{3, 5, 8, 13, 21}[what]
-}
-func (what Criticality) AttackerAttractivenessForInOutTransferredData() float64 {
-	// fibonacci starting at 2
-	return [...]float64{2, 3, 5, 8, 13}[what]
-}
-
-func (what Criticality) RatingStringInScale() string {
-	result := "(rated "
-	if what == Archive {
-		result += "1"
-	}
-	if what == Operational {
-		result += "2"
-	}
-	if what == Important {
-		result += "3"
-	}
-	if what == Critical {
-		result += "4"
-	}
-	if what == MissionCritical {
-		result += "5"
-	}
-	result += " in scale of 5)"
-	return result
-}
-
-type TechnicalAssetType int
-
-const (
-	ExternalEntity TechnicalAssetType = iota
-	Process
-	Datastore
-)
-
-func TechnicalAssetTypeValues() []TypeEnum {
-	return []TypeEnum{
-		ExternalEntity,
-		Process,
-		Datastore,
-	}
-}
-
-var TechnicalAssetTypeDescription = [...]TypeDescription{
-	{"external-entity", "This asset is hosted and managed by a third party"},
-	{"process", "A software process"},
-	{"datastore", "This asset stores data"},
-}
-
-func (what TechnicalAssetType) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return TechnicalAssetTypeDescription[what].Name
-}
-
-func (what TechnicalAssetType) Explain() string {
-	return TechnicalAssetTypeDescription[what].Description
-}
-
-type TechnicalAssetSize int
-
-const (
-	System TechnicalAssetSize = iota
-	Service
-	Application
-	Component
-)
-
-func TechnicalAssetSizeValues() []TypeEnum {
-	return []TypeEnum{
-		System,
-		Service,
-		Application,
-		Component,
-	}
-}
-
-var TechnicalAssetSizeDescription = [...]TypeDescription{
-	{"system", "A system consists of several services"},
-	{"service", "A specific service (web, mail, ...)"},
-	{"application", "A single application"},
-	{"component", "A component of an application (smaller unit like a microservice)"},
-}
-
-func (what TechnicalAssetSize) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return TechnicalAssetSizeDescription[what].Name
-}
-
-func (what TechnicalAssetSize) Explain() string {
-	return TechnicalAssetSizeDescription[what].Description
-}
-
-type Authorization int
-
-const (
-	NoneAuthorization Authorization = iota
-	TechnicalUser
-	EndUserIdentityPropagation
-)
-
-func AuthorizationValues() []TypeEnum {
-	return []TypeEnum{
-		NoneAuthorization,
-		TechnicalUser,
-		EndUserIdentityPropagation,
-	}
-}
-
-var AuthorizationTypeDescription = [...]TypeDescription{
-	{"none", "No authorization"},
-	{"technical-user", "Technical user (service-to-service) like DB user credentials"},
-	{"enduser-identity-propagation", "Identity of end user propagates to this service"},
-}
-
-func (what Authorization) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return AuthorizationTypeDescription[what].Name
-}
-
-func (what Authorization) Explain() string {
-	return AuthorizationTypeDescription[what].Description
-}
-
-type Authentication int
-
-const (
-	NoneAuthentication Authentication = iota
-	Credentials
-	SessionId
-	Token
-	ClientCertificate
-	TwoFactor
-	Externalized
-)
-
-func AuthenticationValues() []TypeEnum {
-	return []TypeEnum{
-		NoneAuthentication,
-		Credentials,
-		SessionId,
-		Token,
-		ClientCertificate,
-		TwoFactor,
-		Externalized,
-	}
-}
-
-var AuthenticationTypeDescription = [...]TypeDescription{
-	{"none", "No authentication"},
-	{"credentials", "Username and password, pin or passphrase"},
-	{"session-id", "A server generated session id with limited life span"},
-	{"token", "A server generated token. Containing session id, other data and is cryptographically signed"},
-	{"client-certificate", "A certificate file stored on the client identifying this specific client"},
-	{"two-factor", "Credentials plus another factor like a physical object (card) or biometrics"},
-	{"externalized", "Some external company handles authentication"},
-}
-
-func (what Authentication) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	//return [...]string{"none", "credentials", "session-id", "token", "client-certificate", "two-factor", "externalized"}[what]
-	return AuthenticationTypeDescription[what].Name
-}
-
-func (what Authentication) Explain() string {
-	return AuthenticationTypeDescription[what].Description
-}
-
-type Usage int
-
-const (
-	Business Usage = iota
-	DevOps
-)
-
-func UsageValues() []TypeEnum {
-	return []TypeEnum{
-		Business,
-		DevOps,
-	}
-}
-
-func ParseUsage(value string) (usage Usage, err error) {
-	value = strings.TrimSpace(value)
-	for _, candidate := range UsageValues() {
-		if candidate.String() == value {
-			return candidate.(Usage), err
-		}
-	}
-	return usage, errors.New("Unable to parse into type: " + value)
-}
-
-var UsageTypeDescription = [...]TypeDescription{
-	{"business", "This system is operational and does business tasks"},
-	{"devops", "This system is for development and/or deployment or other operational tasks"},
-}
-
-func (what Usage) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	//return [...]string{"business", "devops"}[what]
-	return UsageTypeDescription[what].Name
-}
-
-func (what Usage) Explain() string {
-	return UsageTypeDescription[what].Description
-}
-
-func (what Usage) Title() string {
-	return [...]string{"Business", "DevOps"}[what]
-}
-
-type EncryptionStyle int
-
-const (
-	NoneEncryption EncryptionStyle = iota
-	Transparent
-	DataWithSymmetricSharedKey
-	DataWithAsymmetricSharedKey
-	DataWithEndUserIndividualKey
-)
-
-func EncryptionStyleValues() []TypeEnum {
-	return []TypeEnum{
-		NoneEncryption,
-		Transparent,
-		DataWithSymmetricSharedKey,
-		DataWithAsymmetricSharedKey,
-		DataWithEndUserIndividualKey,
-	}
-}
-
-func ParseEncryptionStyle(value string) (encryptionStyle EncryptionStyle, err error) {
-	value = strings.TrimSpace(value)
-	for _, candidate := range EncryptionStyleValues() {
-		if candidate.String() == value {
-			return candidate.(EncryptionStyle), err
-		}
-	}
-	return encryptionStyle, errors.New("Unable to parse into type: " + value)
-}
-
-var EncryptionStyleTypeDescription = [...]TypeDescription{
-	{"none", "No encryption"},
-	{"transparent", "Encrypted data at rest"},
-	{"data-with-symmetric-shared-key", "Both communication partners have the same key. This must be kept secret"},
-	{"data-with-asymmetric-shared-key", "The key is split into public and private. Those two are shared between partners"},
-	{"data-with-enduser-individual-key", "The key is (managed) by the end user"},
-}
-
-func (what EncryptionStyle) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return EncryptionStyleTypeDescription[what].Name
-}
-
-func (what EncryptionStyle) Explain() string {
-	return EncryptionStyleTypeDescription[what].Description
-}
-
-func (what EncryptionStyle) Title() string {
-	return [...]string{"None", "Transparent", "Data with Symmetric Shared Key", "Data with Asymmetric Shared Key", "Data with End-User Individual Key"}[what]
-}
-
-type DataFormat int
-
-const (
-	JSON DataFormat = iota
-	XML
-	Serialization
-	File
-	CSV
-)
-
-func DataFormatValues() []TypeEnum {
-	return []TypeEnum{
-		JSON,
-		XML,
-		Serialization,
-		File,
-		CSV,
-	}
-}
-
-var DataFormatTypeDescription = [...]TypeDescription{
-	{"json", "JSON"},
-	{"xml", "XML"},
-	{"serialization", "Serialized program objects"},
-	{"file", "Specific file types for data"},
-	{"csv", "CSV"},
-}
-
-func (what DataFormat) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return DataFormatTypeDescription[what].Name
-}
-
-func (what DataFormat) Explain() string {
-	return DataFormatTypeDescription[what].Description
-}
-
-func (what DataFormat) Title() string {
-	return [...]string{"JSON", "XML", "Serialization", "File", "CSV"}[what]
-}
-
-func (what DataFormat) Description() string {
-	return [...]string{"JSON marshalled object data", "XML structured data", "Serialization-based object graphs",
-		"File input/uploads", "CSV tabular data"}[what]
-}
-
-type Protocol int
-
-const (
-	UnknownProtocol Protocol = iota
-	HTTP
-	HTTPS
-	WS
-	WSS
-	ReverseProxyWebProtocol
-	ReverseProxyWebProtocolEncrypted
-	MQTT
-	JDBC
-	JdbcEncrypted
-	ODBC
-	OdbcEncrypted
-	SqlAccessProtocol
-	SqlAccessProtocolEncrypted
-	NosqlAccessProtocol
-	NosqlAccessProtocolEncrypted
-	BINARY
-	BinaryEncrypted
-	TEXT
-	TextEncrypted
-	SSH
-	SshTunnel
-	SMTP
-	SmtpEncrypted
-	POP3
-	Pop3Encrypted
-	IMAP
-	ImapEncrypted
-	FTP
-	FTPS
-	SFTP
-	SCP
-	LDAP
-	LDAPS
-	JMS
-	NFS
-	SMB
-	SmbEncrypted
-	LocalFileAccess
-	NRPE
-	XMPP
-	IIOP
-	IiopEncrypted
-	JRMP
-	JrmpEncrypted
-	InProcessLibraryCall
-	ContainerSpawning
-)
-
-func ProtocolValues() []TypeEnum {
-	return []TypeEnum{
-		UnknownProtocol,
-		HTTP,
-		HTTPS,
-		WS,
-		WSS,
-		ReverseProxyWebProtocol,
-		ReverseProxyWebProtocolEncrypted,
-		MQTT,
-		JDBC,
-		JdbcEncrypted,
-		ODBC,
-		OdbcEncrypted,
-		SqlAccessProtocol,
-		SqlAccessProtocolEncrypted,
-		NosqlAccessProtocol,
-		NosqlAccessProtocolEncrypted,
-		BINARY,
-		BinaryEncrypted,
-		TEXT,
-		TextEncrypted,
-		SSH,
-		SshTunnel,
-		SMTP,
-		SmtpEncrypted,
-		POP3,
-		Pop3Encrypted,
-		IMAP,
-		ImapEncrypted,
-		FTP,
-		FTPS,
-		SFTP,
-		SCP,
-		LDAP,
-		LDAPS,
-		JMS,
-		NFS,
-		SMB,
-		SmbEncrypted,
-		LocalFileAccess,
-		NRPE,
-		XMPP,
-		IIOP,
-		IiopEncrypted,
-		JRMP,
-		JrmpEncrypted,
-		InProcessLibraryCall,
-		ContainerSpawning,
-	}
-}
-
-var ProtocolTypeDescription = [...]TypeDescription{
-	{"unknown-protocol", "Unknown protocol"},
-	{"http", "HTTP protocol"},
-	{"https", "HTTPS protocol (encrypted)"},
-	{"ws", "WebSocket"},
-	{"wss", "WebSocket but encrypted"},
-	{"reverse-proxy-web-protocol", "Protocols used by reverse proxies"},
-	{"reverse-proxy-web-protocol-encrypted", "Protocols used by reverse proxies but encrypted"},
-	{"mqtt", "MQTT Message protocol. Encryption via TLS is optional"},
-	{"jdbc", "Java Database Connectivity"},
-	{"jdbc-encrypted", "Java Database Connectivity but encrypted"},
-	{"odbc", "Open Database Connectivity"},
-	{"odbc-encrypted", "Open Database Connectivity but encrypted"},
-	{"sql-access-protocol", "SQL access protocol"},
-	{"sql-access-protocol-encrypted", "SQL access protocol but encrypted"},
-	{"nosql-access-protocol", "NOSQL access protocol"},
-	{"nosql-access-protocol-encrypted", "NOSQL access protocol but encrypted"},
-	{"binary", "Some other binary protocol"},
-	{"binary-encrypted", "Some other binary protocol, encrypted"},
-	{"text", "Some other text protocol"},
-	{"text-encrypted", "Some other text protocol, encrypted"},
-	{"ssh", "Secure Shell to execute commands"},
-	{"ssh-tunnel", "Secure Shell as a tunnel"},
-	{"smtp", "Mail transfer protocol (sending)"},
-	{"smtp-encrypted", "Mail transfer protocol (sending), encrypted"},
-	{"pop3", "POP 3 mail fetching"},
-	{"pop3-encrypted", "POP 3 mail fetching, encrypted"},
-	{"imap", "IMAP mail sync protocol"},
-	{"imap-encrypted", "IMAP mail sync protocol, encrypted"},
-	{"ftp", "File Transfer Protocol"},
-	{"ftps", "FTP with TLS"},
-	{"sftp", "FTP on SSH"},
-	{"scp", "Secure Shell to copy files"},
-	{"ldap", "Lightweight Directory Access Protocol - User directories"},
-	{"ldaps", "Lightweight Directory Access Protocol - User directories on TLS"},
-	{"jms", "Jakarta Messaging"},
-	{"nfs", "Network File System"},
-	{"smb", "Server Message Block"},
-	{"smb-encrypted", "Server Message Block, but encrypted"},
-	{"local-file-access", "Data files are on the local system"},
-	{"nrpe", "Nagios Remote Plugin Executor"},
-	{"xmpp", "Extensible Messaging and Presence Protocol"},
-	{"iiop", "Internet Inter-ORB Protocol "},
-	{"iiop-encrypted", "Internet Inter-ORB Protocol , encrypted"},
-	{"jrmp", "Java Remote Method Protocol"},
-	{"jrmp-encrypted", "Java Remote Method Protocol, encrypted"},
-	{"in-process-library-call", "Call to local library"},
-	{"container-spawning", "Spawn a container"},
-}
-
-func (what Protocol) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return ProtocolTypeDescription[what].Name
-}
-
-func (what Protocol) Explain() string {
-	return ProtocolTypeDescription[what].Description
-}
-
-func (what Protocol) IsProcessLocal() bool {
-	return what == InProcessLibraryCall || what == LocalFileAccess || what == ContainerSpawning
-}
-
-func (what Protocol) IsEncrypted() bool {
-	return what == HTTPS || what == WSS || what == JdbcEncrypted || what == OdbcEncrypted ||
-		what == NosqlAccessProtocolEncrypted || what == SqlAccessProtocolEncrypted || what == BinaryEncrypted || what == TextEncrypted || what == SSH || what == SshTunnel ||
-		what == FTPS || what == SFTP || what == SCP || what == LDAPS || what == ReverseProxyWebProtocolEncrypted ||
-		what == IiopEncrypted || what == JrmpEncrypted || what == SmbEncrypted || what == SmtpEncrypted || what == Pop3Encrypted || what == ImapEncrypted
-}
-
-func (what Protocol) IsPotentialDatabaseAccessProtocol(includingLaxDatabaseProtocols bool) bool {
-	strictlyDatabaseOnlyProtocol := what == JdbcEncrypted || what == OdbcEncrypted ||
-		what == NosqlAccessProtocolEncrypted || what == SqlAccessProtocolEncrypted || what == JDBC || what == ODBC || what == NosqlAccessProtocol || what == SqlAccessProtocol
-	if includingLaxDatabaseProtocols {
-		// include HTTP for REST-based NoSQL-DBs as well as unknown binary
-		return strictlyDatabaseOnlyProtocol || what == HTTPS || what == HTTP || what == BINARY || what == BinaryEncrypted
-	}
-	return strictlyDatabaseOnlyProtocol
-}
-
-func (what Protocol) IsPotentialWebAccessProtocol() bool {
-	return what == HTTP || what == HTTPS || what == WS || what == WSS || what == ReverseProxyWebProtocol || what == ReverseProxyWebProtocolEncrypted
-}
-
-type TechnicalAssetTechnology int
-
-const (
-	UnknownTechnology TechnicalAssetTechnology = iota
-	ClientSystem
-	Browser
-	Desktop
-	MobileApp
-	DevOpsClient
-	WebServer
-	WebApplication
-	ApplicationServer
-	Database
-	FileServer
-	LocalFileSystem
-	ERP
-	CMS
-	WebServiceREST
-	WebServiceSOAP
-	EJB
-	SearchIndex
-	SearchEngine
-	ServiceRegistry
-	ReverseProxy
-	LoadBalancer
-	BuildPipeline
-	SourcecodeRepository
-	ArtifactRegistry
-	CodeInspectionPlatform
-	Monitoring
-	LDAPServer
-	ContainerPlatform
-	BatchProcessing
-	EventListener
-	IdentityProvider
-	IdentityStoreLDAP
-	IdentityStoreDatabase
-	Tool
-	CLI
-	Task
-	Function
-	Gateway // TODO rename to API-Gateway to be more clear?
-	IoTDevice
-	MessageQueue
-	StreamProcessing
-	ServiceMesh
-	DataLake
-	BigDataPlatform
-	ReportEngine
-	AI
-	MailServer
-	Vault
-	HSM
-	WAF
-	IDS
-	IPS
-	Scheduler
-	Mainframe
-	BlockStorage
-	Library
-)
-
-func TechnicalAssetTechnologyValues() []TypeEnum {
-	return []TypeEnum{
-		UnknownTechnology,
-		ClientSystem,
-		Browser,
-		Desktop,
-		MobileApp,
-		DevOpsClient,
-		WebServer,
-		WebApplication,
-		ApplicationServer,
-		Database,
-		FileServer,
-		LocalFileSystem,
-		ERP,
-		CMS,
-		WebServiceREST,
-		WebServiceSOAP,
-		EJB,
-		SearchIndex,
-		SearchEngine,
-		ServiceRegistry,
-		ReverseProxy,
-		LoadBalancer,
-		BuildPipeline,
-		SourcecodeRepository,
-		ArtifactRegistry,
-		CodeInspectionPlatform,
-		Monitoring,
-		LDAPServer,
-		ContainerPlatform,
-		BatchProcessing,
-		EventListener,
-		IdentityProvider,
-		IdentityStoreLDAP,
-		IdentityStoreDatabase,
-		Tool,
-		CLI,
-		Task,
-		Function,
-		Gateway,
-		IoTDevice,
-		MessageQueue,
-		StreamProcessing,
-		ServiceMesh,
-		DataLake,
-		BigDataPlatform,
-		ReportEngine,
-		AI,
-		MailServer,
-		Vault,
-		HSM,
-		WAF,
-		IDS,
-		IPS,
-		Scheduler,
-		Mainframe,
-		BlockStorage,
-		Library,
-	}
-}
-
-var TechnicalAssetTechnologyTypeDescription = [...]TypeDescription{
-	{"unknown-technology", "Unknown technology"},
-	{"client-system", "A client system"},
-	{"browser", "A web browser"},
-	{"desktop", "A desktop system (or laptop)"},
-	{"mobile-app", "A mobile app (smartphone, tablet)"},
-	{"devops-client", "A client used for DevOps"},
-	{"web-server", "A web server"},
-	{"web-application", "A web application"},
-	{"application-server", "An application server (Apache Tomcat, ...)"},
-	{"database", "A database"},
-	{"file-server", "A file server"},
-	{"local-file-system", "The local file system"},
-	{"erp", "Enterprise-Resource-Planning"},
-	{"cms", "Content Management System"},
-	{"web-service-rest", "A REST web service (API)"},
-	{"web-service-soap", "A SOAP web service (API)"},
-	{"ejb", "Jakarta Enterprise Beans fka Enterprise JavaBeans"},
-	{"search-index", "The index database of a search engine"},
-	{"search-engine", "A search engine"},
-	{"service-registry", "A central place where data schemas can be found and distributed"},
-	{"reverse-proxy", "A proxy hiding internal infrastructure from caller making requests. Can also reduce load"},
-	{"load-balancer", "A load balancer directing incoming requests to available internal infrastructure"},
-	{"build-pipeline", "A software build pipeline"},
-	{"sourcecode-repository", "Git or similar"},
-	{"artifact-registry", "A registry to store build artifacts"},
-	{"code-inspection-platform", "(Static) Code Analysis)"},
-	{"monitoring", "A monitoring system (SIEM, logs)"},
-	{"ldap-server", "A LDAP server"},
-	{"container-platform", "A platform for hosting and executing containers"},
-	{"batch-processing", "A set of tools automatically processing data"},
-	{"event-listener", "An event listener waiting to be triggered and spring to action"},
-	{"identity-provider", "A authentication provider"},
-	{"identity-store-ldap", "Authentication data as LDAP"},
-	{"identity-store-database", "Authentication data as database"},
-	{"tool", "A specific tool"},
-	{"cli", "A command line tool"},
-	{"task", "A specific task"},
-	{"function", "A specific function (maybe RPC ?)"},
-	{"gateway", "A gateway connecting two systems or trust boundaries"},
-	{"iot-device", "An IoT device"},
-	{"message-queue", "A message queue (like MQTT)"},
-	{"stream-processing", "Data stream processing"},
-	{"service-mesh", "Infrastructure for service-to-service communication"},
-	{"data-lake", "A huge database"},
-	{"big-data-platform", "Storage for big data"},
-	{"report-engine", "Software for report generation"},
-	{"ai", "An Artificial Intelligence service"},
-	{"mail-server", "A Mail server"},
-	{"vault", "Encryption and key management"},
-	{"hsm", "Hardware Security Module"},
-	{"waf", "Web Application Firewall"},
-	{"ids", "Intrusion Detection System"},
-	{"ips", "Intrusion Prevention System"},
-	{"scheduler", "Scheduled tasks"},
-	{"mainframe", "A central, big computer"},
-	{"block-storage", "SAN or similar central file storage"},
-	{"library", "A software library"},
-}
-
-func (what TechnicalAssetTechnology) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return TechnicalAssetTechnologyTypeDescription[what].Name
-}
-
-func (what TechnicalAssetTechnology) Explain() string {
-	return TechnicalAssetTechnologyTypeDescription[what].Description
-}
-
-func (what TechnicalAssetTechnology) IsWebApplication() bool {
-	return what == WebServer || what == WebApplication || what == ApplicationServer || what == ERP || what == CMS || what == IdentityProvider || what == ReportEngine
-}
-
-func (what TechnicalAssetTechnology) IsWebService() bool {
-	return what == WebServiceREST || what == WebServiceSOAP
-}
-
-func (what TechnicalAssetTechnology) IsIdentityRelated() bool {
-	return what == IdentityProvider || what == IdentityStoreLDAP || what == IdentityStoreDatabase
-}
-
-func (what TechnicalAssetTechnology) IsSecurityControlRelated() bool {
-	return what == Vault || what == HSM || what == WAF || what == IDS || what == IPS
-}
-
-func (what TechnicalAssetTechnology) IsUnprotectedCommunicationsTolerated() bool {
-	return what == Monitoring || what == IDS || what == IPS
-}
-
-func (what TechnicalAssetTechnology) IsUnnecessaryDataTolerated() bool {
-	return what == Monitoring || what == IDS || what == IPS
-}
-
-func (what TechnicalAssetTechnology) IsCloseToHighValueTargetsTolerated() bool {
-	return what == Monitoring || what == IDS || what == IPS || what == LoadBalancer || what == ReverseProxy
-}
-
-func (what TechnicalAssetTechnology) IsClient() bool {
-	return what == ClientSystem || what == Browser || what == Desktop || what == MobileApp || what == DevOpsClient || what == IoTDevice
-}
-
-func (what TechnicalAssetTechnology) IsUsuallyAbleToPropagateIdentityToOutgoingTargets() bool {
-	return what == ClientSystem || what == Browser || what == Desktop || what == MobileApp ||
-		what == DevOpsClient || what == WebServer || what == WebApplication || what == ApplicationServer || what == ERP ||
-		what == CMS || what == WebServiceREST || what == WebServiceSOAP || what == EJB ||
-		what == SearchEngine || what == ReverseProxy || what == LoadBalancer || what == IdentityProvider ||
-		what == Tool || what == CLI || what == Task || what == Function || what == Gateway ||
-		what == IoTDevice || what == MessageQueue || what == ServiceMesh || what == ReportEngine || what == WAF || what == Library
-
-}
-
-func (what TechnicalAssetTechnology) IsLessProtectedType() bool {
-	return what == ClientSystem || what == Browser || what == Desktop || what == MobileApp || what == DevOpsClient || what == WebServer || what == WebApplication || what == ApplicationServer || what == CMS ||
-		what == WebServiceREST || what == WebServiceSOAP || what == EJB || what == BuildPipeline || what == SourcecodeRepository ||
-		what == ArtifactRegistry || what == CodeInspectionPlatform || what == Monitoring || what == IoTDevice || what == AI || what == MailServer || what == Scheduler ||
-		what == Mainframe
-}
-
-func (what TechnicalAssetTechnology) IsUsuallyProcessingEndUserRequests() bool {
-	return what == WebServer || what == WebApplication || what == ApplicationServer || what == ERP || what == WebServiceREST || what == WebServiceSOAP || what == EJB || what == ReportEngine
-}
-
-func (what TechnicalAssetTechnology) IsUsuallyStoringEndUserData() bool {
-	return what == Database || what == ERP || what == FileServer || what == LocalFileSystem || what == BlockStorage || what == MailServer || what == StreamProcessing || what == MessageQueue
-}
-
-func (what TechnicalAssetTechnology) IsExclusivelyFrontendRelated() bool {
-	return what == ClientSystem || what == Browser || what == Desktop || what == MobileApp || what == DevOpsClient || what == CMS || what == ReverseProxy || what == WAF || what == LoadBalancer || what == Gateway || what == IoTDevice
-}
-
-func (what TechnicalAssetTechnology) IsExclusivelyBackendRelated() bool {
-	return what == Database || what == IdentityProvider || what == IdentityStoreLDAP || what == IdentityStoreDatabase || what == ERP || what == WebServiceREST || what == WebServiceSOAP || what == EJB || what == SearchIndex ||
-		what == SearchEngine || what == ContainerPlatform || what == BatchProcessing || what == EventListener || what == DataLake || what == BigDataPlatform || what == MessageQueue ||
-		what == StreamProcessing || what == ServiceMesh || what == Vault || what == HSM || what == Scheduler || what == Mainframe || what == FileServer || what == BlockStorage
-}
-
-func (what TechnicalAssetTechnology) IsDevelopmentRelevant() bool {
-	return what == BuildPipeline || what == SourcecodeRepository || what == ArtifactRegistry || what == CodeInspectionPlatform || what == DevOpsClient
-}
-
-func (what TechnicalAssetTechnology) IsTrafficForwarding() bool {
-	return what == LoadBalancer || what == ReverseProxy || what == WAF
-}
-
-func (what TechnicalAssetTechnology) IsEmbeddedComponent() bool {
-	return what == Library
-}
-
-type TechnicalAssetMachine int
-
-const (
-	Physical TechnicalAssetMachine = iota
-	Virtual
-	Container
-	Serverless
-)
-
-func TechnicalAssetMachineValues() []TypeEnum {
-	return []TypeEnum{
-		Physical,
-		Virtual,
-		Container,
-		Serverless,
-	}
-}
-
-var TechnicalAssetMachineTypeDescription = [...]TypeDescription{
-	{"physical", "A physical machine"},
-	{"virtual", "A virtual machine"},
-	{"container", "A container"},
-	{"serverless", "A serverless application"},
-}
-
-func (what TechnicalAssetMachine) String() string {
-	return TechnicalAssetMachineTypeDescription[what].Name
-}
-
-func (what TechnicalAssetMachine) Explain() string {
-	return TechnicalAssetMachineTypeDescription[what].Description
-}
-
-type TrustBoundaryType int
-
-const (
-	NetworkOnPrem TrustBoundaryType = iota
-	NetworkDedicatedHoster
-	NetworkVirtualLAN
-	NetworkCloudProvider
-	NetworkCloudSecurityGroup
-	NetworkPolicyNamespaceIsolation
-	ExecutionEnvironment
-)
-
-func TrustBoundaryTypeValues() []TypeEnum {
-	return []TypeEnum{
-		NetworkOnPrem,
-		NetworkDedicatedHoster,
-		NetworkVirtualLAN,
-		NetworkCloudProvider,
-		NetworkCloudSecurityGroup,
-		NetworkPolicyNamespaceIsolation,
-		ExecutionEnvironment,
-	}
-}
-
-var TrustBoundaryTypeDescription = [...]TypeDescription{
-	{"network-on-prem", "The whole network is on prem"},
-	{"network-dedicated-hoster", "The network is at a dedicated hoster"},
-	{"network-virtual-lan", "Network is a VLAN"},
-	{"network-cloud-provider", "Network is at a cloud provider"},
-	{"network-cloud-security-group", "Cloud rules controlling network traffic"},
-	{"network-policy-namespace-isolation", "Segregation in a Kubernetes cluster"},
-	{"execution-environment", "Logical group of items (not a protective network boundary in that sense). More like a namespace or another logical group of items"},
-}
-
-func (what TrustBoundaryType) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return TrustBoundaryTypeDescription[what].Name
-}
-
-func (what TrustBoundaryType) Explain() string {
-	return TrustBoundaryTypeDescription[what].Description
-}
-
-func (what TrustBoundaryType) IsNetworkBoundary() bool {
-	return what == NetworkOnPrem || what == NetworkDedicatedHoster || what == NetworkVirtualLAN ||
-		what == NetworkCloudProvider || what == NetworkCloudSecurityGroup || what == NetworkPolicyNamespaceIsolation
-}
-
-func (what TrustBoundaryType) IsWithinCloud() bool {
-	return what == NetworkCloudProvider || what == NetworkCloudSecurityGroup
-}
-
-func (what TrustBoundary) RecursivelyAllTechnicalAssetIDsInside() []string {
-	result := make([]string, 0)
-	what.addAssetIDsRecursively(&result)
-	return result
-}
-
+// TODO: pass ParsedModelRoot as parameter instead of using global variable
 func (what TrustBoundary) addAssetIDsRecursively(result *[]string) {
 	*result = append(*result, what.TechnicalAssetsInside...)
 	for _, nestedBoundaryID := range what.TrustBoundariesNested {
@@ -1501,12 +443,7 @@ func (what TrustBoundary) addAssetIDsRecursively(result *[]string) {
 	}
 }
 
-func (what TrustBoundary) AllParentTrustBoundaryIDs() []string {
-	result := make([]string, 0)
-	what.addTrustBoundaryIDsRecursively(&result)
-	return result
-}
-
+// TODO: pass ParsedModelRoot as parameter instead of using global variable
 func (what TrustBoundary) addTrustBoundaryIDsRecursively(result *[]string) {
 	*result = append(*result, what.Id)
 	parentID := what.ParentTrustBoundaryID()
@@ -1541,19 +478,25 @@ func IsSharingSameParentTrustBoundary(left, right TechnicalAsset) bool {
 	return false
 }
 
+func (what TrustBoundary) AllParentTrustBoundaryIDs() []string {
+	result := make([]string, 0)
+	what.addTrustBoundaryIDsRecursively(&result)
+	return result
+}
+
 type DataAsset struct {
-	Id                     string          `yaml:"id" json:"id"`                   // TODO: tag here still required?
-	Title                  string          `yaml:"title" json:"title"`             // TODO: tag here still required?
-	Description            string          `yaml:"description" json:"description"` // TODO: tag here still required?
-	Usage                  Usage           `yaml:"usage" json:"usage"`
-	Tags                   []string        `yaml:"tags" json:"tags"`
-	Origin                 string          `yaml:"origin" json:"origin"`
-	Owner                  string          `yaml:"owner" json:"owner"`
-	Quantity               Quantity        `yaml:"quantity" json:"quantity"`
-	Confidentiality        Confidentiality `yaml:"confidentiality" json:"confidentiality"`
-	Integrity              Criticality     `yaml:"integrity" json:"integrity"`
-	Availability           Criticality     `yaml:"availability" json:"availability"`
-	JustificationCiaRating string          `yaml:"justification_cia_rating" json:"justification_cia_rating"`
+	Id                     string                `yaml:"id" json:"id"`                   // TODO: tag here still required?
+	Title                  string                `yaml:"title" json:"title"`             // TODO: tag here still required?
+	Description            string                `yaml:"description" json:"description"` // TODO: tag here still required?
+	Usage                  types.Usage           `yaml:"usage" json:"usage"`
+	Tags                   []string              `yaml:"tags" json:"tags"`
+	Origin                 string                `yaml:"origin" json:"origin"`
+	Owner                  string                `yaml:"owner" json:"owner"`
+	Quantity               types.Quantity        `yaml:"quantity" json:"quantity"`
+	Confidentiality        types.Confidentiality `yaml:"confidentiality" json:"confidentiality"`
+	Integrity              types.Criticality     `yaml:"integrity" json:"integrity"`
+	Availability           types.Criticality     `yaml:"availability" json:"availability"`
+	JustificationCiaRating string                `yaml:"justification_cia_rating" json:"justification_cia_rating"`
 }
 
 func (what DataAsset) IsTaggedWithAny(tags ...string) bool {
@@ -1633,8 +576,8 @@ func (what DataAsset) IsDataBreachPotentialStillAtRisk() bool {
 	return false
 }
 
-func (what DataAsset) IdentifiedDataBreachProbability() DataBreachProbability {
-	highestProbability := Improbable
+func (what DataAsset) IdentifiedDataBreachProbability() types.DataBreachProbability {
+	highestProbability := types.Improbable
 	for _, risk := range AllRisks() {
 		for _, techAsset := range risk.DataBreachTechnicalAssetIDs {
 			if Contains(ParsedModelRoot.TechnicalAssets[techAsset].DataAssetsProcessed, what.Id) {
@@ -1654,8 +597,8 @@ func (what DataAsset) IdentifiedDataBreachProbability() DataBreachProbability {
 	return highestProbability
 }
 
-func (what DataAsset) IdentifiedDataBreachProbabilityStillAtRisk() DataBreachProbability {
-	highestProbability := Improbable
+func (what DataAsset) IdentifiedDataBreachProbabilityStillAtRisk() types.DataBreachProbability {
+	highestProbability := types.Improbable
 	for _, risk := range FilteredByStillAtRisk() {
 		for _, techAsset := range risk.DataBreachTechnicalAssetIDs {
 			if Contains(ParsedModelRoot.TechnicalAssets[techAsset].DataAssetsProcessed, what.Id) {
@@ -1778,20 +721,20 @@ func IsTaggedWithBaseTag(tags []string, baseTag string) bool { // base tags are 
 
 type TechnicalAsset struct {
 	Id, Title, Description                                                                  string
-	Usage                                                                                   Usage
-	Type                                                                                    TechnicalAssetType
-	Size                                                                                    TechnicalAssetSize
-	Technology                                                                              TechnicalAssetTechnology
-	Machine                                                                                 TechnicalAssetMachine
+	Usage                                                                                   types.Usage
+	Type                                                                                    types.TechnicalAssetType
+	Size                                                                                    types.TechnicalAssetSize
+	Technology                                                                              types.TechnicalAssetTechnology
+	Machine                                                                                 types.TechnicalAssetMachine
 	Internet, MultiTenant, Redundant, CustomDevelopedParts, OutOfScope, UsedAsClientByHuman bool
-	Encryption                                                                              EncryptionStyle
+	Encryption                                                                              types.EncryptionStyle
 	JustificationOutOfScope                                                                 string
 	Owner                                                                                   string
-	Confidentiality                                                                         Confidentiality
-	Integrity, Availability                                                                 Criticality
+	Confidentiality                                                                         types.Confidentiality
+	Integrity, Availability                                                                 types.Criticality
 	JustificationCiaRating                                                                  string
 	Tags, DataAssetsProcessed, DataAssetsStored                                             []string
-	DataFormatsAccepted                                                                     []DataFormat
+	DataFormatsAccepted                                                                     []types.DataFormat
 	CommunicationLinks                                                                      []CommunicationLink
 	DiagramTweakOrder                                                                       int
 	// will be set by separate calculation step:
@@ -1835,7 +778,7 @@ func (what TechnicalAsset) IsSameTrustBoundary(otherAssetId string) bool {
 func (what TechnicalAsset) IsSameExecutionEnvironment(otherAssetId string) bool {
 	trustBoundaryOfMyAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.Id]
 	trustBoundaryOfOtherAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[otherAssetId]
-	if trustBoundaryOfMyAsset.Type == ExecutionEnvironment && trustBoundaryOfOtherAsset.Type == ExecutionEnvironment {
+	if trustBoundaryOfMyAsset.Type == types.ExecutionEnvironment && trustBoundaryOfOtherAsset.Type == types.ExecutionEnvironment {
 		return trustBoundaryOfMyAsset.Id == trustBoundaryOfOtherAsset.Id
 	}
 	return false
@@ -1859,7 +802,7 @@ func (what TechnicalAsset) HighestSensitivityScore() float64 {
 		what.Availability.AttackerAttractivenessForAsset()
 }
 
-func (what TechnicalAsset) HighestConfidentiality() Confidentiality {
+func (what TechnicalAsset) HighestConfidentiality() types.Confidentiality {
 	highest := what.Confidentiality
 	for _, dataId := range what.DataAssetsProcessed {
 		dataAsset := ParsedModelRoot.DataAssets[dataId]
@@ -1894,8 +837,8 @@ func (what TechnicalAsset) DataAssetsStoredSorted() []DataAsset {
 	return result
 }
 
-func (what TechnicalAsset) DataFormatsAcceptedSorted() []DataFormat {
-	result := make([]DataFormat, 0)
+func (what TechnicalAsset) DataFormatsAcceptedSorted() []types.DataFormat {
+	result := make([]types.DataFormat, 0)
 	for _, format := range what.DataFormatsAccepted {
 		result = append(result, format)
 	}
@@ -1912,7 +855,7 @@ func (what TechnicalAsset) CommunicationLinksSorted() []CommunicationLink {
 	return result
 }
 
-func (what TechnicalAsset) HighestIntegrity() Criticality {
+func (what TechnicalAsset) HighestIntegrity() types.Criticality {
 	highest := what.Integrity
 	for _, dataId := range what.DataAssetsProcessed {
 		dataAsset := ParsedModelRoot.DataAssets[dataId]
@@ -1929,7 +872,7 @@ func (what TechnicalAsset) HighestIntegrity() Criticality {
 	return highest
 }
 
-func (what TechnicalAsset) HighestAvailability() Criticality {
+func (what TechnicalAsset) HighestAvailability() types.Criticality {
 	highest := what.Availability
 	for _, dataId := range what.DataAssetsProcessed {
 		dataAsset := ParsedModelRoot.DataAssets[dataId]
@@ -2132,7 +1075,7 @@ func (what ByDataAssetTitleSort) Less(i, j int) bool {
 	return what[i].Title < what[j].Title
 }
 
-type ByDataFormatAcceptedSort []DataFormat
+type ByDataFormatAcceptedSort []types.DataFormat
 
 func (what ByDataFormatAcceptedSort) Len() int      { return len(what) }
 func (what ByDataFormatAcceptedSort) Swap(i, j int) { what[i], what[j] = what[j], what[i] }
@@ -2142,12 +1085,12 @@ func (what ByDataFormatAcceptedSort) Less(i, j int) bool {
 
 type CommunicationLink struct {
 	Id, SourceId, TargetId, Title, Description string
-	Protocol                                   Protocol
+	Protocol                                   types.Protocol
 	Tags                                       []string
 	VPN, IpFiltered, Readonly                  bool
-	Authentication                             Authentication
-	Authorization                              Authorization
-	Usage                                      Usage
+	Authentication                             types.Authentication
+	Authorization                              types.Authorization
+	Usage                                      types.Usage
 	DataAssetsSent, DataAssetsReceived         []string
 	DiagramTweakWeight                         int
 	DiagramTweakConstraint                     bool
@@ -2179,10 +1122,16 @@ func (what ByTechnicalCommunicationLinkTitleSort) Less(i, j int) bool {
 
 type TrustBoundary struct {
 	Id, Title, Description string
-	Type                   TrustBoundaryType
+	Type                   types.TrustBoundaryType
 	Tags                   []string
 	TechnicalAssetsInside  []string
 	TrustBoundariesNested  []string
+}
+
+func (what TrustBoundary) RecursivelyAllTechnicalAssetIDsInside() []string {
+	result := make([]string, 0)
+	what.addAssetIDsRecursively(&result)
+	return result
 }
 
 func (what TrustBoundary) IsTaggedWithAny(tags ...string) bool {
@@ -2215,8 +1164,8 @@ func (what TrustBoundary) ParentTrustBoundaryID() string {
 	return result
 }
 
-func (what TrustBoundary) HighestConfidentiality() Confidentiality {
-	highest := Public
+func (what TrustBoundary) HighestConfidentiality() types.Confidentiality {
+	highest := types.Public
 	for _, id := range what.RecursivelyAllTechnicalAssetIDsInside() {
 		techAsset := ParsedModelRoot.TechnicalAssets[id]
 		if techAsset.HighestConfidentiality() > highest {
@@ -2226,8 +1175,8 @@ func (what TrustBoundary) HighestConfidentiality() Confidentiality {
 	return highest
 }
 
-func (what TrustBoundary) HighestIntegrity() Criticality {
-	highest := Archive
+func (what TrustBoundary) HighestIntegrity() types.Criticality {
+	highest := types.Archive
 	for _, id := range what.RecursivelyAllTechnicalAssetIDsInside() {
 		techAsset := ParsedModelRoot.TechnicalAssets[id]
 		if techAsset.HighestIntegrity() > highest {
@@ -2237,8 +1186,8 @@ func (what TrustBoundary) HighestIntegrity() Criticality {
 	return highest
 }
 
-func (what TrustBoundary) HighestAvailability() Criticality {
-	highest := Archive
+func (what TrustBoundary) HighestAvailability() types.Criticality {
+	highest := types.Archive
 	for _, id := range what.RecursivelyAllTechnicalAssetIDsInside() {
 		techAsset := ParsedModelRoot.TechnicalAssets[id]
 		if techAsset.HighestAvailability() > highest {
@@ -2262,8 +1211,8 @@ func (what SharedRuntime) IsTaggedWithBaseTag(baseTag string) bool {
 	return IsTaggedWithBaseTag(what.Tags, baseTag)
 }
 
-func (what SharedRuntime) HighestConfidentiality() Confidentiality {
-	highest := Public
+func (what SharedRuntime) HighestConfidentiality() types.Confidentiality {
+	highest := types.Public
 	for _, id := range what.TechnicalAssetsRunning {
 		techAsset := ParsedModelRoot.TechnicalAssets[id]
 		if techAsset.HighestConfidentiality() > highest {
@@ -2273,8 +1222,8 @@ func (what SharedRuntime) HighestConfidentiality() Confidentiality {
 	return highest
 }
 
-func (what SharedRuntime) HighestIntegrity() Criticality {
-	highest := Archive
+func (what SharedRuntime) HighestIntegrity() types.Criticality {
+	highest := types.Archive
 	for _, id := range what.TechnicalAssetsRunning {
 		techAsset := ParsedModelRoot.TechnicalAssets[id]
 		if techAsset.HighestIntegrity() > highest {
@@ -2284,8 +1233,8 @@ func (what SharedRuntime) HighestIntegrity() Criticality {
 	return highest
 }
 
-func (what SharedRuntime) HighestAvailability() Criticality {
-	highest := Archive
+func (what SharedRuntime) HighestAvailability() types.Criticality {
+	highest := types.Archive
 	for _, id := range what.TechnicalAssetsRunning {
 		techAsset := ParsedModelRoot.TechnicalAssets[id]
 		if techAsset.HighestAvailability() > highest {
@@ -2324,8 +1273,8 @@ func (what CommunicationLink) IsAcrossTrustBoundaryNetworkOnly() bool {
 	return trustBoundaryOfSourceAsset.Id != trustBoundaryOfTargetAsset.Id && trustBoundaryOfTargetAsset.Type.IsNetworkBoundary()
 }
 
-func (what CommunicationLink) HighestConfidentiality() Confidentiality {
-	highest := Public
+func (what CommunicationLink) HighestConfidentiality() types.Confidentiality {
+	highest := types.Public
 	for _, dataId := range what.DataAssetsSent {
 		dataAsset := ParsedModelRoot.DataAssets[dataId]
 		if dataAsset.Confidentiality > highest {
@@ -2341,8 +1290,8 @@ func (what CommunicationLink) HighestConfidentiality() Confidentiality {
 	return highest
 }
 
-func (what CommunicationLink) HighestIntegrity() Criticality {
-	highest := Archive
+func (what CommunicationLink) HighestIntegrity() types.Criticality {
+	highest := types.Archive
 	for _, dataId := range what.DataAssetsSent {
 		dataAsset := ParsedModelRoot.DataAssets[dataId]
 		if dataAsset.Integrity > highest {
@@ -2358,8 +1307,8 @@ func (what CommunicationLink) HighestIntegrity() Criticality {
 	return highest
 }
 
-func (what CommunicationLink) HighestAvailability() Criticality {
-	highest := Archive
+func (what CommunicationLink) HighestAvailability() types.Criticality {
+	highest := types.Archive
 	for _, dataId := range what.DataAssetsSent {
 		dataAsset := ParsedModelRoot.DataAssets[dataId]
 		if dataAsset.Availability > highest {
@@ -2410,7 +1359,7 @@ type ParsedModel struct {
 	ManagementSummaryComment                      string
 	BusinessOverview                              Overview
 	TechnicalOverview                             Overview
-	BusinessCriticality                           Criticality
+	BusinessCriticality                           types.Criticality
 	SecurityRequirements                          map[string]string
 	Questions                                     map[string]string
 	AbuseCases                                    map[string]string
@@ -2723,7 +1672,7 @@ func (what CommunicationLink) DetermineArrowLineStyle() string {
 	if len(what.DataAssetsSent) == 0 && len(what.DataAssetsReceived) == 0 {
 		return "dotted" // dotted, because it's strange when too many technical communication links transfer no data... some ok, but many in a diagram ist a sign of model forgery...
 	}
-	if what.Usage == DevOps {
+	if what.Usage == types.DevOps {
 		return "dashed"
 	}
 	return "solid"
@@ -2869,30 +1818,30 @@ func (what TechnicalAsset) ProcessesOrStoresDataAsset(dataAssetId string) bool {
 func (what TechnicalAsset) DetermineLabelColor() string {
 	// TODO: Just move into main.go and let the generated risk determine the color, don't duplicate the logic here
 	// Check for red
-	if what.Integrity == MissionCritical {
+	if what.Integrity == types.MissionCritical {
 		return colors.Red
 	}
 	for _, storedDataAsset := range what.DataAssetsStored {
-		if ParsedModelRoot.DataAssets[storedDataAsset].Integrity == MissionCritical {
+		if ParsedModelRoot.DataAssets[storedDataAsset].Integrity == types.MissionCritical {
 			return colors.Red
 		}
 	}
 	for _, processedDataAsset := range what.DataAssetsProcessed {
-		if ParsedModelRoot.DataAssets[processedDataAsset].Integrity == MissionCritical {
+		if ParsedModelRoot.DataAssets[processedDataAsset].Integrity == types.MissionCritical {
 			return colors.Red
 		}
 	}
 	// Check for amber
-	if what.Integrity == Critical {
+	if what.Integrity == types.Critical {
 		return colors.Amber
 	}
 	for _, storedDataAsset := range what.DataAssetsStored {
-		if ParsedModelRoot.DataAssets[storedDataAsset].Integrity == Critical {
+		if ParsedModelRoot.DataAssets[storedDataAsset].Integrity == types.Critical {
 			return colors.Amber
 		}
 	}
 	for _, processedDataAsset := range what.DataAssetsProcessed {
-		if ParsedModelRoot.DataAssets[processedDataAsset].Integrity == Critical {
+		if ParsedModelRoot.DataAssets[processedDataAsset].Integrity == types.Critical {
 			return colors.Amber
 		}
 	}
@@ -2929,30 +1878,30 @@ func (what TechnicalAsset) DetermineLabelColor() string {
 func (what TechnicalAsset) DetermineShapeBorderColor() string {
 	// TODO: Just move into main.go and let the generated risk determine the color, don't duplicate the logic here
 	// Check for red
-	if what.Confidentiality == StrictlyConfidential {
+	if what.Confidentiality == types.StrictlyConfidential {
 		return colors.Red
 	}
 	for _, storedDataAsset := range what.DataAssetsStored {
-		if ParsedModelRoot.DataAssets[storedDataAsset].Confidentiality == StrictlyConfidential {
+		if ParsedModelRoot.DataAssets[storedDataAsset].Confidentiality == types.StrictlyConfidential {
 			return colors.Red
 		}
 	}
 	for _, processedDataAsset := range what.DataAssetsProcessed {
-		if ParsedModelRoot.DataAssets[processedDataAsset].Confidentiality == StrictlyConfidential {
+		if ParsedModelRoot.DataAssets[processedDataAsset].Confidentiality == types.StrictlyConfidential {
 			return colors.Red
 		}
 	}
 	// Check for amber
-	if what.Confidentiality == Confidential {
+	if what.Confidentiality == types.Confidential {
 		return colors.Amber
 	}
 	for _, storedDataAsset := range what.DataAssetsStored {
-		if ParsedModelRoot.DataAssets[storedDataAsset].Confidentiality == Confidential {
+		if ParsedModelRoot.DataAssets[storedDataAsset].Confidentiality == types.Confidential {
 			return colors.Amber
 		}
 	}
 	for _, processedDataAsset := range what.DataAssetsProcessed {
-		if ParsedModelRoot.DataAssets[processedDataAsset].Confidentiality == Confidential {
+		if ParsedModelRoot.DataAssets[processedDataAsset].Confidentiality == types.Confidential {
 			return colors.Amber
 		}
 	}
@@ -2990,23 +1939,23 @@ func (what CommunicationLink) DetermineLabelColor() string {
 		} else {*/
 	// check for red
 	for _, sentDataAsset := range what.DataAssetsSent {
-		if ParsedModelRoot.DataAssets[sentDataAsset].Integrity == MissionCritical {
+		if ParsedModelRoot.DataAssets[sentDataAsset].Integrity == types.MissionCritical {
 			return colors.Red
 		}
 	}
 	for _, receivedDataAsset := range what.DataAssetsReceived {
-		if ParsedModelRoot.DataAssets[receivedDataAsset].Integrity == MissionCritical {
+		if ParsedModelRoot.DataAssets[receivedDataAsset].Integrity == types.MissionCritical {
 			return colors.Red
 		}
 	}
 	// check for amber
 	for _, sentDataAsset := range what.DataAssetsSent {
-		if ParsedModelRoot.DataAssets[sentDataAsset].Integrity == Critical {
+		if ParsedModelRoot.DataAssets[sentDataAsset].Integrity == types.Critical {
 			return colors.Amber
 		}
 	}
 	for _, receivedDataAsset := range what.DataAssetsReceived {
-		if ParsedModelRoot.DataAssets[receivedDataAsset].Integrity == Critical {
+		if ParsedModelRoot.DataAssets[receivedDataAsset].Integrity == types.Critical {
 			return colors.Amber
 		}
 	}
@@ -3020,10 +1969,10 @@ func (what CommunicationLink) DetermineLabelColor() string {
 func (what CommunicationLink) DetermineArrowColor() string {
 	// TODO: Just move into main.go and let the generated risk determine the color, don't duplicate the logic here
 	if len(what.DataAssetsSent) == 0 && len(what.DataAssetsReceived) == 0 ||
-		what.Protocol == UnknownProtocol {
+		what.Protocol == types.UnknownProtocol {
 		return colors.Pink // pink, because it's strange when too many technical communication links transfer no data... some ok, but many in a diagram ist a sign of model forgery...
 	}
-	if what.Usage == DevOps {
+	if what.Usage == types.DevOps {
 		return colors.MiddleLightGray
 	} else if what.VPN {
 		return colors.DarkBlue
@@ -3032,23 +1981,23 @@ func (what CommunicationLink) DetermineArrowColor() string {
 	}
 	// check for red
 	for _, sentDataAsset := range what.DataAssetsSent {
-		if ParsedModelRoot.DataAssets[sentDataAsset].Confidentiality == StrictlyConfidential {
+		if ParsedModelRoot.DataAssets[sentDataAsset].Confidentiality == types.StrictlyConfidential {
 			return colors.Red
 		}
 	}
 	for _, receivedDataAsset := range what.DataAssetsReceived {
-		if ParsedModelRoot.DataAssets[receivedDataAsset].Confidentiality == StrictlyConfidential {
+		if ParsedModelRoot.DataAssets[receivedDataAsset].Confidentiality == types.StrictlyConfidential {
 			return colors.Red
 		}
 	}
 	// check for amber
 	for _, sentDataAsset := range what.DataAssetsSent {
-		if ParsedModelRoot.DataAssets[sentDataAsset].Confidentiality == Confidential {
+		if ParsedModelRoot.DataAssets[sentDataAsset].Confidentiality == types.Confidential {
 			return colors.Amber
 		}
 	}
 	for _, receivedDataAsset := range what.DataAssetsReceived {
-		if ParsedModelRoot.DataAssets[receivedDataAsset].Confidentiality == Confidential {
+		if ParsedModelRoot.DataAssets[receivedDataAsset].Confidentiality == types.Confidential {
 			return colors.Amber
 		}
 	}
@@ -3088,7 +2037,7 @@ func (what CommunicationLink) DetermineArrowColor() string {
 func (what TechnicalAsset) DetermineShapeFillColor() string {
 	fillColor := colors.VeryLightGray
 	if len(what.DataAssetsProcessed) == 0 && len(what.DataAssetsStored) == 0 ||
-		what.Technology == UnknownTechnology {
+		what.Technology == types.UnknownTechnology {
 		fillColor = colors.LightPink // lightPink, because it's strange when too many technical assets process no data... some ok, but many in a diagram ist a sign of model forgery...
 	} else if len(what.CommunicationLinks) == 0 && len(IncomingTechnicalCommunicationLinksMappedByTargetId[what.Id]) == 0 {
 		fillColor = colors.LightPink
@@ -3100,334 +2049,32 @@ func (what TechnicalAsset) DetermineShapeFillColor() string {
 		fillColor = colors.CustomDevelopedParts
 	}
 	switch what.Machine {
-	case Physical:
+	case types.Physical:
 		fillColor = colors.DarkenHexColor(fillColor)
-	case Container:
+	case types.Container:
 		fillColor = colors.BrightenHexColor(fillColor)
-	case Serverless:
+	case types.Serverless:
 		fillColor = colors.BrightenHexColor(colors.BrightenHexColor(fillColor))
-	case Virtual:
+	case types.Virtual:
 	}
 	return fillColor
 }
 
-// === Risk stuff ========================================
-
-type DataBreachProbability int
-
-const (
-	Improbable DataBreachProbability = iota
-	Possible
-	Probable
-)
-
-func DataBreachProbabilityValues() []TypeEnum {
-	return []TypeEnum{
-		Improbable,
-		Possible,
-		Probable,
-	}
-}
-
-var DataBreachProbabilityTypeDescription = [...]TypeDescription{
-	{"improbable", "Improbable"},
-	{"possible", "Possible"},
-	{"probable", "Probable"},
-}
-
-func (what DataBreachProbability) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return DataBreachProbabilityTypeDescription[what].Name
-}
-
-func (what DataBreachProbability) Explain() string {
-	return DataBreachProbabilityTypeDescription[what].Description
-}
-
-func (what DataBreachProbability) Title() string {
-	return [...]string{"Improbable", "Possible", "Probable"}[what]
-}
-
-func (what DataBreachProbability) MarshalJSON() ([]byte, error) {
-	return json.Marshal(what.String())
-}
-
-func CalculateSeverity(likelihood RiskExploitationLikelihood, impact RiskExploitationImpact) RiskSeverity {
+func CalculateSeverity(likelihood types.RiskExploitationLikelihood, impact types.RiskExploitationImpact) types.RiskSeverity {
 	result := likelihood.Weight() * impact.Weight()
 	if result <= 1 {
-		return LowSeverity
+		return types.LowSeverity
 	}
 	if result <= 3 {
-		return MediumSeverity
+		return types.MediumSeverity
 	}
 	if result <= 8 {
-		return ElevatedSeverity
+		return types.ElevatedSeverity
 	}
 	if result <= 12 {
-		return HighSeverity
+		return types.HighSeverity
 	}
-	return CriticalSeverity
-}
-
-type RiskSeverity int
-
-const (
-	LowSeverity RiskSeverity = iota
-	MediumSeverity
-	ElevatedSeverity
-	HighSeverity
-	CriticalSeverity
-)
-
-func RiskSeverityValues() []TypeEnum {
-	return []TypeEnum{
-		LowSeverity,
-		MediumSeverity,
-		ElevatedSeverity,
-		HighSeverity,
-		CriticalSeverity,
-	}
-}
-
-var RiskSeverityTypeDescription = [...]TypeDescription{
-	{"low", "Low"},
-	{"medium", "Medium"},
-	{"elevated", "Elevated"},
-	{"high", "High"},
-	{"critical", "Critical"},
-}
-
-func (what RiskSeverity) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return RiskSeverityTypeDescription[what].Name
-}
-
-func (what RiskSeverity) Explain() string {
-	return RiskSeverityTypeDescription[what].Description
-}
-
-func (what RiskSeverity) Title() string {
-	return [...]string{"Low", "Medium", "Elevated", "High", "Critical"}[what]
-}
-
-func (what RiskSeverity) MarshalJSON() ([]byte, error) {
-	return json.Marshal(what.String())
-}
-
-type RiskExploitationLikelihood int
-
-const (
-	Unlikely RiskExploitationLikelihood = iota
-	Likely
-	VeryLikely
-	Frequent
-)
-
-func RiskExploitationLikelihoodValues() []TypeEnum {
-	return []TypeEnum{
-		Unlikely,
-		Likely,
-		VeryLikely,
-		Frequent,
-	}
-}
-
-var RiskExploitationLikelihoodTypeDescription = [...]TypeDescription{
-	{"unlikely", "Unlikely"},
-	{"likely", "Likely"},
-	{"very-likely", "Very-Likely"},
-	{"frequent", "Frequent"},
-}
-
-func (what RiskExploitationLikelihood) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return RiskExploitationLikelihoodTypeDescription[what].Name
-}
-
-func (what RiskExploitationLikelihood) Explain() string {
-	return RiskExploitationLikelihoodTypeDescription[what].Description
-}
-
-func (what RiskExploitationLikelihood) Title() string {
-	return [...]string{"Unlikely", "Likely", "Very Likely", "Frequent"}[what]
-}
-
-func (what RiskExploitationLikelihood) Weight() int {
-	return [...]int{1, 2, 3, 4}[what]
-}
-
-func (what RiskExploitationLikelihood) MarshalJSON() ([]byte, error) {
-	return json.Marshal(what.String())
-}
-
-type RiskExploitationImpact int
-
-const (
-	LowImpact RiskExploitationImpact = iota
-	MediumImpact
-	HighImpact
-	VeryHighImpact
-)
-
-func RiskExploitationImpactValues() []TypeEnum {
-	return []TypeEnum{
-		LowImpact,
-		MediumImpact,
-		HighImpact,
-		VeryHighImpact,
-	}
-}
-
-var RiskExploitationImpactTypeDescription = [...]TypeDescription{
-	{"low", "Low"},
-	{"medium", "Medium"},
-	{"high", "High"},
-	{"very-high", "Very High"},
-}
-
-func (what RiskExploitationImpact) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return RiskExploitationImpactTypeDescription[what].Name
-}
-
-func (what RiskExploitationImpact) Explain() string {
-	return RiskExploitationImpactTypeDescription[what].Description
-}
-
-func (what RiskExploitationImpact) Title() string {
-	return [...]string{"Low", "Medium", "High", "Very High"}[what]
-}
-
-func (what RiskExploitationImpact) Weight() int {
-	return [...]int{1, 2, 3, 4}[what]
-}
-
-func (what RiskExploitationImpact) MarshalJSON() ([]byte, error) {
-	return json.Marshal(what.String())
-}
-
-type RiskFunction int
-
-const (
-	BusinessSide RiskFunction = iota
-	Architecture
-	Development
-	Operations
-)
-
-func RiskFunctionValues() []TypeEnum {
-	return []TypeEnum{
-		BusinessSide,
-		Architecture,
-		Development,
-		Operations,
-	}
-}
-
-var RiskFunctionTypeDescription = [...]TypeDescription{
-	{"business-side", "Business"},
-	{"architecture", "Architecture"},
-	{"development", "Development"},
-	{"operations", "Operations"},
-}
-
-func (what RiskFunction) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return RiskFunctionTypeDescription[what].Name
-}
-
-func (what RiskFunction) Explain() string {
-	return RiskFunctionTypeDescription[what].Description
-}
-
-func (what RiskFunction) Title() string {
-	return [...]string{"Business Side", "Architecture", "Development", "Operations"}[what]
-}
-
-func (what RiskFunction) MarshalJSON() ([]byte, error) {
-	return json.Marshal(what.String())
-}
-
-func (what *RiskFunction) UnmarshalJSON(value []byte) error {
-	text := ""
-	unmarshalError := json.Unmarshal(value, &text)
-	if unmarshalError != nil {
-		return unmarshalError
-	}
-
-	for n, v := range RiskFunctionTypeDescription {
-		if strings.ToLower(v.Name) == strings.ToLower(text) {
-			*what = RiskFunction(n)
-			return nil
-		}
-	}
-
-	return fmt.Errorf("unknown value %q for risk function\n", text)
-}
-
-type STRIDE int
-
-const (
-	Spoofing STRIDE = iota
-	Tampering
-	Repudiation
-	InformationDisclosure
-	DenialOfService
-	ElevationOfPrivilege
-)
-
-func STRIDEValues() []TypeEnum {
-	return []TypeEnum{
-		Spoofing,
-		Tampering,
-		Repudiation,
-		InformationDisclosure,
-		DenialOfService,
-		ElevationOfPrivilege,
-	}
-}
-
-var StrideTypeDescription = [...]TypeDescription{
-	{"spoofing", "Spoofing - Authenticity"},
-	{"tampering", "Tampering - Integrity"},
-	{"repudiation", "Repudiation - Non-repudiability"},
-	{"information-disclosure", "Information disclosure - Confidentiality"},
-	{"denial-of-service", "Denial of service - Availability"},
-	{"elevation-of-privilege", "Elevation of privilege - Authorization"},
-}
-
-func (what STRIDE) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return StrideTypeDescription[what].Name
-}
-
-func (what STRIDE) Explain() string {
-	return StrideTypeDescription[what].Description
-}
-
-func (what STRIDE) Title() string {
-	return [...]string{"Spoofing", "Tampering", "Repudiation", "Information Disclosure", "Denial of Service", "Elevation of Privilege"}[what]
-}
-
-func (what STRIDE) MarshalJSON() ([]byte, error) {
-	return json.Marshal(what.String())
-}
-
-func (what *STRIDE) UnmarshalJSON(value []byte) error {
-	text := ""
-	unmarshalError := json.Unmarshal(value, &text)
-	if unmarshalError != nil {
-		return unmarshalError
-	}
-
-	for n, v := range StrideTypeDescription {
-		if strings.ToLower(v.Name) == strings.ToLower(text) {
-			*what = STRIDE(n)
-			return nil
-		}
-	}
-
-	return fmt.Errorf("unknown value %q for STRIDE category\n", text)
+	return types.CriticalSeverity
 }
 
 type MacroDetails struct {
@@ -3488,8 +2135,8 @@ type RiskCategory struct {
 	DetectionLogic             string
 	RiskAssessment             string
 	FalsePositives             string
-	Function                   RiskFunction
-	STRIDE                     STRIDE
+	Function                   types.RiskFunction
+	STRIDE                     types.STRIDE
 	ModelFailurePossibleReason bool
 	CWE                        int
 }
@@ -3533,21 +2180,21 @@ type RiskStatistics struct {
 }
 
 type Risk struct {
-	Category                        RiskCategory               `yaml:"-" json:"-"`                     // just for navigational convenience... not JSON marshalled
-	CategoryId                      string                     `yaml:"category" json:"category"`       // used for better JSON marshalling, is assigned in risk evaluation phase automatically
-	RiskStatus                      RiskStatus                 `yaml:"risk_status" json:"risk_status"` // used for better JSON marshalling, is assigned in risk evaluation phase automatically
-	Severity                        RiskSeverity               `yaml:"severity" json:"severity"`
-	ExploitationLikelihood          RiskExploitationLikelihood `yaml:"exploitation_likelihood" json:"exploitation_likelihood"`
-	ExploitationImpact              RiskExploitationImpact     `yaml:"exploitation_impact" json:"exploitation_impact"`
-	Title                           string                     `yaml:"title" json:"title"`
-	SyntheticId                     string                     `yaml:"synthetic_id" json:"synthetic_id"`
-	MostRelevantDataAssetId         string                     `yaml:"most_relevant_data_asset" json:"most_relevant_data_asset"`
-	MostRelevantTechnicalAssetId    string                     `yaml:"most_relevant_technical_asset" json:"most_relevant_technical_asset"`
-	MostRelevantTrustBoundaryId     string                     `yaml:"most_relevant_trust_boundary" json:"most_relevant_trust_boundary"`
-	MostRelevantSharedRuntimeId     string                     `yaml:"most_relevant_shared_runtime" json:"most_relevant_shared_runtime"`
-	MostRelevantCommunicationLinkId string                     `yaml:"most_relevant_communication_link" json:"most_relevant_communication_link"`
-	DataBreachProbability           DataBreachProbability      `yaml:"data_breach_probability" json:"data_breach_probability"`
-	DataBreachTechnicalAssetIDs     []string                   `yaml:"data_breach_technical_assets" json:"data_breach_technical_assets"`
+	Category                        RiskCategory                     `yaml:"-" json:"-"`                     // just for navigational convenience... not JSON marshalled
+	CategoryId                      string                           `yaml:"category" json:"category"`       // used for better JSON marshalling, is assigned in risk evaluation phase automatically
+	RiskStatus                      types.RiskStatus                 `yaml:"risk_status" json:"risk_status"` // used for better JSON marshalling, is assigned in risk evaluation phase automatically
+	Severity                        types.RiskSeverity               `yaml:"severity" json:"severity"`
+	ExploitationLikelihood          types.RiskExploitationLikelihood `yaml:"exploitation_likelihood" json:"exploitation_likelihood"`
+	ExploitationImpact              types.RiskExploitationImpact     `yaml:"exploitation_impact" json:"exploitation_impact"`
+	Title                           string                           `yaml:"title" json:"title"`
+	SyntheticId                     string                           `yaml:"synthetic_id" json:"synthetic_id"`
+	MostRelevantDataAssetId         string                           `yaml:"most_relevant_data_asset" json:"most_relevant_data_asset"`
+	MostRelevantTechnicalAssetId    string                           `yaml:"most_relevant_technical_asset" json:"most_relevant_technical_asset"`
+	MostRelevantTrustBoundaryId     string                           `yaml:"most_relevant_trust_boundary" json:"most_relevant_trust_boundary"`
+	MostRelevantSharedRuntimeId     string                           `yaml:"most_relevant_shared_runtime" json:"most_relevant_shared_runtime"`
+	MostRelevantCommunicationLinkId string                           `yaml:"most_relevant_communication_link" json:"most_relevant_communication_link"`
+	DataBreachProbability           types.DataBreachProbability      `yaml:"data_breach_probability" json:"data_breach_probability"`
+	DataBreachTechnicalAssetIDs     []string                         `yaml:"data_breach_technical_assets" json:"data_breach_technical_assets"`
 	// TODO: refactor all "Id" here to "ID"?
 }
 
@@ -3559,11 +2206,11 @@ func (what Risk) GetRiskTracking() RiskTracking { // TODO: Unify function naming
 	return result
 }
 
-func (what Risk) GetRiskTrackingStatusDefaultingUnchecked() RiskStatus {
+func (what Risk) GetRiskTrackingStatusDefaultingUnchecked() types.RiskStatus {
 	if riskTracking, ok := ParsedModelRoot.RiskTracking[what.SyntheticId]; ok {
 		return riskTracking.Status
 	}
-	return Unchecked
+	return types.Unchecked
 }
 
 func (what Risk) IsRiskTracked() bool {
@@ -3625,77 +2272,8 @@ func (what ByDataBreachProbabilitySort) Less(i, j int) bool {
 
 type RiskTracking struct {
 	SyntheticRiskId, Justification, Ticket, CheckedBy string
-	Status                                            RiskStatus
+	Status                                            types.RiskStatus
 	Date                                              time.Time
-}
-
-type RiskStatus int
-
-const (
-	Unchecked RiskStatus = iota
-	InDiscussion
-	Accepted
-	InProgress
-	Mitigated
-	FalsePositive
-)
-
-func RiskStatusValues() []TypeEnum {
-	return []TypeEnum{
-		Unchecked,
-		InDiscussion,
-		Accepted,
-		InProgress,
-		Mitigated,
-		FalsePositive,
-	}
-}
-
-var RiskStatusTypeDescription = [...]TypeDescription{
-	{"unchecked", "Risk has not yet been reviewed"},
-	{"in-discussion", "Risk is currently being discussed (during review)"},
-	{"accepted", "Risk has been accepted (as possibly a corporate risk acceptance process defines)"},
-	{"in-progress", "Risk mitigation is currently in progress"},
-	{"mitigated", "Risk has been mitigated"},
-	{"false-positive", "Risk is a false positive (i.e. no risk at all or not applicable)"},
-}
-
-func (what RiskStatus) String() string {
-	// NOTE: maintain list also in schema.json for validation in IDEs
-	return RiskStatusTypeDescription[what].Name
-}
-
-func (what RiskStatus) Explain() string {
-	return RiskStatusTypeDescription[what].Description
-}
-
-func (what RiskStatus) Title() string {
-	return [...]string{"Unchecked", "in Discussion", "Accepted", "in Progress", "Mitigated", "False Positive"}[what]
-}
-
-func (what RiskStatus) MarshalJSON() ([]byte, error) {
-	return json.Marshal(what.String())
-}
-
-func (what *RiskStatus) UnmarshalJSON(value []byte) error {
-	text := ""
-	unmarshalError := json.Unmarshal(value, &text)
-	if unmarshalError != nil {
-		return unmarshalError
-	}
-
-	for n, v := range RiskStatusTypeDescription {
-		if strings.ToLower(v.Name) == strings.ToLower(text) {
-			*what = RiskStatus(n)
-			return nil
-		}
-	}
-
-	return fmt.Errorf("unknown value %q for risk status\n", text)
-}
-
-func (what RiskStatus) IsStillAtRisk() bool {
-	return what == Unchecked || what == InDiscussion || what == Accepted || what == InProgress
 }
 
 type RiskRule interface {
@@ -3731,7 +2309,7 @@ func RisksOfOnlySTRIDESpoofing(risksByCategory map[RiskCategory][]Risk) map[Risk
 	result := make(map[RiskCategory][]Risk)
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if risk.Category.STRIDE == Spoofing {
+			if risk.Category.STRIDE == types.Spoofing {
 				result[risk.Category] = append(result[risk.Category], risk)
 			}
 		}
@@ -3743,7 +2321,7 @@ func RisksOfOnlySTRIDETampering(risksByCategory map[RiskCategory][]Risk) map[Ris
 	result := make(map[RiskCategory][]Risk)
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if risk.Category.STRIDE == Tampering {
+			if risk.Category.STRIDE == types.Tampering {
 				result[risk.Category] = append(result[risk.Category], risk)
 			}
 		}
@@ -3755,7 +2333,7 @@ func RisksOfOnlySTRIDERepudiation(risksByCategory map[RiskCategory][]Risk) map[R
 	result := make(map[RiskCategory][]Risk)
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if risk.Category.STRIDE == Repudiation {
+			if risk.Category.STRIDE == types.Repudiation {
 				result[risk.Category] = append(result[risk.Category], risk)
 			}
 		}
@@ -3767,7 +2345,7 @@ func RisksOfOnlySTRIDEInformationDisclosure(risksByCategory map[RiskCategory][]R
 	result := make(map[RiskCategory][]Risk)
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if risk.Category.STRIDE == InformationDisclosure {
+			if risk.Category.STRIDE == types.InformationDisclosure {
 				result[risk.Category] = append(result[risk.Category], risk)
 			}
 		}
@@ -3779,7 +2357,7 @@ func RisksOfOnlySTRIDEDenialOfService(risksByCategory map[RiskCategory][]Risk) m
 	result := make(map[RiskCategory][]Risk)
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if risk.Category.STRIDE == DenialOfService {
+			if risk.Category.STRIDE == types.DenialOfService {
 				result[risk.Category] = append(result[risk.Category], risk)
 			}
 		}
@@ -3791,7 +2369,7 @@ func RisksOfOnlySTRIDEElevationOfPrivilege(risksByCategory map[RiskCategory][]Ri
 	result := make(map[RiskCategory][]Risk)
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if risk.Category.STRIDE == ElevationOfPrivilege {
+			if risk.Category.STRIDE == types.ElevationOfPrivilege {
 				result[risk.Category] = append(result[risk.Category], risk)
 			}
 		}
@@ -3803,7 +2381,7 @@ func RisksOfOnlyBusinessSide(risksByCategory map[RiskCategory][]Risk) map[RiskCa
 	result := make(map[RiskCategory][]Risk)
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if risk.Category.Function == BusinessSide {
+			if risk.Category.Function == types.BusinessSide {
 				result[risk.Category] = append(result[risk.Category], risk)
 			}
 		}
@@ -3815,7 +2393,7 @@ func RisksOfOnlyArchitecture(risksByCategory map[RiskCategory][]Risk) map[RiskCa
 	result := make(map[RiskCategory][]Risk)
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if risk.Category.Function == Architecture {
+			if risk.Category.Function == types.Architecture {
 				result[risk.Category] = append(result[risk.Category], risk)
 			}
 		}
@@ -3827,7 +2405,7 @@ func RisksOfOnlyDevelopment(risksByCategory map[RiskCategory][]Risk) map[RiskCat
 	result := make(map[RiskCategory][]Risk)
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if risk.Category.Function == Development {
+			if risk.Category.Function == types.Development {
 				result[risk.Category] = append(result[risk.Category], risk)
 			}
 		}
@@ -3839,7 +2417,7 @@ func RisksOfOnlyOperation(risksByCategory map[RiskCategory][]Risk) map[RiskCateg
 	result := make(map[RiskCategory][]Risk)
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if risk.Category.Function == Operations {
+			if risk.Category.Function == types.Operations {
 				result[risk.Category] = append(result[risk.Category], risk)
 			}
 		}
@@ -3868,7 +2446,7 @@ func CategoriesOfOnlyCriticalRisks(risksByCategory map[RiskCategory][]Risk, init
 			if !initialRisks && !risk.GetRiskTrackingStatusDefaultingUnchecked().IsStillAtRisk() {
 				continue
 			}
-			if risk.Severity == CriticalSeverity {
+			if risk.Severity == types.CriticalSeverity {
 				categories[risk.Category] = struct{}{}
 			}
 		}
@@ -3888,7 +2466,7 @@ func CategoriesOfOnlyHighRisks(risksByCategory map[RiskCategory][]Risk, initialR
 			if !initialRisks {
 				highest = HighestSeverityStillAtRisk(GeneratedRisksByCategory[risk.Category])
 			}
-			if risk.Severity == HighSeverity && highest < CriticalSeverity {
+			if risk.Severity == types.HighSeverity && highest < types.CriticalSeverity {
 				categories[risk.Category] = struct{}{}
 			}
 		}
@@ -3908,7 +2486,7 @@ func CategoriesOfOnlyElevatedRisks(risksByCategory map[RiskCategory][]Risk, init
 			if !initialRisks {
 				highest = HighestSeverityStillAtRisk(GeneratedRisksByCategory[risk.Category])
 			}
-			if risk.Severity == ElevatedSeverity && highest < HighSeverity {
+			if risk.Severity == types.ElevatedSeverity && highest < types.HighSeverity {
 				categories[risk.Category] = struct{}{}
 			}
 		}
@@ -3928,7 +2506,7 @@ func CategoriesOfOnlyMediumRisks(risksByCategory map[RiskCategory][]Risk, initia
 			if !initialRisks {
 				highest = HighestSeverityStillAtRisk(GeneratedRisksByCategory[risk.Category])
 			}
-			if risk.Severity == MediumSeverity && highest < ElevatedSeverity {
+			if risk.Severity == types.MediumSeverity && highest < types.ElevatedSeverity {
 				categories[risk.Category] = struct{}{}
 			}
 		}
@@ -3948,7 +2526,7 @@ func CategoriesOfOnlyLowRisks(risksByCategory map[RiskCategory][]Risk, initialRi
 			if !initialRisks {
 				highest = HighestSeverityStillAtRisk(GeneratedRisksByCategory[risk.Category])
 			}
-			if risk.Severity == LowSeverity && highest < MediumSeverity {
+			if risk.Severity == types.LowSeverity && highest < types.MediumSeverity {
 				categories[risk.Category] = struct{}{}
 			}
 		}
@@ -3957,8 +2535,8 @@ func CategoriesOfOnlyLowRisks(risksByCategory map[RiskCategory][]Risk, initialRi
 	return keysAsSlice(categories)
 }
 
-func HighestSeverity(risks []Risk) RiskSeverity {
-	result := LowSeverity
+func HighestSeverity(risks []Risk) types.RiskSeverity {
+	result := types.LowSeverity
 	for _, risk := range risks {
 		if risk.Severity > result {
 			result = risk.Severity
@@ -3967,8 +2545,8 @@ func HighestSeverity(risks []Risk) RiskSeverity {
 	return result
 }
 
-func HighestSeverityStillAtRisk(risks []Risk) RiskSeverity {
-	result := LowSeverity
+func HighestSeverityStillAtRisk(risks []Risk) types.RiskSeverity {
+	result := types.LowSeverity
 	for _, risk := range risks {
 		if risk.Severity > result && risk.GetRiskTrackingStatusDefaultingUnchecked().IsStillAtRisk() {
 			result = risk.Severity
@@ -3989,7 +2567,7 @@ func FilteredByOnlyBusinessSide() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.Category.Function == BusinessSide {
+			if risk.Category.Function == types.BusinessSide {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4001,7 +2579,7 @@ func FilteredByOnlyArchitecture() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.Category.Function == Architecture {
+			if risk.Category.Function == types.Architecture {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4013,7 +2591,7 @@ func FilteredByOnlyDevelopment() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.Category.Function == Development {
+			if risk.Category.Function == types.Development {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4025,7 +2603,7 @@ func FilteredByOnlyOperation() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.Category.Function == Operations {
+			if risk.Category.Function == types.Operations {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4037,7 +2615,7 @@ func FilteredByOnlyCriticalRisks() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.Severity == CriticalSeverity {
+			if risk.Severity == types.CriticalSeverity {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4049,7 +2627,7 @@ func FilteredByOnlyHighRisks() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.Severity == HighSeverity {
+			if risk.Severity == types.HighSeverity {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4061,7 +2639,7 @@ func FilteredByOnlyElevatedRisks() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.Severity == ElevatedSeverity {
+			if risk.Severity == types.ElevatedSeverity {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4073,7 +2651,7 @@ func FilteredByOnlyMediumRisks() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.Severity == MediumSeverity {
+			if risk.Severity == types.MediumSeverity {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4085,7 +2663,7 @@ func FilteredByOnlyLowRisks() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.Severity == LowSeverity {
+			if risk.Severity == types.LowSeverity {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4123,7 +2701,7 @@ func FilteredByRiskTrackingUnchecked() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == Unchecked {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Unchecked {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4135,7 +2713,7 @@ func FilteredByRiskTrackingInDiscussion() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == InDiscussion {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.InDiscussion {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4147,7 +2725,7 @@ func FilteredByRiskTrackingAccepted() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == Accepted {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Accepted {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4159,7 +2737,7 @@ func FilteredByRiskTrackingInProgress() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == InProgress {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.InProgress {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4171,7 +2749,7 @@ func FilteredByRiskTrackingMitigated() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == Mitigated {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Mitigated {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4183,7 +2761,7 @@ func FilteredByRiskTrackingFalsePositive() []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == FalsePositive {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.FalsePositive {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -4194,7 +2772,7 @@ func FilteredByRiskTrackingFalsePositive() []Risk {
 func ReduceToOnlyHighRisk(risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.Severity == HighSeverity {
+		if risk.Severity == types.HighSeverity {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
@@ -4204,7 +2782,7 @@ func ReduceToOnlyHighRisk(risks []Risk) []Risk {
 func ReduceToOnlyMediumRisk(risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.Severity == MediumSeverity {
+		if risk.Severity == types.MediumSeverity {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
@@ -4214,7 +2792,7 @@ func ReduceToOnlyMediumRisk(risks []Risk) []Risk {
 func ReduceToOnlyLowRisk(risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.Severity == LowSeverity {
+		if risk.Severity == types.LowSeverity {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
@@ -4224,7 +2802,7 @@ func ReduceToOnlyLowRisk(risks []Risk) []Risk {
 func ReduceToOnlyRiskTrackingUnchecked(risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == Unchecked {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Unchecked {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
@@ -4234,7 +2812,7 @@ func ReduceToOnlyRiskTrackingUnchecked(risks []Risk) []Risk {
 func ReduceToOnlyRiskTrackingInDiscussion(risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == InDiscussion {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.InDiscussion {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
@@ -4244,7 +2822,7 @@ func ReduceToOnlyRiskTrackingInDiscussion(risks []Risk) []Risk {
 func ReduceToOnlyRiskTrackingAccepted(risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == Accepted {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Accepted {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
@@ -4254,7 +2832,7 @@ func ReduceToOnlyRiskTrackingAccepted(risks []Risk) []Risk {
 func ReduceToOnlyRiskTrackingInProgress(risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == InProgress {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.InProgress {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
@@ -4264,7 +2842,7 @@ func ReduceToOnlyRiskTrackingInProgress(risks []Risk) []Risk {
 func ReduceToOnlyRiskTrackingMitigated(risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == Mitigated {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Mitigated {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
@@ -4274,7 +2852,7 @@ func ReduceToOnlyRiskTrackingMitigated(risks []Risk) []Risk {
 func ReduceToOnlyRiskTrackingFalsePositive(risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == FalsePositive {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.FalsePositive {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
@@ -4296,41 +2874,41 @@ func FilteredByStillAtRisk() []Risk {
 func OverallRiskStatistics() RiskStatistics {
 	result := RiskStatistics{}
 	result.Risks = make(map[string]map[string]int)
-	result.Risks[CriticalSeverity.String()] = make(map[string]int)
-	result.Risks[CriticalSeverity.String()][Unchecked.String()] = 0
-	result.Risks[CriticalSeverity.String()][InDiscussion.String()] = 0
-	result.Risks[CriticalSeverity.String()][Accepted.String()] = 0
-	result.Risks[CriticalSeverity.String()][InProgress.String()] = 0
-	result.Risks[CriticalSeverity.String()][Mitigated.String()] = 0
-	result.Risks[CriticalSeverity.String()][FalsePositive.String()] = 0
-	result.Risks[HighSeverity.String()] = make(map[string]int)
-	result.Risks[HighSeverity.String()][Unchecked.String()] = 0
-	result.Risks[HighSeverity.String()][InDiscussion.String()] = 0
-	result.Risks[HighSeverity.String()][Accepted.String()] = 0
-	result.Risks[HighSeverity.String()][InProgress.String()] = 0
-	result.Risks[HighSeverity.String()][Mitigated.String()] = 0
-	result.Risks[HighSeverity.String()][FalsePositive.String()] = 0
-	result.Risks[ElevatedSeverity.String()] = make(map[string]int)
-	result.Risks[ElevatedSeverity.String()][Unchecked.String()] = 0
-	result.Risks[ElevatedSeverity.String()][InDiscussion.String()] = 0
-	result.Risks[ElevatedSeverity.String()][Accepted.String()] = 0
-	result.Risks[ElevatedSeverity.String()][InProgress.String()] = 0
-	result.Risks[ElevatedSeverity.String()][Mitigated.String()] = 0
-	result.Risks[ElevatedSeverity.String()][FalsePositive.String()] = 0
-	result.Risks[MediumSeverity.String()] = make(map[string]int)
-	result.Risks[MediumSeverity.String()][Unchecked.String()] = 0
-	result.Risks[MediumSeverity.String()][InDiscussion.String()] = 0
-	result.Risks[MediumSeverity.String()][Accepted.String()] = 0
-	result.Risks[MediumSeverity.String()][InProgress.String()] = 0
-	result.Risks[MediumSeverity.String()][Mitigated.String()] = 0
-	result.Risks[MediumSeverity.String()][FalsePositive.String()] = 0
-	result.Risks[LowSeverity.String()] = make(map[string]int)
-	result.Risks[LowSeverity.String()][Unchecked.String()] = 0
-	result.Risks[LowSeverity.String()][InDiscussion.String()] = 0
-	result.Risks[LowSeverity.String()][Accepted.String()] = 0
-	result.Risks[LowSeverity.String()][InProgress.String()] = 0
-	result.Risks[LowSeverity.String()][Mitigated.String()] = 0
-	result.Risks[LowSeverity.String()][FalsePositive.String()] = 0
+	result.Risks[types.CriticalSeverity.String()] = make(map[string]int)
+	result.Risks[types.CriticalSeverity.String()][types.Unchecked.String()] = 0
+	result.Risks[types.CriticalSeverity.String()][types.InDiscussion.String()] = 0
+	result.Risks[types.CriticalSeverity.String()][types.Accepted.String()] = 0
+	result.Risks[types.CriticalSeverity.String()][types.InProgress.String()] = 0
+	result.Risks[types.CriticalSeverity.String()][types.Mitigated.String()] = 0
+	result.Risks[types.CriticalSeverity.String()][types.FalsePositive.String()] = 0
+	result.Risks[types.HighSeverity.String()] = make(map[string]int)
+	result.Risks[types.HighSeverity.String()][types.Unchecked.String()] = 0
+	result.Risks[types.HighSeverity.String()][types.InDiscussion.String()] = 0
+	result.Risks[types.HighSeverity.String()][types.Accepted.String()] = 0
+	result.Risks[types.HighSeverity.String()][types.InProgress.String()] = 0
+	result.Risks[types.HighSeverity.String()][types.Mitigated.String()] = 0
+	result.Risks[types.HighSeverity.String()][types.FalsePositive.String()] = 0
+	result.Risks[types.ElevatedSeverity.String()] = make(map[string]int)
+	result.Risks[types.ElevatedSeverity.String()][types.Unchecked.String()] = 0
+	result.Risks[types.ElevatedSeverity.String()][types.InDiscussion.String()] = 0
+	result.Risks[types.ElevatedSeverity.String()][types.Accepted.String()] = 0
+	result.Risks[types.ElevatedSeverity.String()][types.InProgress.String()] = 0
+	result.Risks[types.ElevatedSeverity.String()][types.Mitigated.String()] = 0
+	result.Risks[types.ElevatedSeverity.String()][types.FalsePositive.String()] = 0
+	result.Risks[types.MediumSeverity.String()] = make(map[string]int)
+	result.Risks[types.MediumSeverity.String()][types.Unchecked.String()] = 0
+	result.Risks[types.MediumSeverity.String()][types.InDiscussion.String()] = 0
+	result.Risks[types.MediumSeverity.String()][types.Accepted.String()] = 0
+	result.Risks[types.MediumSeverity.String()][types.InProgress.String()] = 0
+	result.Risks[types.MediumSeverity.String()][types.Mitigated.String()] = 0
+	result.Risks[types.MediumSeverity.String()][types.FalsePositive.String()] = 0
+	result.Risks[types.LowSeverity.String()] = make(map[string]int)
+	result.Risks[types.LowSeverity.String()][types.Unchecked.String()] = 0
+	result.Risks[types.LowSeverity.String()][types.InDiscussion.String()] = 0
+	result.Risks[types.LowSeverity.String()][types.Accepted.String()] = 0
+	result.Risks[types.LowSeverity.String()][types.InProgress.String()] = 0
+	result.Risks[types.LowSeverity.String()][types.Mitigated.String()] = 0
+	result.Risks[types.LowSeverity.String()][types.FalsePositive.String()] = 0
 	for _, risks := range GeneratedRisksByCategory {
 		for _, risk := range risks {
 			result.Risks[risk.Severity.String()][risk.GetRiskTrackingStatusDefaultingUnchecked().String()]++
@@ -4359,8 +2937,8 @@ func ReduceToOnlyStillAtRisk(risks []Risk) []Risk {
 	return filteredRisks
 }
 
-func HighestExploitationLikelihood(risks []Risk) RiskExploitationLikelihood {
-	result := Unlikely
+func HighestExploitationLikelihood(risks []Risk) types.RiskExploitationLikelihood {
+	result := types.Unlikely
 	for _, risk := range risks {
 		if risk.ExploitationLikelihood > result {
 			result = risk.ExploitationLikelihood
@@ -4369,8 +2947,8 @@ func HighestExploitationLikelihood(risks []Risk) RiskExploitationLikelihood {
 	return result
 }
 
-func HighestExploitationImpact(risks []Risk) RiskExploitationImpact {
-	result := LowImpact
+func HighestExploitationImpact(risks []Risk) types.RiskExploitationImpact {
+	result := types.LowImpact
 	for _, risk := range risks {
 		if risk.ExploitationImpact > result {
 			result = risk.ExploitationImpact

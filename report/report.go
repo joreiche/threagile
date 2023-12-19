@@ -3,55 +3,6 @@ package report
 import (
 	"errors"
 	"fmt"
-	"github.com/jung-kurt/gofpdf"
-	"github.com/jung-kurt/gofpdf/contrib/gofpdi"
-	"github.com/threagile/threagile/colors"
-	"github.com/threagile/threagile/model"
-	"github.com/threagile/threagile/risks"
-	"github.com/threagile/threagile/risks/built-in/accidental-secret-leak"
-	"github.com/threagile/threagile/risks/built-in/code-backdooring"
-	"github.com/threagile/threagile/risks/built-in/container-baseimage-backdooring"
-	"github.com/threagile/threagile/risks/built-in/container-platform-escape"
-	"github.com/threagile/threagile/risks/built-in/cross-site-request-forgery"
-	"github.com/threagile/threagile/risks/built-in/cross-site-scripting"
-	"github.com/threagile/threagile/risks/built-in/dos-risky-access-across-trust-boundary"
-	"github.com/threagile/threagile/risks/built-in/incomplete-model"
-	"github.com/threagile/threagile/risks/built-in/ldap-injection"
-	"github.com/threagile/threagile/risks/built-in/missing-authentication"
-	"github.com/threagile/threagile/risks/built-in/missing-authentication-second-factor"
-	"github.com/threagile/threagile/risks/built-in/missing-build-infrastructure"
-	"github.com/threagile/threagile/risks/built-in/missing-cloud-hardening"
-	"github.com/threagile/threagile/risks/built-in/missing-file-validation"
-	"github.com/threagile/threagile/risks/built-in/missing-hardening"
-	"github.com/threagile/threagile/risks/built-in/missing-identity-propagation"
-	"github.com/threagile/threagile/risks/built-in/missing-identity-provider-isolation"
-	"github.com/threagile/threagile/risks/built-in/missing-identity-store"
-	"github.com/threagile/threagile/risks/built-in/missing-network-segmentation"
-	"github.com/threagile/threagile/risks/built-in/missing-vault"
-	"github.com/threagile/threagile/risks/built-in/missing-vault-isolation"
-	"github.com/threagile/threagile/risks/built-in/missing-waf"
-	"github.com/threagile/threagile/risks/built-in/mixed-targets-on-shared-runtime"
-	"github.com/threagile/threagile/risks/built-in/path-traversal"
-	"github.com/threagile/threagile/risks/built-in/push-instead-of-pull-deployment"
-	"github.com/threagile/threagile/risks/built-in/search-query-injection"
-	"github.com/threagile/threagile/risks/built-in/server-side-request-forgery"
-	"github.com/threagile/threagile/risks/built-in/service-registry-poisoning"
-	"github.com/threagile/threagile/risks/built-in/sql-nosql-injection"
-	"github.com/threagile/threagile/risks/built-in/unchecked-deployment"
-	"github.com/threagile/threagile/risks/built-in/unencrypted-asset"
-	"github.com/threagile/threagile/risks/built-in/unencrypted-communication"
-	"github.com/threagile/threagile/risks/built-in/unguarded-access-from-internet"
-	"github.com/threagile/threagile/risks/built-in/unguarded-direct-datastore-access"
-	"github.com/threagile/threagile/risks/built-in/unnecessary-communication-link"
-	"github.com/threagile/threagile/risks/built-in/unnecessary-data-asset"
-	"github.com/threagile/threagile/risks/built-in/unnecessary-data-transfer"
-	"github.com/threagile/threagile/risks/built-in/unnecessary-technical-asset"
-	"github.com/threagile/threagile/risks/built-in/untrusted-deserialization"
-	"github.com/threagile/threagile/risks/built-in/wrong-communication-link-content"
-	"github.com/threagile/threagile/risks/built-in/wrong-trust-boundary-content"
-	"github.com/threagile/threagile/risks/built-in/xml-external-entity"
-	"github.com/wcharczuk/go-chart"
-	"github.com/wcharczuk/go-chart/drawing"
 	"image"
 	"log"
 	"os"
@@ -62,6 +13,58 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/jung-kurt/gofpdf"
+	"github.com/jung-kurt/gofpdf/contrib/gofpdi"
+	"github.com/threagile/threagile/colors"
+	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/docs"
+	"github.com/threagile/threagile/pkg/security/types"
+	"github.com/threagile/threagile/risks"
+	accidental_secret_leak "github.com/threagile/threagile/risks/built-in/accidental-secret-leak"
+	code_backdooring "github.com/threagile/threagile/risks/built-in/code-backdooring"
+	container_baseimage_backdooring "github.com/threagile/threagile/risks/built-in/container-baseimage-backdooring"
+	container_platform_escape "github.com/threagile/threagile/risks/built-in/container-platform-escape"
+	cross_site_request_forgery "github.com/threagile/threagile/risks/built-in/cross-site-request-forgery"
+	cross_site_scripting "github.com/threagile/threagile/risks/built-in/cross-site-scripting"
+	dos_risky_access_across_trust_boundary "github.com/threagile/threagile/risks/built-in/dos-risky-access-across-trust-boundary"
+	incomplete_model "github.com/threagile/threagile/risks/built-in/incomplete-model"
+	ldap_injection "github.com/threagile/threagile/risks/built-in/ldap-injection"
+	missing_authentication "github.com/threagile/threagile/risks/built-in/missing-authentication"
+	missing_authentication_second_factor "github.com/threagile/threagile/risks/built-in/missing-authentication-second-factor"
+	missing_build_infrastructure "github.com/threagile/threagile/risks/built-in/missing-build-infrastructure"
+	missing_cloud_hardening "github.com/threagile/threagile/risks/built-in/missing-cloud-hardening"
+	missing_file_validation "github.com/threagile/threagile/risks/built-in/missing-file-validation"
+	missing_hardening "github.com/threagile/threagile/risks/built-in/missing-hardening"
+	missing_identity_propagation "github.com/threagile/threagile/risks/built-in/missing-identity-propagation"
+	missing_identity_provider_isolation "github.com/threagile/threagile/risks/built-in/missing-identity-provider-isolation"
+	missing_identity_store "github.com/threagile/threagile/risks/built-in/missing-identity-store"
+	missing_network_segmentation "github.com/threagile/threagile/risks/built-in/missing-network-segmentation"
+	missing_vault "github.com/threagile/threagile/risks/built-in/missing-vault"
+	missing_vault_isolation "github.com/threagile/threagile/risks/built-in/missing-vault-isolation"
+	missing_waf "github.com/threagile/threagile/risks/built-in/missing-waf"
+	mixed_targets_on_shared_runtime "github.com/threagile/threagile/risks/built-in/mixed-targets-on-shared-runtime"
+	path_traversal "github.com/threagile/threagile/risks/built-in/path-traversal"
+	push_instead_of_pull_deployment "github.com/threagile/threagile/risks/built-in/push-instead-of-pull-deployment"
+	search_query_injection "github.com/threagile/threagile/risks/built-in/search-query-injection"
+	server_side_request_forgery "github.com/threagile/threagile/risks/built-in/server-side-request-forgery"
+	service_registry_poisoning "github.com/threagile/threagile/risks/built-in/service-registry-poisoning"
+	sql_nosql_injection "github.com/threagile/threagile/risks/built-in/sql-nosql-injection"
+	unchecked_deployment "github.com/threagile/threagile/risks/built-in/unchecked-deployment"
+	unencrypted_asset "github.com/threagile/threagile/risks/built-in/unencrypted-asset"
+	unencrypted_communication "github.com/threagile/threagile/risks/built-in/unencrypted-communication"
+	unguarded_access_from_internet "github.com/threagile/threagile/risks/built-in/unguarded-access-from-internet"
+	unguarded_direct_datastore_access "github.com/threagile/threagile/risks/built-in/unguarded-direct-datastore-access"
+	unnecessary_communication_link "github.com/threagile/threagile/risks/built-in/unnecessary-communication-link"
+	unnecessary_data_asset "github.com/threagile/threagile/risks/built-in/unnecessary-data-asset"
+	unnecessary_data_transfer "github.com/threagile/threagile/risks/built-in/unnecessary-data-transfer"
+	unnecessary_technical_asset "github.com/threagile/threagile/risks/built-in/unnecessary-technical-asset"
+	untrusted_deserialization "github.com/threagile/threagile/risks/built-in/untrusted-deserialization"
+	wrong_communication_link_content "github.com/threagile/threagile/risks/built-in/wrong-communication-link-content"
+	wrong_trust_boundary_content "github.com/threagile/threagile/risks/built-in/wrong-trust-boundary-content"
+	xml_external_entity "github.com/threagile/threagile/risks/built-in/xml-external-entity"
+	"github.com/wcharczuk/go-chart"
+	"github.com/wcharczuk/go-chart/drawing"
 )
 
 const fontSizeHeadline, fontSizeHeadlineSmall, fontSizeBody, fontSizeSmall, fontSizeVerySmall = 20, 16, 12, 9, 7
@@ -439,15 +442,15 @@ func createTableOfContents() {
 		for _, category := range model.SortedRiskCategories() {
 			newRisksStr := model.SortedRisksOfCategory(category)
 			switch model.HighestSeverityStillAtRisk(newRisksStr) {
-			case model.CriticalSeverity:
+			case types.CriticalSeverity:
 				colors.ColorCriticalRisk(pdf)
-			case model.HighSeverity:
+			case types.HighSeverity:
 				colors.ColorHighRisk(pdf)
-			case model.ElevatedSeverity:
+			case types.ElevatedSeverity:
 				colors.ColorElevatedRisk(pdf)
-			case model.MediumSeverity:
+			case types.MediumSeverity:
 				colors.ColorMediumRisk(pdf)
-			case model.LowSeverity:
+			case types.LowSeverity:
 				colors.ColorLowRisk(pdf)
 			default:
 				pdfColorBlack()
@@ -508,15 +511,15 @@ func createTableOfContents() {
 				suffix = "out-of-scope"
 			} else {
 				switch model.HighestSeverityStillAtRisk(newRisksStr) {
-				case model.CriticalSeverity:
+				case types.CriticalSeverity:
 					colors.ColorCriticalRisk(pdf)
-				case model.HighSeverity:
+				case types.HighSeverity:
 					colors.ColorHighRisk(pdf)
-				case model.ElevatedSeverity:
+				case types.ElevatedSeverity:
 					colors.ColorElevatedRisk(pdf)
-				case model.MediumSeverity:
+				case types.MediumSeverity:
 					colors.ColorMediumRisk(pdf)
-				case model.LowSeverity:
+				case types.LowSeverity:
 					colors.ColorLowRisk(pdf)
 				default:
 					pdfColorBlack()
@@ -564,11 +567,11 @@ func createTableOfContents() {
 				suffix += "s"
 			}
 			switch dataAsset.IdentifiedDataBreachProbabilityStillAtRisk() {
-			case model.Probable:
+			case types.Probable:
 				colors.ColorHighRisk(pdf)
-			case model.Possible:
+			case types.Possible:
 				colors.ColorMediumRisk(pdf)
-			case model.Improbable:
+			case types.Improbable:
 				colors.ColorLowRisk(pdf)
 			default:
 				pdfColorBlack()
@@ -970,92 +973,92 @@ func createRiskMitigationStatus(tempFolder string) {
 		YAxis: chart.Style{Show: true, FontSize: 26, TextVerticalAlign: chart.TextVerticalAlignBottom},
 		Bars: []chart.StackedBar{
 			{
-				Name:  model.LowSeverity.Title(),
+				Name:  types.LowSeverity.Title(),
 				Width: 130,
 				Values: []chart.Value{
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingUnchecked(risksLow))), Label: model.Unchecked.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingUnchecked(risksLow))), Label: types.Unchecked.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusUnchecked()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingInDiscussion(risksLow))), Label: model.InDiscussion.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingInDiscussion(risksLow))), Label: types.InDiscussion.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusInDiscussion()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingAccepted(risksLow))), Label: model.Accepted.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingAccepted(risksLow))), Label: types.Accepted.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusAccepted()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingInProgress(risksLow))), Label: model.InProgress.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingInProgress(risksLow))), Label: types.InProgress.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusInProgress()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingMitigated(risksLow))), Label: model.Mitigated.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingMitigated(risksLow))), Label: types.Mitigated.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusMitigated()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingFalsePositive(risksLow))), Label: model.FalsePositive.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingFalsePositive(risksLow))), Label: types.FalsePositive.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusFalsePositive()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
 				},
 			},
 			{
-				Name:  model.MediumSeverity.Title(),
+				Name:  types.MediumSeverity.Title(),
 				Width: 130,
 				Values: []chart.Value{
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingUnchecked(risksMedium))), Label: model.Unchecked.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingUnchecked(risksMedium))), Label: types.Unchecked.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusUnchecked()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingInDiscussion(risksMedium))), Label: model.InDiscussion.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingInDiscussion(risksMedium))), Label: types.InDiscussion.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusInDiscussion()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingAccepted(risksMedium))), Label: model.Accepted.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingAccepted(risksMedium))), Label: types.Accepted.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusAccepted()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingInProgress(risksMedium))), Label: model.InProgress.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingInProgress(risksMedium))), Label: types.InProgress.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusInProgress()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingMitigated(risksMedium))), Label: model.Mitigated.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingMitigated(risksMedium))), Label: types.Mitigated.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusMitigated()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingFalsePositive(risksMedium))), Label: model.FalsePositive.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingFalsePositive(risksMedium))), Label: types.FalsePositive.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusFalsePositive()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
 				},
 			},
 			{
-				Name:  model.ElevatedSeverity.Title(),
+				Name:  types.ElevatedSeverity.Title(),
 				Width: 130,
 				Values: []chart.Value{
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingUnchecked(risksElevated))), Label: model.Unchecked.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingUnchecked(risksElevated))), Label: types.Unchecked.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusUnchecked()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingInDiscussion(risksElevated))), Label: model.InDiscussion.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingInDiscussion(risksElevated))), Label: types.InDiscussion.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusInDiscussion()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingAccepted(risksElevated))), Label: model.Accepted.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingAccepted(risksElevated))), Label: types.Accepted.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusAccepted()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingInProgress(risksElevated))), Label: model.InProgress.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingInProgress(risksElevated))), Label: types.InProgress.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusInProgress()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingMitigated(risksElevated))), Label: model.Mitigated.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingMitigated(risksElevated))), Label: types.Mitigated.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusMitigated()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingFalsePositive(risksElevated))), Label: model.FalsePositive.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingFalsePositive(risksElevated))), Label: types.FalsePositive.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusFalsePositive()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
 				},
 			},
 			{
-				Name:  model.HighSeverity.Title(),
+				Name:  types.HighSeverity.Title(),
 				Width: 130,
 				Values: []chart.Value{
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingUnchecked(risksHigh))), Label: model.Unchecked.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingUnchecked(risksHigh))), Label: types.Unchecked.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusUnchecked()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingInDiscussion(risksHigh))), Label: model.InDiscussion.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingInDiscussion(risksHigh))), Label: types.InDiscussion.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusInDiscussion()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingAccepted(risksHigh))), Label: model.Accepted.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingAccepted(risksHigh))), Label: types.Accepted.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusAccepted()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingInProgress(risksHigh))), Label: model.InProgress.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingInProgress(risksHigh))), Label: types.InProgress.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusInProgress()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingMitigated(risksHigh))), Label: model.Mitigated.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingMitigated(risksHigh))), Label: types.Mitigated.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusMitigated()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingFalsePositive(risksHigh))), Label: model.FalsePositive.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingFalsePositive(risksHigh))), Label: types.FalsePositive.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusFalsePositive()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
 				},
 			},
 			{
-				Name:  model.CriticalSeverity.Title(),
+				Name:  types.CriticalSeverity.Title(),
 				Width: 130,
 				Values: []chart.Value{
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingUnchecked(risksCritical))), Label: model.Unchecked.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingUnchecked(risksCritical))), Label: types.Unchecked.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusUnchecked()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingInDiscussion(risksCritical))), Label: model.InDiscussion.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingInDiscussion(risksCritical))), Label: types.InDiscussion.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusInDiscussion()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingAccepted(risksCritical))), Label: model.Accepted.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingAccepted(risksCritical))), Label: types.Accepted.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusAccepted()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingInProgress(risksCritical))), Label: model.InProgress.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingInProgress(risksCritical))), Label: types.InProgress.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusInProgress()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingMitigated(risksCritical))), Label: model.Mitigated.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingMitigated(risksCritical))), Label: types.Mitigated.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusMitigated()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
-					{Value: float64(len(model.ReduceToOnlyRiskTrackingFalsePositive(risksCritical))), Label: model.FalsePositive.Title(),
+					{Value: float64(len(model.ReduceToOnlyRiskTrackingFalsePositive(risksCritical))), Label: types.FalsePositive.Title(),
 						Style: chart.Style{FillColor: makeColor(colors.RgbHexColorRiskStatusFalsePositive()).WithAlpha(98), StrokeColor: drawing.ColorFromHex("999")}},
 				},
 			},
@@ -1333,15 +1336,15 @@ func renderImpactAnalysis(initialRisks bool) {
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 
 	addCategories(model.CategoriesOfOnlyCriticalRisks(model.GeneratedRisksByCategory, initialRisks),
-		model.CriticalSeverity, false, initialRisks, true, false)
+		types.CriticalSeverity, false, initialRisks, true, false)
 	addCategories(model.CategoriesOfOnlyHighRisks(model.GeneratedRisksByCategory, initialRisks),
-		model.HighSeverity, false, initialRisks, true, false)
+		types.HighSeverity, false, initialRisks, true, false)
 	addCategories(model.CategoriesOfOnlyElevatedRisks(model.GeneratedRisksByCategory, initialRisks),
-		model.ElevatedSeverity, false, initialRisks, true, false)
+		types.ElevatedSeverity, false, initialRisks, true, false)
 	addCategories(model.CategoriesOfOnlyMediumRisks(model.GeneratedRisksByCategory, initialRisks),
-		model.MediumSeverity, false, initialRisks, true, false)
+		types.MediumSeverity, false, initialRisks, true, false)
 	addCategories(model.CategoriesOfOnlyLowRisks(model.GeneratedRisksByCategory, initialRisks),
-		model.LowSeverity, false, initialRisks, true, false)
+		types.LowSeverity, false, initialRisks, true, false)
 
 	pdf.SetDrawColor(0, 0, 0)
 	pdf.SetDashPattern([]float64{}, 0)
@@ -1446,15 +1449,15 @@ func createModelFailures() {
 		html.Write(5, "<br><br>No potential model failures have been identified.")
 	} else {
 		addCategories(model.CategoriesOfOnlyCriticalRisks(modelFailuresByCategory, true),
-			model.CriticalSeverity, true, true, false, true)
+			types.CriticalSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyHighRisks(modelFailuresByCategory, true),
-			model.HighSeverity, true, true, false, true)
+			types.HighSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyElevatedRisks(modelFailuresByCategory, true),
-			model.ElevatedSeverity, true, true, false, true)
+			types.ElevatedSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyMediumRisks(modelFailuresByCategory, true),
-			model.MediumSeverity, true, true, false, true)
+			types.MediumSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyLowRisks(modelFailuresByCategory, true),
-			model.LowSeverity, true, true, false, true)
+			types.LowSeverity, true, true, false, true)
 	}
 
 	pdf.SetDrawColor(0, 0, 0)
@@ -1492,11 +1495,11 @@ func createRAA(introTextRAA string) {
 		}
 		newRisksStr := technicalAsset.GeneratedRisks()
 		switch model.HighestSeverityStillAtRisk(newRisksStr) {
-		case model.HighSeverity:
+		case types.HighSeverity:
 			colors.ColorHighRisk(pdf)
-		case model.MediumSeverity:
+		case types.MediumSeverity:
 			colors.ColorMediumRisk(pdf)
-		case model.LowSeverity:
+		case types.LowSeverity:
 			colors.ColorLowRisk(pdf)
 		default:
 			pdfColorBlack()
@@ -1607,7 +1610,7 @@ func createDataRiskQuickWins() {
 }
 */
 
-func addCategories(riskCategories []model.RiskCategory, severity model.RiskSeverity, bothInitialAndRemainingRisks bool, initialRisks bool, describeImpact bool, describeDescription bool) {
+func addCategories(riskCategories []model.RiskCategory, severity types.RiskSeverity, bothInitialAndRemainingRisks bool, initialRisks bool, describeImpact bool, describeDescription bool) {
 	html := pdf.HTMLBasicNew()
 	var strBuilder strings.Builder
 	sort.Sort(model.ByRiskCategoryTitleSort(riskCategories))
@@ -1627,19 +1630,19 @@ func addCategories(riskCategories []model.RiskCategory, severity model.RiskSever
 		}
 		var prefix string
 		switch severity {
-		case model.CriticalSeverity:
+		case types.CriticalSeverity:
 			colors.ColorCriticalRisk(pdf)
 			prefix = "Critical: "
-		case model.HighSeverity:
+		case types.HighSeverity:
 			colors.ColorHighRisk(pdf)
 			prefix = "High: "
-		case model.ElevatedSeverity:
+		case types.ElevatedSeverity:
 			colors.ColorElevatedRisk(pdf)
 			prefix = "Elevated: "
-		case model.MediumSeverity:
+		case types.MediumSeverity:
 			colors.ColorMediumRisk(pdf)
 			prefix = "Medium: "
-		case model.LowSeverity:
+		case types.LowSeverity:
 			colors.ColorLowRisk(pdf)
 			prefix = "Low: "
 		default:
@@ -1647,15 +1650,15 @@ func addCategories(riskCategories []model.RiskCategory, severity model.RiskSever
 			prefix = ""
 		}
 		switch model.HighestSeverityStillAtRisk(risksStr) {
-		case model.CriticalSeverity:
+		case types.CriticalSeverity:
 			colors.ColorCriticalRisk(pdf)
-		case model.HighSeverity:
+		case types.HighSeverity:
 			colors.ColorHighRisk(pdf)
-		case model.ElevatedSeverity:
+		case types.ElevatedSeverity:
 			colors.ColorElevatedRisk(pdf)
-		case model.MediumSeverity:
+		case types.MediumSeverity:
 			colors.ColorMediumRisk(pdf)
-		case model.LowSeverity:
+		case types.LowSeverity:
 			colors.ColorLowRisk(pdf)
 		}
 		if len(model.ReduceToOnlyStillAtRisk(risksStr)) == 0 {
@@ -1732,10 +1735,10 @@ func createAssignmentByFunction() {
 	intro.WriteString("This chapter clusters and assigns the risks by functions which are most likely able to " +
 		"check and mitigate them: " +
 		"In total <b>" + strconv.Itoa(model.TotalRiskCount()) + " potential risks</b> have been identified during the threat modeling process " +
-		"of which <b>" + strconv.Itoa(countBusinessSideFunction) + " should be checked by " + model.BusinessSide.Title() + "</b>, " +
-		"<b>" + strconv.Itoa(countArchitectureFunction) + " should be checked by " + model.Architecture.Title() + "</b>, " +
-		"<b>" + strconv.Itoa(countDevelopmentFunction) + " should be checked by " + model.Development.Title() + "</b>, " +
-		"and <b>" + strconv.Itoa(countOperationFunction) + " should be checked by " + model.Operations.Title() + "</b>.<br>")
+		"of which <b>" + strconv.Itoa(countBusinessSideFunction) + " should be checked by " + types.BusinessSide.Title() + "</b>, " +
+		"<b>" + strconv.Itoa(countArchitectureFunction) + " should be checked by " + types.Architecture.Title() + "</b>, " +
+		"<b>" + strconv.Itoa(countDevelopmentFunction) + " should be checked by " + types.Development.Title() + "</b>, " +
+		"and <b>" + strconv.Itoa(countOperationFunction) + " should be checked by " + types.Operations.Title() + "</b>.<br>")
 	html := pdf.HTMLBasicNew()
 	html.Write(5, intro.String())
 	intro.Reset()
@@ -1754,22 +1757,22 @@ func createAssignmentByFunction() {
 	}
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 	pdf.SetTextColor(0, 0, 0)
-	html.Write(5, "<b>"+model.BusinessSide.Title()+"</b>")
+	html.Write(5, "<b>"+types.BusinessSide.Title()+"</b>")
 	pdf.SetLeftMargin(15)
 	if len(risksBusinessSideFunction) == 0 {
 		pdf.SetTextColor(150, 150, 150)
 		html.Write(5, "<br><br>n/a")
 	} else {
 		addCategories(model.CategoriesOfOnlyCriticalRisks(risksBusinessSideFunction, true),
-			model.CriticalSeverity, true, true, false, false)
+			types.CriticalSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyHighRisks(risksBusinessSideFunction, true),
-			model.HighSeverity, true, true, false, false)
+			types.HighSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyElevatedRisks(risksBusinessSideFunction, true),
-			model.ElevatedSeverity, true, true, false, false)
+			types.ElevatedSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyMediumRisks(risksBusinessSideFunction, true),
-			model.MediumSeverity, true, true, false, false)
+			types.MediumSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyLowRisks(risksBusinessSideFunction, true),
-			model.LowSeverity, true, true, false, false)
+			types.LowSeverity, true, true, false, false)
 	}
 	pdf.SetLeftMargin(oldLeft)
 
@@ -1781,22 +1784,22 @@ func createAssignmentByFunction() {
 	}
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 	pdf.SetTextColor(0, 0, 0)
-	html.Write(5, "<b>"+model.Architecture.Title()+"</b>")
+	html.Write(5, "<b>"+types.Architecture.Title()+"</b>")
 	pdf.SetLeftMargin(15)
 	if len(risksArchitectureFunction) == 0 {
 		pdf.SetTextColor(150, 150, 150)
 		html.Write(5, "<br><br>n/a")
 	} else {
 		addCategories(model.CategoriesOfOnlyCriticalRisks(risksArchitectureFunction, true),
-			model.CriticalSeverity, true, true, false, false)
+			types.CriticalSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyHighRisks(risksArchitectureFunction, true),
-			model.HighSeverity, true, true, false, false)
+			types.HighSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyElevatedRisks(risksArchitectureFunction, true),
-			model.ElevatedSeverity, true, true, false, false)
+			types.ElevatedSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyMediumRisks(risksArchitectureFunction, true),
-			model.MediumSeverity, true, true, false, false)
+			types.MediumSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyLowRisks(risksArchitectureFunction, true),
-			model.LowSeverity, true, true, false, false)
+			types.LowSeverity, true, true, false, false)
 	}
 	pdf.SetLeftMargin(oldLeft)
 
@@ -1808,22 +1811,22 @@ func createAssignmentByFunction() {
 	}
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 	pdf.SetTextColor(0, 0, 0)
-	html.Write(5, "<b>"+model.Development.Title()+"</b>")
+	html.Write(5, "<b>"+types.Development.Title()+"</b>")
 	pdf.SetLeftMargin(15)
 	if len(risksDevelopmentFunction) == 0 {
 		pdf.SetTextColor(150, 150, 150)
 		html.Write(5, "<br><br>n/a")
 	} else {
 		addCategories(model.CategoriesOfOnlyCriticalRisks(risksDevelopmentFunction, true),
-			model.CriticalSeverity, true, true, false, false)
+			types.CriticalSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyHighRisks(risksDevelopmentFunction, true),
-			model.HighSeverity, true, true, false, false)
+			types.HighSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyElevatedRisks(risksDevelopmentFunction, true),
-			model.ElevatedSeverity, true, true, false, false)
+			types.ElevatedSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyMediumRisks(risksDevelopmentFunction, true),
-			model.MediumSeverity, true, true, false, false)
+			types.MediumSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyLowRisks(risksDevelopmentFunction, true),
-			model.LowSeverity, true, true, false, false)
+			types.LowSeverity, true, true, false, false)
 	}
 	pdf.SetLeftMargin(oldLeft)
 
@@ -1835,22 +1838,22 @@ func createAssignmentByFunction() {
 	}
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 	pdf.SetTextColor(0, 0, 0)
-	html.Write(5, "<b>"+model.Operations.Title()+"</b>")
+	html.Write(5, "<b>"+types.Operations.Title()+"</b>")
 	pdf.SetLeftMargin(15)
 	if len(risksOperationFunction) == 0 {
 		pdf.SetTextColor(150, 150, 150)
 		html.Write(5, "<br><br>n/a")
 	} else {
 		addCategories(model.CategoriesOfOnlyCriticalRisks(risksOperationFunction, true),
-			model.CriticalSeverity, true, true, false, false)
+			types.CriticalSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyHighRisks(risksOperationFunction, true),
-			model.HighSeverity, true, true, false, false)
+			types.HighSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyElevatedRisks(risksOperationFunction, true),
-			model.ElevatedSeverity, true, true, false, false)
+			types.ElevatedSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyMediumRisks(risksOperationFunction, true),
-			model.MediumSeverity, true, true, false, false)
+			types.MediumSeverity, true, true, false, false)
 		addCategories(model.CategoriesOfOnlyLowRisks(risksOperationFunction, true),
-			model.LowSeverity, true, true, false, false)
+			types.LowSeverity, true, true, false, false)
 	}
 	pdf.SetLeftMargin(oldLeft)
 
@@ -1881,12 +1884,12 @@ func createSTRIDE() {
 	var intro strings.Builder
 	intro.WriteString("This chapter clusters and classifies the risks by STRIDE categories: " +
 		"In total <b>" + strconv.Itoa(model.TotalRiskCount()) + " potential risks</b> have been identified during the threat modeling process " +
-		"of which <b>" + strconv.Itoa(countSTRIDESpoofing) + " in the " + model.Spoofing.Title() + "</b> category, " +
-		"<b>" + strconv.Itoa(countSTRIDETampering) + " in the " + model.Tampering.Title() + "</b> category, " +
-		"<b>" + strconv.Itoa(countSTRIDERepudiation) + " in the " + model.Repudiation.Title() + "</b> category, " +
-		"<b>" + strconv.Itoa(countSTRIDEInformationDisclosure) + " in the " + model.InformationDisclosure.Title() + "</b> category, " +
-		"<b>" + strconv.Itoa(countSTRIDEDenialOfService) + " in the " + model.DenialOfService.Title() + "</b> category, " +
-		"and <b>" + strconv.Itoa(countSTRIDEElevationOfPrivilege) + " in the " + model.ElevationOfPrivilege.Title() + "</b> category.<br>")
+		"of which <b>" + strconv.Itoa(countSTRIDESpoofing) + " in the " + types.Spoofing.Title() + "</b> category, " +
+		"<b>" + strconv.Itoa(countSTRIDETampering) + " in the " + types.Tampering.Title() + "</b> category, " +
+		"<b>" + strconv.Itoa(countSTRIDERepudiation) + " in the " + types.Repudiation.Title() + "</b> category, " +
+		"<b>" + strconv.Itoa(countSTRIDEInformationDisclosure) + " in the " + types.InformationDisclosure.Title() + "</b> category, " +
+		"<b>" + strconv.Itoa(countSTRIDEDenialOfService) + " in the " + types.DenialOfService.Title() + "</b> category, " +
+		"and <b>" + strconv.Itoa(countSTRIDEElevationOfPrivilege) + " in the " + types.ElevationOfPrivilege.Title() + "</b> category.<br>")
 	html := pdf.HTMLBasicNew()
 	html.Write(5, intro.String())
 	intro.Reset()
@@ -1905,22 +1908,22 @@ func createSTRIDE() {
 	}
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 	pdf.SetTextColor(0, 0, 0)
-	html.Write(5, "<b>"+model.Spoofing.Title()+"</b>")
+	html.Write(5, "<b>"+types.Spoofing.Title()+"</b>")
 	pdf.SetLeftMargin(15)
 	if len(risksSTRIDESpoofing) == 0 {
 		pdf.SetTextColor(150, 150, 150)
 		html.Write(5, "<br><br>n/a")
 	} else {
 		addCategories(model.CategoriesOfOnlyCriticalRisks(risksSTRIDESpoofing, true),
-			model.CriticalSeverity, true, true, false, true)
+			types.CriticalSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyHighRisks(risksSTRIDESpoofing, true),
-			model.HighSeverity, true, true, false, true)
+			types.HighSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyElevatedRisks(risksSTRIDESpoofing, true),
-			model.ElevatedSeverity, true, true, false, true)
+			types.ElevatedSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyMediumRisks(risksSTRIDESpoofing, true),
-			model.MediumSeverity, true, true, false, true)
+			types.MediumSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyLowRisks(risksSTRIDESpoofing, true),
-			model.LowSeverity, true, true, false, true)
+			types.LowSeverity, true, true, false, true)
 	}
 	pdf.SetLeftMargin(oldLeft)
 
@@ -1932,22 +1935,22 @@ func createSTRIDE() {
 	}
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 	pdf.SetTextColor(0, 0, 0)
-	html.Write(5, "<b>"+model.Tampering.Title()+"</b>")
+	html.Write(5, "<b>"+types.Tampering.Title()+"</b>")
 	pdf.SetLeftMargin(15)
 	if len(risksSTRIDETampering) == 0 {
 		pdf.SetTextColor(150, 150, 150)
 		html.Write(5, "<br><br>n/a")
 	} else {
 		addCategories(model.CategoriesOfOnlyCriticalRisks(risksSTRIDETampering, true),
-			model.CriticalSeverity, true, true, false, true)
+			types.CriticalSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyHighRisks(risksSTRIDETampering, true),
-			model.HighSeverity, true, true, false, true)
+			types.HighSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyElevatedRisks(risksSTRIDETampering, true),
-			model.ElevatedSeverity, true, true, false, true)
+			types.ElevatedSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyMediumRisks(risksSTRIDETampering, true),
-			model.MediumSeverity, true, true, false, true)
+			types.MediumSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyLowRisks(risksSTRIDETampering, true),
-			model.LowSeverity, true, true, false, true)
+			types.LowSeverity, true, true, false, true)
 	}
 	pdf.SetLeftMargin(oldLeft)
 
@@ -1959,22 +1962,22 @@ func createSTRIDE() {
 	}
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 	pdf.SetTextColor(0, 0, 0)
-	html.Write(5, "<b>"+model.Repudiation.Title()+"</b>")
+	html.Write(5, "<b>"+types.Repudiation.Title()+"</b>")
 	pdf.SetLeftMargin(15)
 	if len(risksSTRIDERepudiation) == 0 {
 		pdf.SetTextColor(150, 150, 150)
 		html.Write(5, "<br><br>n/a")
 	} else {
 		addCategories(model.CategoriesOfOnlyCriticalRisks(risksSTRIDERepudiation, true),
-			model.CriticalSeverity, true, true, false, true)
+			types.CriticalSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyHighRisks(risksSTRIDERepudiation, true),
-			model.HighSeverity, true, true, false, true)
+			types.HighSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyElevatedRisks(risksSTRIDERepudiation, true),
-			model.ElevatedSeverity, true, true, false, true)
+			types.ElevatedSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyMediumRisks(risksSTRIDERepudiation, true),
-			model.MediumSeverity, true, true, false, true)
+			types.MediumSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyLowRisks(risksSTRIDERepudiation, true),
-			model.LowSeverity, true, true, false, true)
+			types.LowSeverity, true, true, false, true)
 	}
 	pdf.SetLeftMargin(oldLeft)
 
@@ -1986,22 +1989,22 @@ func createSTRIDE() {
 	}
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 	pdf.SetTextColor(0, 0, 0)
-	html.Write(5, "<b>"+model.InformationDisclosure.Title()+"</b>")
+	html.Write(5, "<b>"+types.InformationDisclosure.Title()+"</b>")
 	pdf.SetLeftMargin(15)
 	if len(risksSTRIDEInformationDisclosure) == 0 {
 		pdf.SetTextColor(150, 150, 150)
 		html.Write(5, "<br><br>n/a")
 	} else {
 		addCategories(model.CategoriesOfOnlyCriticalRisks(risksSTRIDEInformationDisclosure, true),
-			model.CriticalSeverity, true, true, false, true)
+			types.CriticalSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyHighRisks(risksSTRIDEInformationDisclosure, true),
-			model.HighSeverity, true, true, false, true)
+			types.HighSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyElevatedRisks(risksSTRIDEInformationDisclosure, true),
-			model.ElevatedSeverity, true, true, false, true)
+			types.ElevatedSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyMediumRisks(risksSTRIDEInformationDisclosure, true),
-			model.MediumSeverity, true, true, false, true)
+			types.MediumSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyLowRisks(risksSTRIDEInformationDisclosure, true),
-			model.LowSeverity, true, true, false, true)
+			types.LowSeverity, true, true, false, true)
 	}
 	pdf.SetLeftMargin(oldLeft)
 
@@ -2013,22 +2016,22 @@ func createSTRIDE() {
 	}
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 	pdf.SetTextColor(0, 0, 0)
-	html.Write(5, "<b>"+model.DenialOfService.Title()+"</b>")
+	html.Write(5, "<b>"+types.DenialOfService.Title()+"</b>")
 	pdf.SetLeftMargin(15)
 	if len(risksSTRIDEDenialOfService) == 0 {
 		pdf.SetTextColor(150, 150, 150)
 		html.Write(5, "<br><br>n/a")
 	} else {
 		addCategories(model.CategoriesOfOnlyCriticalRisks(risksSTRIDEDenialOfService, true),
-			model.CriticalSeverity, true, true, false, true)
+			types.CriticalSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyHighRisks(risksSTRIDEDenialOfService, true),
-			model.HighSeverity, true, true, false, true)
+			types.HighSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyElevatedRisks(risksSTRIDEDenialOfService, true),
-			model.ElevatedSeverity, true, true, false, true)
+			types.ElevatedSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyMediumRisks(risksSTRIDEDenialOfService, true),
-			model.MediumSeverity, true, true, false, true)
+			types.MediumSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyLowRisks(risksSTRIDEDenialOfService, true),
-			model.LowSeverity, true, true, false, true)
+			types.LowSeverity, true, true, false, true)
 	}
 	pdf.SetLeftMargin(oldLeft)
 
@@ -2040,22 +2043,22 @@ func createSTRIDE() {
 	}
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 	pdf.SetTextColor(0, 0, 0)
-	html.Write(5, "<b>"+model.ElevationOfPrivilege.Title()+"</b>")
+	html.Write(5, "<b>"+types.ElevationOfPrivilege.Title()+"</b>")
 	pdf.SetLeftMargin(15)
 	if len(risksSTRIDEElevationOfPrivilege) == 0 {
 		pdf.SetTextColor(150, 150, 150)
 		html.Write(5, "<br><br>n/a")
 	} else {
 		addCategories(model.CategoriesOfOnlyCriticalRisks(risksSTRIDEElevationOfPrivilege, true),
-			model.CriticalSeverity, true, true, false, true)
+			types.CriticalSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyHighRisks(risksSTRIDEElevationOfPrivilege, true),
-			model.HighSeverity, true, true, false, true)
+			types.HighSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyElevatedRisks(risksSTRIDEElevationOfPrivilege, true),
-			model.ElevatedSeverity, true, true, false, true)
+			types.ElevatedSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyMediumRisks(risksSTRIDEElevationOfPrivilege, true),
-			model.MediumSeverity, true, true, false, true)
+			types.MediumSeverity, true, true, false, true)
 		addCategories(model.CategoriesOfOnlyLowRisks(risksSTRIDEElevationOfPrivilege, true),
-			model.LowSeverity, true, true, false, true)
+			types.LowSeverity, true, true, false, true)
 	}
 	pdf.SetLeftMargin(oldLeft)
 
@@ -2268,15 +2271,15 @@ func createRiskCategories() {
 
 		// category color
 		switch model.HighestSeverityStillAtRisk(risksStr) {
-		case model.CriticalSeverity:
+		case types.CriticalSeverity:
 			colors.ColorCriticalRisk(pdf)
-		case model.HighSeverity:
+		case types.HighSeverity:
 			colors.ColorHighRisk(pdf)
-		case model.ElevatedSeverity:
+		case types.ElevatedSeverity:
 			colors.ColorElevatedRisk(pdf)
-		case model.MediumSeverity:
+		case types.MediumSeverity:
 			colors.ColorMediumRisk(pdf)
-		case model.LowSeverity:
+		case types.LowSeverity:
 			colors.ColorLowRisk(pdf)
 		default:
 			pdfColorBlack()
@@ -2379,7 +2382,7 @@ func createRiskCategories() {
 				pdf.SetY(36)
 			}
 			switch risk.Severity {
-			case model.CriticalSeverity:
+			case types.CriticalSeverity:
 				colors.ColorCriticalRisk(pdf)
 				if !headlineCriticalWritten {
 					pdf.SetFont("Helvetica", "", fontSizeBody)
@@ -2389,7 +2392,7 @@ func createRiskCategories() {
 					text.Reset()
 					headlineCriticalWritten = true
 				}
-			case model.HighSeverity:
+			case types.HighSeverity:
 				colors.ColorHighRisk(pdf)
 				if !headlineHighWritten {
 					pdf.SetFont("Helvetica", "", fontSizeBody)
@@ -2399,7 +2402,7 @@ func createRiskCategories() {
 					text.Reset()
 					headlineHighWritten = true
 				}
-			case model.ElevatedSeverity:
+			case types.ElevatedSeverity:
 				colors.ColorElevatedRisk(pdf)
 				if !headlineElevatedWritten {
 					pdf.SetFont("Helvetica", "", fontSizeBody)
@@ -2409,7 +2412,7 @@ func createRiskCategories() {
 					text.Reset()
 					headlineElevatedWritten = true
 				}
-			case model.MediumSeverity:
+			case types.MediumSeverity:
 				colors.ColorMediumRisk(pdf)
 				if !headlineMediumWritten {
 					pdf.SetFont("Helvetica", "", fontSizeBody)
@@ -2419,7 +2422,7 @@ func createRiskCategories() {
 					text.Reset()
 					headlineMediumWritten = true
 				}
-			case model.LowSeverity:
+			case types.LowSeverity:
 				colors.ColorLowRisk(pdf)
 				if !headlineLowWritten {
 					pdf.SetFont("Helvetica", "", fontSizeBody)
@@ -2468,27 +2471,27 @@ func writeRiskTrackingStatus(risk model.Risk) {
 	pdfColorBlack()
 	pdf.CellFormat(10, 6, "", "0", 0, "", false, 0, "")
 	switch tracking.Status {
-	case model.Unchecked:
+	case types.Unchecked:
 		colors.ColorRiskStatusUnchecked(pdf)
-	case model.InDiscussion:
+	case types.InDiscussion:
 		colors.ColorRiskStatusInDiscussion(pdf)
-	case model.Accepted:
+	case types.Accepted:
 		colors.ColorRiskStatusAccepted(pdf)
-	case model.InProgress:
+	case types.InProgress:
 		colors.ColorRiskStatusInProgress(pdf)
-	case model.Mitigated:
+	case types.Mitigated:
 		colors.ColorRiskStatusMitigated(pdf)
-	case model.FalsePositive:
+	case types.FalsePositive:
 		colors.ColorRiskStatusFalsePositive(pdf)
 	default:
 		pdfColorBlack()
 	}
 	pdf.SetFont("Helvetica", "", fontSizeSmall)
-	if tracking.Status == model.Unchecked {
+	if tracking.Status == types.Unchecked {
 		pdf.SetFont("Helvetica", "B", fontSizeSmall)
 	}
 	pdf.CellFormat(25, 4, tracking.Status.Title(), "0", 0, "B", false, 0, "")
-	if tracking.Status != model.Unchecked {
+	if tracking.Status != types.Unchecked {
 		dateStr := tracking.Date.Format("2006-01-02")
 		if dateStr == "0001-01-01" {
 			dateStr = ""
@@ -2543,15 +2546,15 @@ func createTechnicalAssets() {
 			suffix = "out-of-scope"
 		} else {
 			switch model.HighestSeverityStillAtRisk(risksStr) {
-			case model.CriticalSeverity:
+			case types.CriticalSeverity:
 				colors.ColorCriticalRisk(pdf)
-			case model.HighSeverity:
+			case types.HighSeverity:
 				colors.ColorHighRisk(pdf)
-			case model.ElevatedSeverity:
+			case types.ElevatedSeverity:
 				colors.ColorElevatedRisk(pdf)
-			case model.MediumSeverity:
+			case types.MediumSeverity:
 				colors.ColorMediumRisk(pdf)
-			case model.LowSeverity:
+			case types.LowSeverity:
 				colors.ColorLowRisk(pdf)
 			default:
 				pdfColorBlack()
@@ -2613,7 +2616,7 @@ func createTechnicalAssets() {
 					pdf.SetY(36)
 				}
 				switch risk.Severity {
-				case model.CriticalSeverity:
+				case types.CriticalSeverity:
 					colors.ColorCriticalRisk(pdf)
 					if !headlineCriticalWritten {
 						pdf.SetFont("Helvetica", "", fontSizeBody)
@@ -2621,7 +2624,7 @@ func createTechnicalAssets() {
 						html.Write(5, "<br><b><i>Critical Risk Severity</i></b><br><br>")
 						headlineCriticalWritten = true
 					}
-				case model.HighSeverity:
+				case types.HighSeverity:
 					colors.ColorHighRisk(pdf)
 					if !headlineHighWritten {
 						pdf.SetFont("Helvetica", "", fontSizeBody)
@@ -2629,7 +2632,7 @@ func createTechnicalAssets() {
 						html.Write(5, "<br><b><i>High Risk Severity</i></b><br><br>")
 						headlineHighWritten = true
 					}
-				case model.ElevatedSeverity:
+				case types.ElevatedSeverity:
 					colors.ColorElevatedRisk(pdf)
 					if !headlineElevatedWritten {
 						pdf.SetFont("Helvetica", "", fontSizeBody)
@@ -2637,7 +2640,7 @@ func createTechnicalAssets() {
 						html.Write(5, "<br><b><i>Elevated Risk Severity</i></b><br><br>")
 						headlineElevatedWritten = true
 					}
-				case model.MediumSeverity:
+				case types.MediumSeverity:
 					colors.ColorMediumRisk(pdf)
 					if !headlineMediumWritten {
 						pdf.SetFont("Helvetica", "", fontSizeBody)
@@ -2645,7 +2648,7 @@ func createTechnicalAssets() {
 						html.Write(5, "<br><b><i>Medium Risk Severity</i></b><br><br>")
 						headlineMediumWritten = true
 					}
-				case model.LowSeverity:
+				case types.LowSeverity:
 					colors.ColorLowRisk(pdf)
 					if !headlineLowWritten {
 						pdf.SetFont("Helvetica", "", fontSizeBody)
@@ -3351,11 +3354,11 @@ func createDataAssets() {
 		}
 		pdfColorBlack()
 		switch dataAsset.IdentifiedDataBreachProbabilityStillAtRisk() {
-		case model.Probable:
+		case types.Probable:
 			colors.ColorHighRisk(pdf)
-		case model.Possible:
+		case types.Possible:
 			colors.ColorMediumRisk(pdf)
-		case model.Improbable:
+		case types.Improbable:
 			colors.ColorLowRisk(pdf)
 		default:
 			pdfColorBlack()
@@ -3671,11 +3674,11 @@ func createDataAssets() {
 		dataBreachProbability := dataAsset.IdentifiedDataBreachProbabilityStillAtRisk()
 		riskText := dataBreachProbability.String()
 		switch dataBreachProbability {
-		case model.Probable:
+		case types.Probable:
 			colors.ColorHighRisk(pdf)
-		case model.Possible:
+		case types.Possible:
 			colors.ColorMediumRisk(pdf)
-		case model.Improbable:
+		case types.Improbable:
 			colors.ColorLowRisk(pdf)
 		default:
 			pdfColorBlack()
@@ -3718,11 +3721,11 @@ func createDataAssets() {
 					pdf.SetY(36)
 				}
 				switch dataBreachRisk.DataBreachProbability {
-				case model.Probable:
+				case types.Probable:
 					colors.ColorHighRisk(pdf)
-				case model.Possible:
+				case types.Possible:
 					colors.ColorMediumRisk(pdf)
-				case model.Improbable:
+				case types.Improbable:
 					colors.ColorLowRisk(pdf)
 				default:
 					pdfColorBlack()
@@ -3954,7 +3957,7 @@ func createRiskRulesChecked(modelFilename string, skipRiskRules string, buildTim
 	pdfColorGray()
 	pdf.SetFont("Helvetica", "", fontSizeSmall)
 	timestamp := time.Now()
-	strBuilder.WriteString("<b>Threagile Version:</b> " + model.ThreagileVersion)
+	strBuilder.WriteString("<b>Threagile Version:</b> " + docs.ThreagileVersion)
 	strBuilder.WriteString("<br><b>Threagile Build Timestamp:</b> " + buildTimestamp)
 	strBuilder.WriteString("<br><b>Threagile Execution Timestamp:</b> " + timestamp.Format("20060102150405"))
 	strBuilder.WriteString("<br><b>Model Filename:</b> " + modelFilename)
@@ -5496,64 +5499,64 @@ func createTargetDescription(baseFolder string) {
 	intro.Reset()
 	pdfColorGray()
 	intro.WriteString("(  ")
-	if criticality == model.Archive {
+	if criticality == types.Archive {
 		html.Write(5, intro.String())
 		intro.Reset()
 		pdfColorBlack()
-		intro.WriteString("<b><u>" + strings.ToUpper(model.Archive.String()) + "</u></b>")
+		intro.WriteString("<b><u>" + strings.ToUpper(types.Archive.String()) + "</u></b>")
 		html.Write(5, intro.String())
 		intro.Reset()
 		pdfColorGray()
 	} else {
-		intro.WriteString(model.Archive.String())
+		intro.WriteString(types.Archive.String())
 	}
 	intro.WriteString("  |  ")
-	if criticality == model.Operational {
+	if criticality == types.Operational {
 		html.Write(5, intro.String())
 		intro.Reset()
 		pdfColorBlack()
-		intro.WriteString("<b><u>" + strings.ToUpper(model.Operational.String()) + "</u></b>")
+		intro.WriteString("<b><u>" + strings.ToUpper(types.Operational.String()) + "</u></b>")
 		html.Write(5, intro.String())
 		intro.Reset()
 		pdfColorGray()
 	} else {
-		intro.WriteString(model.Operational.String())
+		intro.WriteString(types.Operational.String())
 	}
 	intro.WriteString("  |  ")
-	if criticality == model.Important {
+	if criticality == types.Important {
 		html.Write(5, intro.String())
 		intro.Reset()
 		pdfColorBlack()
-		intro.WriteString("<b><u>" + strings.ToUpper(model.Important.String()) + "</u></b>")
+		intro.WriteString("<b><u>" + strings.ToUpper(types.Important.String()) + "</u></b>")
 		html.Write(5, intro.String())
 		intro.Reset()
 		pdfColorGray()
 	} else {
-		intro.WriteString(model.Important.String())
+		intro.WriteString(types.Important.String())
 	}
 	intro.WriteString("  |  ")
-	if criticality == model.Critical {
+	if criticality == types.Critical {
 		html.Write(5, intro.String())
 		intro.Reset()
 		pdfColorBlack()
-		intro.WriteString("<b><u>" + strings.ToUpper(model.Critical.String()) + "</u></b>")
+		intro.WriteString("<b><u>" + strings.ToUpper(types.Critical.String()) + "</u></b>")
 		html.Write(5, intro.String())
 		intro.Reset()
 		pdfColorGray()
 	} else {
-		intro.WriteString(model.Critical.String())
+		intro.WriteString(types.Critical.String())
 	}
 	intro.WriteString("  |  ")
-	if criticality == model.MissionCritical {
+	if criticality == types.MissionCritical {
 		html.Write(5, intro.String())
 		intro.Reset()
 		pdfColorBlack()
-		intro.WriteString("<b><u>" + strings.ToUpper(model.MissionCritical.String()) + "</u></b>")
+		intro.WriteString("<b><u>" + strings.ToUpper(types.MissionCritical.String()) + "</u></b>")
 		html.Write(5, intro.String())
 		intro.Reset()
 		pdfColorGray()
 	} else {
-		intro.WriteString(model.MissionCritical.String())
+		intro.WriteString(types.MissionCritical.String())
 	}
 	intro.WriteString("  )")
 	html.Write(5, intro.String())

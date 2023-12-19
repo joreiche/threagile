@@ -2,6 +2,7 @@ package xml_external_entity
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -26,8 +27,8 @@ func Category() model.RiskCategory {
 		Mitigation: "Apply hardening of all XML parser instances in order to stay safe from XML External Entity (XXE) vulnerabilities. " +
 			"When a third-party product is used instead of custom developed software, check if the product applies the proper mitigation and ensure a reasonable patch-level.",
 		Check:          "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:       model.Development,
-		STRIDE:         model.InformationDisclosure,
+		Function:       types.Development,
+		STRIDE:         types.InformationDisclosure,
 		DetectionLogic: "In-scope technical assets accepting XML data formats.",
 		RiskAssessment: "The risk rating depends on the sensitivity of the technical asset itself and of the data assets processed and stored. " +
 			"Also for cloud-based environments the exploitation impact is at least medium, as cloud backend services can be attacked via SSRF (and XXE vulnerabilities are often also SSRF vulnerabilities).",
@@ -50,7 +51,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 			continue
 		}
 		for _, format := range technicalAsset.DataFormatsAccepted {
-			if format == model.XML {
+			if format == types.XML {
 				risks = append(risks, createRisk(technicalAsset))
 			}
 		}
@@ -60,20 +61,20 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 
 func createRisk(technicalAsset model.TechnicalAsset) model.Risk {
 	title := "<b>XML External Entity (XXE)</b> risk at <b>" + technicalAsset.Title + "</b>"
-	impact := model.MediumImpact
-	if technicalAsset.HighestConfidentiality() == model.StrictlyConfidential ||
-		technicalAsset.HighestIntegrity() == model.MissionCritical ||
-		technicalAsset.HighestAvailability() == model.MissionCritical {
-		impact = model.HighImpact
+	impact := types.MediumImpact
+	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
+		technicalAsset.HighestIntegrity() == types.MissionCritical ||
+		technicalAsset.HighestAvailability() == types.MissionCritical {
+		impact = types.HighImpact
 	}
 	risk := model.Risk{
 		Category:                     Category(),
-		Severity:                     model.CalculateSeverity(model.VeryLikely, impact),
-		ExploitationLikelihood:       model.VeryLikely,
+		Severity:                     model.CalculateSeverity(types.VeryLikely, impact),
+		ExploitationLikelihood:       types.VeryLikely,
 		ExploitationImpact:           impact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
-		DataBreachProbability:        model.Probable,
+		DataBreachProbability:        types.Probable,
 		DataBreachTechnicalAssetIDs:  []string{technicalAsset.Id}, // TODO: use the same logic here as for SSRF rule, as XXE is also SSRF ;)
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id

@@ -1,8 +1,10 @@
 package mixed_targets_on_shared_runtime
 
 import (
-	"github.com/threagile/threagile/model"
 	"sort"
+
+	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -28,8 +30,8 @@ func Category() model.RiskCategory {
 			"prevent load- or breach-related problems originating from one more attacker-facing asset impacts also the " +
 			"other more critical rated backend/datastore assets.",
 		Check:    "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function: model.Operations,
-		STRIDE:   model.ElevationOfPrivilege,
+		Function: types.Operations,
+		STRIDE:   types.ElevationOfPrivilege,
 		DetectionLogic: "Shared runtime running technical assets of different trust-boundaries is at risk. " +
 			"Also mixing backend/datastore with frontend components on the same shared runtime is considered a risk.",
 		RiskAssessment: "The risk rating (low or medium) depends on the confidentiality, integrity, and availability rating of " +
@@ -81,19 +83,19 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 }
 
 func createRisk(input *model.ParsedModel, sharedRuntime model.SharedRuntime) model.Risk {
-	impact := model.LowImpact
+	impact := types.LowImpact
 	if isMoreRisky(input, sharedRuntime) {
-		impact = model.MediumImpact
+		impact = types.MediumImpact
 	}
 	risk := model.Risk{
 		Category:               Category(),
-		Severity:               model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood: model.Unlikely,
+		Severity:               model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood: types.Unlikely,
 		ExploitationImpact:     impact,
 		Title: "<b>Mixed Targets on Shared Runtime</b> named <b>" + sharedRuntime.Title + "</b> might enable attackers moving from one less " +
 			"valuable target to a more valuable one", // TODO list at least the assets in the text which are running on the shared HW
 		MostRelevantSharedRuntimeId: sharedRuntime.Id,
-		DataBreachProbability:       model.Improbable,
+		DataBreachProbability:       types.Improbable,
 		DataBreachTechnicalAssetIDs: sharedRuntime.TechnicalAssetsRunning,
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + sharedRuntime.Id
@@ -103,8 +105,8 @@ func createRisk(input *model.ParsedModel, sharedRuntime model.SharedRuntime) mod
 func isMoreRisky(input *model.ParsedModel, sharedRuntime model.SharedRuntime) bool {
 	for _, techAssetId := range sharedRuntime.TechnicalAssetsRunning {
 		techAsset := input.TechnicalAssets[techAssetId]
-		if techAsset.Confidentiality == model.StrictlyConfidential || techAsset.Integrity == model.MissionCritical ||
-			techAsset.Availability == model.MissionCritical {
+		if techAsset.Confidentiality == types.StrictlyConfidential || techAsset.Integrity == types.MissionCritical ||
+			techAsset.Availability == types.MissionCritical {
 			return true
 		}
 	}

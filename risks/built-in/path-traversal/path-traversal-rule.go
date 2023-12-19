@@ -2,6 +2,7 @@ package path_traversal
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -28,8 +29,8 @@ func Category() model.RiskCategory {
 			"(partly or fully) provided by the caller. " +
 			"When a third-party product is used instead of custom developed software, check if the product applies the proper mitigation and ensure a reasonable patch-level.",
 		Check:          "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:       model.Development,
-		STRIDE:         model.InformationDisclosure,
+		Function:       types.Development,
+		STRIDE:         types.InformationDisclosure,
 		DetectionLogic: "Filesystems accessed by in-scope callers.",
 		RiskAssessment: "The risk rating depends on the sensitivity of the data stored inside the technical asset.",
 		FalsePositives: "File accesses by filenames not consisting of parts controllable by the caller can be considered " +
@@ -43,7 +44,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range model.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
-		if technicalAsset.Technology != model.FileServer && technicalAsset.Technology != model.LocalFileSystem {
+		if technicalAsset.Technology != types.FileServer && technicalAsset.Technology != types.LocalFileSystem {
 			continue
 		}
 		incomingFlows := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
@@ -51,9 +52,9 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 			if input.TechnicalAssets[incomingFlow.SourceId].OutOfScope {
 				continue
 			}
-			likelihood := model.VeryLikely
-			if incomingFlow.Usage == model.DevOps {
-				likelihood = model.Likely
+			likelihood := types.VeryLikely
+			if incomingFlow.Usage == types.DevOps {
+				likelihood = types.Likely
 			}
 			risks = append(risks, createRisk(input, technicalAsset, incomingFlow, likelihood))
 		}
@@ -65,13 +66,13 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingFlow model.CommunicationLink, likelihood model.RiskExploitationLikelihood) model.Risk {
+func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingFlow model.CommunicationLink, likelihood types.RiskExploitationLikelihood) model.Risk {
 	caller := input.TechnicalAssets[incomingFlow.SourceId]
 	title := "<b>Path-Traversal</b> risk at <b>" + caller.Title + "</b> against filesystem <b>" + technicalAsset.Title + "</b>" +
 		" via <b>" + incomingFlow.Title + "</b>"
-	impact := model.MediumImpact
-	if technicalAsset.HighestConfidentiality() == model.StrictlyConfidential || technicalAsset.HighestIntegrity() == model.MissionCritical {
-		impact = model.HighImpact
+	impact := types.MediumImpact
+	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential || technicalAsset.HighestIntegrity() == types.MissionCritical {
+		impact = types.HighImpact
 	}
 	risk := model.Risk{
 		Category:                        Category(),
@@ -81,7 +82,7 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, i
 		Title:                           title,
 		MostRelevantTechnicalAssetId:    caller.Id,
 		MostRelevantCommunicationLinkId: incomingFlow.Id,
-		DataBreachProbability:           model.Probable,
+		DataBreachProbability:           types.Probable,
 		DataBreachTechnicalAssetIDs:     []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + caller.Id + "@" + technicalAsset.Id + "@" + incomingFlow.Id

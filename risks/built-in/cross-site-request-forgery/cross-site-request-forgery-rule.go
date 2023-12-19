@@ -2,6 +2,7 @@ package cross_site_request_forgery
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -27,8 +28,8 @@ func Category() model.RiskCategory {
 			"the same-site flag. " +
 			"When a third-party product is used instead of custom developed software, check if the product applies the proper mitigation and ensure a reasonable patch-level.",
 		Check:          "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:       model.Development,
-		STRIDE:         model.Spoofing,
+		Function:       types.Development,
+		STRIDE:         types.Spoofing,
 		DetectionLogic: "In-scope web applications accessed via typical web access protocols.",
 		RiskAssessment: "The risk rating depends on the integrity rating of the data sent across the communication link.",
 		FalsePositives: "Web applications passing the authentication sate via custom headers instead of cookies can " +
@@ -54,9 +55,9 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 		incomingFlows := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 		for _, incomingFlow := range incomingFlows {
 			if incomingFlow.Protocol.IsPotentialWebAccessProtocol() {
-				likelihood := model.VeryLikely
-				if incomingFlow.Usage == model.DevOps {
-					likelihood = model.Likely
+				likelihood := types.VeryLikely
+				if incomingFlow.Usage == types.DevOps {
+					likelihood = types.Likely
 				}
 				risks = append(risks, createRisk(input, technicalAsset, incomingFlow, likelihood))
 			}
@@ -65,12 +66,12 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	return risks
 }
 
-func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingFlow model.CommunicationLink, likelihood model.RiskExploitationLikelihood) model.Risk {
+func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingFlow model.CommunicationLink, likelihood types.RiskExploitationLikelihood) model.Risk {
 	sourceAsset := input.TechnicalAssets[incomingFlow.SourceId]
 	title := "<b>Cross-Site Request Forgery (CSRF)</b> risk at <b>" + technicalAsset.Title + "</b> via <b>" + incomingFlow.Title + "</b> from <b>" + sourceAsset.Title + "</b>"
-	impact := model.LowImpact
-	if incomingFlow.HighestIntegrity() == model.MissionCritical {
-		impact = model.MediumImpact
+	impact := types.LowImpact
+	if incomingFlow.HighestIntegrity() == types.MissionCritical {
+		impact = types.MediumImpact
 	}
 	risk := model.Risk{
 		Category:                        Category(),
@@ -80,7 +81,7 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, i
 		Title:                           title,
 		MostRelevantTechnicalAssetId:    technicalAsset.Id,
 		MostRelevantCommunicationLinkId: incomingFlow.Id,
-		DataBreachProbability:           model.Improbable,
+		DataBreachProbability:           types.Improbable,
 		DataBreachTechnicalAssetIDs:     []string{technicalAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id + "@" + incomingFlow.Id

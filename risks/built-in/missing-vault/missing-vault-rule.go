@@ -2,6 +2,7 @@ package missing_vault
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -27,8 +28,8 @@ func Category() model.RiskCategory {
 		Action:         "Vault (Secret Storage)",
 		Mitigation:     "Consider using a Vault (Secret Storage) to securely store and access config secrets (like credentials, private keys, client certificates, etc.).",
 		Check:          "Is a Vault (Secret Storage) in place?",
-		Function:       model.Architecture,
-		STRIDE:         model.InformationDisclosure,
+		Function:       types.Architecture,
+		STRIDE:         types.InformationDisclosure,
 		DetectionLogic: "Models without a Vault (Secret Storage).",
 		RiskAssessment: "The risk rating depends on the sensitivity of the technical asset itself and of the data assets processed and stored.",
 		FalsePositives: "Models where no technical assets have any kind of sensitive config data to protect " +
@@ -46,21 +47,21 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	hasVault := false
 	var mostRelevantAsset model.TechnicalAsset
-	impact := model.LowImpact
+	impact := types.LowImpact
 	for _, id := range model.SortedTechnicalAssetIDs() { // use the sorted one to always get the same tech asset with the highest sensitivity as example asset
 		techAsset := input.TechnicalAssets[id]
-		if techAsset.Technology == model.Vault {
+		if techAsset.Technology == types.Vault {
 			hasVault = true
 		}
-		if techAsset.HighestConfidentiality() >= model.Confidential ||
-			techAsset.HighestIntegrity() >= model.Critical ||
-			techAsset.HighestAvailability() >= model.Critical {
-			impact = model.MediumImpact
+		if techAsset.HighestConfidentiality() >= types.Confidential ||
+			techAsset.HighestIntegrity() >= types.Critical ||
+			techAsset.HighestAvailability() >= types.Critical {
+			impact = types.MediumImpact
 		}
-		if techAsset.Confidentiality >= model.Confidential ||
-			techAsset.Integrity >= model.Critical ||
-			techAsset.Availability >= model.Critical {
-			impact = model.MediumImpact
+		if techAsset.Confidentiality >= types.Confidential ||
+			techAsset.Integrity >= types.Critical ||
+			techAsset.Availability >= types.Critical {
+			impact = types.MediumImpact
 		}
 		// just for referencing the most interesting asset
 		if techAsset.HighestSensitivityScore() > mostRelevantAsset.HighestSensitivityScore() {
@@ -73,16 +74,16 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset, impact model.RiskExploitationImpact) model.Risk {
+func createRisk(technicalAsset model.TechnicalAsset, impact types.RiskExploitationImpact) model.Risk {
 	title := "<b>Missing Vault (Secret Storage)</b> in the threat model (referencing asset <b>" + technicalAsset.Title + "</b> as an example)"
 	risk := model.Risk{
 		Category:                     Category(),
-		Severity:                     model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood:       model.Unlikely,
+		Severity:                     model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood:       types.Unlikely,
 		ExploitationImpact:           impact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
-		DataBreachProbability:        model.Improbable,
+		DataBreachProbability:        types.Improbable,
 		DataBreachTechnicalAssetIDs:  []string{},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id

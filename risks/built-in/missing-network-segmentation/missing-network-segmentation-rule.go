@@ -1,8 +1,10 @@
 package missing_network_segmentation
 
 import (
-	"github.com/threagile/threagile/model"
 	"sort"
+
+	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 const raaLimit = 50
@@ -29,15 +31,15 @@ func Category() model.RiskCategory {
 		Action:     "Network Segmentation",
 		Mitigation: "Apply a network segmentation trust-boundary around the highly sensitive assets and/or data stores.",
 		Check:      "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function:   model.Operations,
-		STRIDE:     model.ElevationOfPrivilege,
+		Function:   types.Operations,
+		STRIDE:     types.ElevationOfPrivilege,
 		DetectionLogic: "In-scope technical assets with high sensitivity and RAA values as well as data stores " +
-			"when surrounded by assets (without a network trust-boundary in-between) which are of type " + model.ClientSystem.String() + ", " +
-			model.WebServer.String() + ", " + model.WebApplication.String() + ", " + model.CMS.String() + ", " + model.WebServiceREST.String() + ", " + model.WebServiceSOAP.String() + ", " +
-			model.BuildPipeline.String() + ", " + model.SourcecodeRepository.String() + ", " + model.Monitoring.String() + ", or similar and there is no direct connection between these " +
+			"when surrounded by assets (without a network trust-boundary in-between) which are of type " + types.ClientSystem.String() + ", " +
+			types.WebServer.String() + ", " + types.WebApplication.String() + ", " + types.CMS.String() + ", " + types.WebServiceREST.String() + ", " + types.WebServiceSOAP.String() + ", " +
+			types.BuildPipeline.String() + ", " + types.SourcecodeRepository.String() + ", " + types.Monitoring.String() + ", or similar and there is no direct connection between these " +
 			"(hence no requirement to be so close to each other).",
-		RiskAssessment: "Default is " + model.LowSeverity.String() + " risk. The risk is increased to " + model.MediumSeverity.String() + " when the asset missing the " +
-			"trust-boundary protection is rated as " + model.StrictlyConfidential.String() + " or " + model.MissionCritical.String() + ".",
+		RiskAssessment: "Default is " + types.LowSeverity.String() + " risk. The risk is increased to " + types.MediumSeverity.String() + " when the asset missing the " +
+			"trust-boundary protection is rated as " + types.StrictlyConfidential.String() + " or " + types.MissionCritical.String() + ".",
 		FalsePositives: "When all assets within the network segmentation trust-boundary are hardened and protected to the same extend as if all were " +
 			"containing/processing highly sensitive data.",
 		ModelFailurePossibleReason: false,
@@ -60,9 +62,9 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	sort.Strings(keys)
 	for _, key := range keys {
 		technicalAsset := input.TechnicalAssets[key]
-		if !technicalAsset.OutOfScope && technicalAsset.Technology != model.ReverseProxy && technicalAsset.Technology != model.WAF && technicalAsset.Technology != model.IDS && technicalAsset.Technology != model.IPS && technicalAsset.Technology != model.ServiceRegistry {
-			if technicalAsset.RAA >= raaLimit && (technicalAsset.Type == model.Datastore || technicalAsset.Confidentiality >= model.Confidential ||
-				technicalAsset.Integrity >= model.Critical || technicalAsset.Availability >= model.Critical) {
+		if !technicalAsset.OutOfScope && technicalAsset.Technology != types.ReverseProxy && technicalAsset.Technology != types.WAF && technicalAsset.Technology != types.IDS && technicalAsset.Technology != types.IPS && technicalAsset.Technology != types.ServiceRegistry {
+			if technicalAsset.RAA >= raaLimit && (technicalAsset.Type == types.Datastore || technicalAsset.Confidentiality >= types.Confidential ||
+				technicalAsset.Integrity >= types.Critical || technicalAsset.Availability >= types.Critical) {
 				// now check for any other same-network assets of certain types which have no direct connection
 				for _, sparringAssetCandidateId := range keys { // so inner loop again over all assets
 					if technicalAsset.Id != sparringAssetCandidateId {
@@ -71,8 +73,8 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 							technicalAsset.IsSameTrustBoundaryNetworkOnly(sparringAssetCandidateId) &&
 							!technicalAsset.HasDirectConnection(sparringAssetCandidateId) &&
 							!sparringAssetCandidate.Technology.IsCloseToHighValueTargetsTolerated() {
-							highRisk := technicalAsset.Confidentiality == model.StrictlyConfidential ||
-								technicalAsset.Integrity == model.MissionCritical || technicalAsset.Availability == model.MissionCritical
+							highRisk := technicalAsset.Confidentiality == types.StrictlyConfidential ||
+								technicalAsset.Integrity == types.MissionCritical || technicalAsset.Availability == types.MissionCritical
 							risks = append(risks, createRisk(technicalAsset, highRisk))
 							break
 						}
@@ -85,19 +87,19 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 }
 
 func createRisk(techAsset model.TechnicalAsset, moreRisky bool) model.Risk {
-	impact := model.LowImpact
+	impact := types.LowImpact
 	if moreRisky {
-		impact = model.MediumImpact
+		impact = types.MediumImpact
 	}
 	risk := model.Risk{
 		Category:               Category(),
-		Severity:               model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood: model.Unlikely,
+		Severity:               model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood: types.Unlikely,
 		ExploitationImpact:     impact,
 		Title: "<b>Missing Network Segmentation</b> to further encapsulate and protect <b>" + techAsset.Title + "</b> against unrelated " +
 			"lower protected assets in the same network segment, which might be easier to compromise by attackers",
 		MostRelevantTechnicalAssetId: techAsset.Id,
-		DataBreachProbability:        model.Improbable,
+		DataBreachProbability:        types.Improbable,
 		DataBreachTechnicalAssetIDs:  []string{techAsset.Id},
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + techAsset.Id

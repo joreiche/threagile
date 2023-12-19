@@ -2,6 +2,7 @@ package code_backdooring
 
 import (
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 func Rule() model.CustomRiskRule {
@@ -28,8 +29,8 @@ func Category() model.RiskCategory {
 			"components on the public internet and also not exposing it in front of unmanaged (out-of-scope) developer clients." +
 			"Also consider the use of code signing to prevent code modifications.",
 		Check:    "Are recommendations from the linked cheat sheet and referenced ASVS chapter applied?",
-		Function: model.Operations,
-		STRIDE:   model.Tampering,
+		Function: types.Operations,
+		STRIDE:   types.Tampering,
 		DetectionLogic: "In-scope development relevant technical assets which are either accessed by out-of-scope unmanaged " +
 			"developer clients and/or are directly accessed by any kind of internet-located (non-VPN) component or are themselves directly located " +
 			"on the internet.",
@@ -76,15 +77,15 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 
 func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, elevatedRisk bool) model.Risk {
 	title := "<b>Code Backdooring</b> risk at <b>" + technicalAsset.Title + "</b>"
-	impact := model.LowImpact
-	if technicalAsset.Technology != model.CodeInspectionPlatform {
+	impact := types.LowImpact
+	if technicalAsset.Technology != types.CodeInspectionPlatform {
 		if elevatedRisk {
-			impact = model.MediumImpact
+			impact = types.MediumImpact
 		}
-		if technicalAsset.HighestConfidentiality() >= model.Confidential || technicalAsset.HighestIntegrity() >= model.Critical {
-			impact = model.MediumImpact
+		if technicalAsset.HighestConfidentiality() >= types.Confidential || technicalAsset.HighestIntegrity() >= types.Critical {
+			impact = types.MediumImpact
 			if elevatedRisk {
-				impact = model.HighImpact
+				impact = types.HighImpact
 			}
 		}
 	}
@@ -92,10 +93,10 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, e
 	uniqueDataBreachTechnicalAssetIDs := make(map[string]interface{})
 	uniqueDataBreachTechnicalAssetIDs[technicalAsset.Id] = true
 	for _, codeDeploymentTargetCommLink := range technicalAsset.CommunicationLinks {
-		if codeDeploymentTargetCommLink.Usage == model.DevOps {
+		if codeDeploymentTargetCommLink.Usage == types.DevOps {
 			for _, dataAssetID := range codeDeploymentTargetCommLink.DataAssetsSent {
 				// it appears to be code when elevated integrity rating of sent data asset
-				if input.DataAssets[dataAssetID].Integrity >= model.Important {
+				if input.DataAssets[dataAssetID].Integrity >= types.Important {
 					// here we've got a deployment target which has its data assets at risk via deployment of backdoored code
 					uniqueDataBreachTechnicalAssetIDs[codeDeploymentTargetCommLink.TargetId] = true
 					break
@@ -110,12 +111,12 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, e
 	// create risk
 	risk := model.Risk{
 		Category:                     Category(),
-		Severity:                     model.CalculateSeverity(model.Unlikely, impact),
-		ExploitationLikelihood:       model.Unlikely,
+		Severity:                     model.CalculateSeverity(types.Unlikely, impact),
+		ExploitationLikelihood:       types.Unlikely,
 		ExploitationImpact:           impact,
 		Title:                        title,
 		MostRelevantTechnicalAssetId: technicalAsset.Id,
-		DataBreachProbability:        model.Probable,
+		DataBreachProbability:        types.Probable,
 		DataBreachTechnicalAssetIDs:  dataBreachTechnicalAssetIDs,
 	}
 	risk.SyntheticId = risk.Category.Id + "@" + technicalAsset.Id
