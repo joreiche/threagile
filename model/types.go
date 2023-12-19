@@ -12,7 +12,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/threagile/threagile/colors"
+	"github.com/threagile/threagile/pkg/colors"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 

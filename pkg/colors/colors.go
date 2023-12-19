@@ -1,7 +1,9 @@
+// TODO: move content of this package to internal because it's only bunch of helper which is actually detail of implementation on how to generate
 package colors
 
 import (
 	"encoding/hex"
+
 	"github.com/jung-kurt/gofpdf"
 )
 

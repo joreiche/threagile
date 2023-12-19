@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/threagile/threagile/colors"
 	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/colors"
 	"github.com/threagile/threagile/pkg/security/types"
 	"github.com/xuri/excelize/v2"
 )
