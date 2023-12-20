@@ -29,5 +29,6 @@ func Execute() {
 func init() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(listMacrosCmd)
+	rootCmd.AddCommand(explainMacrosCmd)
 	rootCmd.AddCommand(listTypesCmd)
 }

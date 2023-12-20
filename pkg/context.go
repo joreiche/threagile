@@ -4682,7 +4682,6 @@ func (context *Context) ParseCommandlineArgs() {
 	listRiskRules := flag.Bool("list-risk-rules", false, "print risk rules")
 	explainTypes := flag.Bool("explain-types", false, "Detailed explanation of all the types")
 	explainRiskRules := flag.Bool("explain-risk-rules", false, "Detailed explanation of all the risk rules")
-	explainModelMacros := flag.Bool("explain-model-macros", false, "Detailed explanation of all the model macros")
 	print3rdParty := flag.Bool("print-3rd-party-licenses", false, "print 3rd-party license information")
 	license := flag.Bool("print-license", false, "print license information")
 	flag.Parse()
@@ -4778,20 +4777,6 @@ func (context *Context) ParseCommandlineArgs() {
 		printExplainTypes("Usage", types.UsageValues())
 
 		os.Exit(0)
-	}
-	if *explainModelMacros {
-		fmt.Println(docs.Logo + "\n\n" + docs.VersionText)
-		fmt.Println("Explanation for the model macros:")
-		fmt.Println()
-		fmt.Printf("%v: %v\n", addbuildpipeline.GetMacroDetails().ID, addbuildpipeline.GetMacroDetails().Description)
-		fmt.Printf("%v: %v\n", addvault.GetMacroDetails().ID, addvault.GetMacroDetails().Description)
-		fmt.Printf("%v: %v\n", prettyprint.GetMacroDetails().ID, prettyprint.GetMacroDetails().Description)
-		fmt.Printf("%v: %v\n", removeunusedtags.GetMacroDetails().ID, removeunusedtags.GetMacroDetails().Description)
-		fmt.Printf("%v: %v\n", seedrisktracking.GetMacroDetails().ID, seedrisktracking.GetMacroDetails().Description)
-		fmt.Printf("%v: %v\n", seedtags.GetMacroDetails().ID, seedtags.GetMacroDetails().Description)
-		fmt.Println()
-		os.Exit(0)
-
 	}
 	if *explainRiskRules {
 		fmt.Println(docs.Logo + "\n\n" + docs.VersionText)
