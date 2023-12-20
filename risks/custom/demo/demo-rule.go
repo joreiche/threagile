@@ -8,9 +8,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
+	"github.com/threagile/threagile/pkg/security/risks"
 	"github.com/threagile/threagile/pkg/security/types"
-	"github.com/threagile/threagile/risks"
 )
 
 type customRiskRule string
@@ -27,7 +27,7 @@ func main() {
 	if *getInfo {
 		rule := new(customRiskRule)
 		category := rule.Category()
-		riskData, marshalError := json.Marshal(risks.CustomRisk{
+		riskData, marshalError := json.Marshal(model.CustomRisk{
 			ID:       category.Id,
 			Category: category,
 			Tags:     rule.SupportedTags(),
@@ -72,8 +72,8 @@ func main() {
 	os.Exit(-2)
 }
 
-func (r customRiskRule) Category() model.RiskCategory {
-	return model.RiskCategory{
+func (r customRiskRule) Category() risks.RiskCategory {
+	return risks.RiskCategory{
 		Id:                         "demo",
 		Title:                      "Just a Demo",
 		Description:                "Demo Description",

@@ -5,12 +5,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/input"
+	"github.com/threagile/threagile/pkg/macros"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
-func GetMacroDetails() model.MacroDetails {
-	return model.MacroDetails{
+func GetMacroDetails() macros.MacroDetails {
+	return macros.MacroDetails{
 		ID:    "add-build-pipeline",
 		Title: "Add Build Pipeline",
 		Description: "This model macro adds a build pipeline (development client, build pipeline, artifact registry, container image registry, " +
@@ -31,7 +33,7 @@ var pushOrPull = []string{
 
 // TODO add question for type of machine (either physical, virtual, container, etc.)
 
-func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
+func GetNextQuestion(model *model.ParsedModel) (nextQuestion macros.MacroQuestion, err error) {
 	counter := len(questionsAnswered)
 	if counter > 3 && !codeInspectionUsed {
 		counter++
@@ -47,7 +49,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 	}
 	switch counter {
 	case 0:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "source-repository",
 			Title:           "What product is used as the sourcecode repository?",
 			Description:     "This name affects the technical asset's title and ID plus also the tags used.",
@@ -56,7 +58,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "Git",
 		}, nil
 	case 1:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "build-pipeline",
 			Title:           "What product is used as the build pipeline?",
 			Description:     "This name affects the technical asset's title and ID plus also the tags used.",
@@ -65,7 +67,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "Jenkins",
 		}, nil
 	case 2:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "artifact-registry",
 			Title:           "What product is used as the artifact registry?",
 			Description:     "This name affects the technical asset's title and ID plus also the tags used.",
@@ -74,7 +76,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "Nexus",
 		}, nil
 	case 3:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "code-inspection-used",
 			Title:           "Are code inspection platforms (like SonarQube) used?",
 			Description:     "This affects whether code inspection platform are added.",
@@ -83,7 +85,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "Yes",
 		}, nil
 	case 4:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "code-inspection-platform",
 			Title:           "What product is used as the code inspection platform?",
 			Description:     "This name affects the technical asset's title and ID plus also the tags used.",
@@ -92,7 +94,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "SonarQube",
 		}, nil
 	case 5:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "container-technology-used",
 			Title:           "Is container technology (like Docker) used?",
 			Description:     "This affects whether container registries are added.",
@@ -101,7 +103,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "Yes",
 		}, nil
 	case 6:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "container-registry",
 			Title:           "What product is used as the container registry?",
 			Description:     "This name affects the technical asset's title and ID plus also the tags used.",
@@ -110,7 +112,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "Docker",
 		}, nil
 	case 7:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "container-platform",
 			Title:           "What product is used as the container platform (for orchestration and runtime)?",
 			Description:     "This name affects the technical asset's title and ID plus also the tags used.",
@@ -119,7 +121,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "Kubernetes",
 		}, nil
 	case 8:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "internet",
 			Title:           "Are build pipeline components exposed on the internet?",
 			Description:     "",
@@ -128,7 +130,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "No",
 		}, nil
 	case 9:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "multi-tenant",
 			Title:           "Are build pipeline components used by multiple tenants?",
 			Description:     "",
@@ -137,7 +139,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "No",
 		}, nil
 	case 10:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "encryption",
 			Title:           "Are build pipeline components encrypted?",
 			Description:     "",
@@ -147,12 +149,12 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 		}, nil
 	case 11:
 		possibleAnswers := make([]string, 0)
-		for id := range model.ParsedModelRoot.TechnicalAssets {
+		for id := range model.TechnicalAssets {
 			possibleAnswers = append(possibleAnswers, id)
 		}
 		sort.Strings(possibleAnswers)
 		if len(possibleAnswers) > 0 {
-			return model.MacroQuestion{
+			return macros.MacroQuestion{
 				ID:              "deploy-targets",
 				Title:           "Select all technical assets where the build pipeline deploys to:",
 				Description:     "This affects the communication links being generated.",
@@ -162,7 +164,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			}, nil
 		}
 	case 12:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "within-trust-boundary",
 			Title:           "Are the server-side components of the build pipeline components within a network trust boundary?",
 			Description:     "",
@@ -172,13 +174,13 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 		}, nil
 	case 13:
 		possibleAnswers := []string{createNewTrustBoundaryLabel}
-		for id, trustBoundary := range model.ParsedModelRoot.TrustBoundaries {
+		for id, trustBoundary := range model.TrustBoundaries {
 			if trustBoundary.Type.IsNetworkBoundary() {
 				possibleAnswers = append(possibleAnswers, id)
 			}
 		}
 		sort.Strings(possibleAnswers)
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "selected-trust-boundary",
 			Title:           "Choose from the list of existing network trust boundaries or create a new one?",
 			Description:     "",
@@ -187,7 +189,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "",
 		}, nil
 	case 14:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:          "new-trust-boundary-type",
 			Title:       "Of which type shall the new trust boundary be?",
 			Description: "",
@@ -201,7 +203,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer: types.NetworkOnPrem.String(),
 		}, nil
 	case 15:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "push-or-pull",
 			Title:           "What type of deployment strategy is used?",
 			Description:     "Push-based deployments are more classic ones and pull-based are more GitOps-like ones.",
@@ -210,7 +212,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "",
 		}, nil
 	case 16:
-		return model.MacroQuestion{
+		return macros.MacroQuestion{
 			ID:              "owner",
 			Title:           "Who is the owner of the build pipeline and runtime assets?",
 			Description:     "This name affects the technical asset's and data asset's owner.",
@@ -219,7 +221,7 @@ func GetNextQuestion() (nextQuestion model.MacroQuestion, err error) {
 			DefaultAnswer:   "",
 		}, nil
 	}
-	return model.NoMoreQuestions(), nil
+	return macros.NoMoreQuestions(), nil
 }
 
 func ApplyAnswer(questionID string, answer ...string) (message string, validResult bool, err error) {
@@ -247,30 +249,30 @@ func GoBack() (message string, validResult bool, err error) {
 	return "Undo successful", true, nil
 }
 
-func GetFinalChangeImpact(modelInput *model.ModelInput) (changes []string, message string, validResult bool, err error) {
+func GetFinalChangeImpact(modelInput *input.ModelInput, model *model.ParsedModel) (changes []string, message string, validResult bool, err error) {
 	changeLogCollector := make([]string, 0)
-	message, validResult, err = applyChange(modelInput, &changeLogCollector, true)
+	message, validResult, err = applyChange(modelInput, model, &changeLogCollector, true)
 	return changeLogCollector, message, validResult, err
 }
 
-func Execute(modelInput *model.ModelInput) (message string, validResult bool, err error) {
+func Execute(modelInput *input.ModelInput, model *model.ParsedModel) (message string, validResult bool, err error) {
 	changeLogCollector := make([]string, 0)
-	message, validResult, err = applyChange(modelInput, &changeLogCollector, false)
+	message, validResult, err = applyChange(modelInput, model, &changeLogCollector, false)
 	return message, validResult, err
 }
 
-func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dryRun bool) (message string, validResult bool, err error) {
+func applyChange(modelInput *input.ModelInput, parsedModel *model.ParsedModel, changeLogCollector *[]string, dryRun bool) (message string, validResult bool, err error) {
 	var serverSideTechAssets = make([]string, 0)
 	// ################################################
-	model.AddTagToModelInput(modelInput, macroState["source-repository"][0], dryRun, changeLogCollector)
-	model.AddTagToModelInput(modelInput, macroState["build-pipeline"][0], dryRun, changeLogCollector)
-	model.AddTagToModelInput(modelInput, macroState["artifact-registry"][0], dryRun, changeLogCollector)
+	input.AddTagToModelInput(modelInput, macroState["source-repository"][0], dryRun, changeLogCollector)
+	input.AddTagToModelInput(modelInput, macroState["build-pipeline"][0], dryRun, changeLogCollector)
+	input.AddTagToModelInput(modelInput, macroState["artifact-registry"][0], dryRun, changeLogCollector)
 	if containerTechUsed {
-		model.AddTagToModelInput(modelInput, macroState["container-registry"][0], dryRun, changeLogCollector)
-		model.AddTagToModelInput(modelInput, macroState["container-platform"][0], dryRun, changeLogCollector)
+		input.AddTagToModelInput(modelInput, macroState["container-registry"][0], dryRun, changeLogCollector)
+		input.AddTagToModelInput(modelInput, macroState["container-platform"][0], dryRun, changeLogCollector)
 	}
 	if codeInspectionUsed {
-		model.AddTagToModelInput(modelInput, macroState["code-inspection-platform"][0], dryRun, changeLogCollector)
+		input.AddTagToModelInput(modelInput, macroState["code-inspection-platform"][0], dryRun, changeLogCollector)
 	}
 
 	sourceRepoID := model.MakeID(macroState["source-repository"][0]) + "-sourcecode-repository"
@@ -288,9 +290,9 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 	}
 	owner := macroState["owner"][0]
 
-	if _, exists := model.ParsedModelRoot.DataAssets["Sourcecode"]; !exists {
+	if _, exists := parsedModel.DataAssets["Sourcecode"]; !exists {
 		//fmt.Println("Adding data asset:", "sourcecode") // ################################################
-		dataAsset := model.InputDataAsset{
+		dataAsset := input.InputDataAsset{
 			ID:              "sourcecode",
 			Description:     "Sourcecode to build the application components from",
 			Usage:           types.DevOps.String(),
@@ -310,9 +312,9 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 		}
 	}
 
-	if _, exists := model.ParsedModelRoot.DataAssets["Deployment"]; !exists {
+	if _, exists := parsedModel.DataAssets["Deployment"]; !exists {
 		//fmt.Println("Adding data asset:", "deployment") // ################################################
-		dataAsset := model.InputDataAsset{
+		dataAsset := input.InputDataAsset{
 			ID:              "deployment",
 			Description:     "Deployment unit being installed/shipped",
 			Usage:           types.DevOps.String(),
@@ -333,15 +335,15 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 	}
 
 	id := "development-client"
-	if _, exists := model.ParsedModelRoot.TechnicalAssets[id]; !exists {
+	if _, exists := parsedModel.TechnicalAssets[id]; !exists {
 		//fmt.Println("Adding technical asset:", id) // ################################################
 		encryption := types.NoneEncryption.String()
 		if strings.ToLower(macroState["encryption"][0]) == "yes" {
 			encryption = types.Transparent.String()
 		}
 
-		commLinks := make(map[string]model.InputCommunicationLink)
-		commLinks["Sourcecode Repository Traffic"] = model.InputCommunicationLink{
+		commLinks := make(map[string]input.InputCommunicationLink)
+		commLinks["Sourcecode Repository Traffic"] = input.InputCommunicationLink{
 			Target:                 sourceRepoID,
 			Description:            "Sourcecode Repository Traffic",
 			Protocol:               types.HTTPS.String(),
@@ -357,7 +359,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			DiagramTweakWeight:     0,
 			DiagramTweakConstraint: false,
 		}
-		commLinks["Build Pipeline Traffic"] = model.InputCommunicationLink{
+		commLinks["Build Pipeline Traffic"] = input.InputCommunicationLink{
 			Target:                 buildPipelineID,
 			Description:            "Build Pipeline Traffic",
 			Protocol:               types.HTTPS.String(),
@@ -373,7 +375,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			DiagramTweakWeight:     0,
 			DiagramTweakConstraint: false,
 		}
-		commLinks["Artifact Registry Traffic"] = model.InputCommunicationLink{
+		commLinks["Artifact Registry Traffic"] = input.InputCommunicationLink{
 			Target:                 artifactRegistryID,
 			Description:            "Artifact Registry Traffic",
 			Protocol:               types.HTTPS.String(),
@@ -390,7 +392,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			DiagramTweakConstraint: false,
 		}
 		if containerTechUsed {
-			commLinks["Container Registry Traffic"] = model.InputCommunicationLink{
+			commLinks["Container Registry Traffic"] = input.InputCommunicationLink{
 				Target:                 containerRepoID,
 				Description:            "Container Registry Traffic",
 				Protocol:               types.HTTPS.String(),
@@ -406,7 +408,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 				DiagramTweakWeight:     0,
 				DiagramTweakConstraint: false,
 			}
-			commLinks["Container Platform Traffic"] = model.InputCommunicationLink{
+			commLinks["Container Platform Traffic"] = input.InputCommunicationLink{
 				Target:                 containerPlatformID,
 				Description:            "Container Platform Traffic",
 				Protocol:               types.HTTPS.String(),
@@ -424,7 +426,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			}
 		}
 		if codeInspectionUsed {
-			commLinks["Code Inspection Platform Traffic"] = model.InputCommunicationLink{
+			commLinks["Code Inspection Platform Traffic"] = input.InputCommunicationLink{
 				Target:                 codeInspectionPlatformID,
 				Description:            "Code Inspection Platform Traffic",
 				Protocol:               types.HTTPS.String(),
@@ -442,7 +444,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			}
 		}
 
-		techAsset := model.InputTechnicalAsset{
+		techAsset := input.InputTechnicalAsset{
 			ID:                      id,
 			Description:             "Development Client",
 			Type:                    types.ExternalEntity.String(),
@@ -477,14 +479,14 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 	}
 
 	id = sourceRepoID
-	if _, exists := model.ParsedModelRoot.TechnicalAssets[id]; !exists {
+	if _, exists := parsedModel.TechnicalAssets[id]; !exists {
 		//fmt.Println("Adding technical asset:", id) // ################################################
 		serverSideTechAssets = append(serverSideTechAssets, id)
 		encryption := types.NoneEncryption.String()
 		if strings.ToLower(macroState["encryption"][0]) == "yes" {
 			encryption = types.Transparent.String()
 		}
-		techAsset := model.InputTechnicalAsset{
+		techAsset := input.InputTechnicalAsset{
 			ID:                      id,
 			Description:             macroState["source-repository"][0] + " Sourcecode Repository",
 			Type:                    types.Process.String(),
@@ -494,7 +496,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			JustificationOutOfScope: "",
 			Size:                    types.Service.String(),
 			Technology:              types.SourcecodeRepository.String(),
-			Tags:                    []string{model.NormalizeTag(macroState["source-repository"][0])},
+			Tags:                    []string{input.NormalizeTag(macroState["source-repository"][0])},
 			Internet:                strings.ToLower(macroState["internet"][0]) == "yes",
 			Machine:                 types.Virtual.String(),
 			Encryption:              encryption,
@@ -520,14 +522,14 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 
 	if containerTechUsed {
 		id = containerRepoID
-		if _, exists := model.ParsedModelRoot.TechnicalAssets[id]; !exists {
+		if _, exists := parsedModel.TechnicalAssets[id]; !exists {
 			//fmt.Println("Adding technical asset:", id) // ################################################
 			serverSideTechAssets = append(serverSideTechAssets, id)
 			encryption := types.NoneEncryption.String()
 			if strings.ToLower(macroState["encryption"][0]) == "yes" {
 				encryption = types.Transparent.String()
 			}
-			techAsset := model.InputTechnicalAsset{
+			techAsset := input.InputTechnicalAsset{
 				ID:                      id,
 				Description:             macroState["container-registry"][0] + " Container Registry",
 				Type:                    types.Process.String(),
@@ -537,7 +539,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 				JustificationOutOfScope: "",
 				Size:                    types.Service.String(),
 				Technology:              types.ArtifactRegistry.String(),
-				Tags:                    []string{model.NormalizeTag(macroState["container-registry"][0])},
+				Tags:                    []string{input.NormalizeTag(macroState["container-registry"][0])},
 				Internet:                strings.ToLower(macroState["internet"][0]) == "yes",
 				Machine:                 types.Virtual.String(),
 				Encryption:              encryption,
@@ -562,14 +564,14 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 		}
 
 		id = containerPlatformID
-		if _, exists := model.ParsedModelRoot.TechnicalAssets[id]; !exists {
+		if _, exists := parsedModel.TechnicalAssets[id]; !exists {
 			//fmt.Println("Adding technical asset:", id) // ################################################
 			serverSideTechAssets = append(serverSideTechAssets, id)
 			encryption := types.NoneEncryption.String()
 			if strings.ToLower(macroState["encryption"][0]) == "yes" {
 				encryption = types.Transparent.String()
 			}
-			techAsset := model.InputTechnicalAsset{
+			techAsset := input.InputTechnicalAsset{
 				ID:                      id,
 				Description:             macroState["container-platform"][0] + " Container Platform",
 				Type:                    types.Process.String(),
@@ -579,7 +581,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 				JustificationOutOfScope: "",
 				Size:                    types.System.String(),
 				Technology:              types.ContainerPlatform.String(),
-				Tags:                    []string{model.NormalizeTag(macroState["container-platform"][0])},
+				Tags:                    []string{input.NormalizeTag(macroState["container-platform"][0])},
 				Internet:                strings.ToLower(macroState["internet"][0]) == "yes",
 				Machine:                 types.Virtual.String(),
 				Encryption:              encryption,
@@ -605,7 +607,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 	}
 
 	id = buildPipelineID
-	if _, exists := model.ParsedModelRoot.TechnicalAssets[id]; !exists {
+	if _, exists := parsedModel.TechnicalAssets[id]; !exists {
 		//fmt.Println("Adding technical asset:", id) // ################################################
 		serverSideTechAssets = append(serverSideTechAssets, id)
 		encryption := types.NoneEncryption.String()
@@ -613,8 +615,8 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			encryption = types.Transparent.String()
 		}
 
-		commLinks := make(map[string]model.InputCommunicationLink)
-		commLinks["Sourcecode Repository Traffic"] = model.InputCommunicationLink{
+		commLinks := make(map[string]input.InputCommunicationLink)
+		commLinks["Sourcecode Repository Traffic"] = input.InputCommunicationLink{
 			Target:                 sourceRepoID,
 			Description:            "Sourcecode Repository Traffic",
 			Protocol:               types.HTTPS.String(),
@@ -630,7 +632,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			DiagramTweakWeight:     0,
 			DiagramTweakConstraint: false,
 		}
-		commLinks["Artifact Registry Traffic"] = model.InputCommunicationLink{
+		commLinks["Artifact Registry Traffic"] = input.InputCommunicationLink{
 			Target:                 artifactRegistryID,
 			Description:            "Artifact Registry Traffic",
 			Protocol:               types.HTTPS.String(),
@@ -647,7 +649,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			DiagramTweakConstraint: false,
 		}
 		if containerTechUsed {
-			commLinks["Container Registry Traffic"] = model.InputCommunicationLink{
+			commLinks["Container Registry Traffic"] = input.InputCommunicationLink{
 				Target:                 containerRepoID,
 				Description:            "Container Registry Traffic",
 				Protocol:               types.HTTPS.String(),
@@ -664,7 +666,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 				DiagramTweakConstraint: false,
 			}
 			if macroState["push-or-pull"][0] == pushOrPull[0] { // Push
-				commLinks["Container Platform Push"] = model.InputCommunicationLink{
+				commLinks["Container Platform Push"] = input.InputCommunicationLink{
 					Target:                 containerPlatformID,
 					Description:            "Container Platform Push",
 					Protocol:               types.HTTPS.String(),
@@ -681,7 +683,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 					DiagramTweakConstraint: false,
 				}
 			} else { // Pull
-				commLinkPull := model.InputCommunicationLink{
+				commLinkPull := input.InputCommunicationLink{
 					Target:                 containerRepoID,
 					Description:            "Container Platform Pull",
 					Protocol:               types.HTTPS.String(),
@@ -701,7 +703,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 					titleOfTargetAsset := macroState["container-platform"][0] + " Container Platform"
 					containerPlatform := modelInput.TechnicalAssets[titleOfTargetAsset]
 					if containerPlatform.CommunicationLinks == nil {
-						containerPlatform.CommunicationLinks = make(map[string]model.InputCommunicationLink)
+						containerPlatform.CommunicationLinks = make(map[string]input.InputCommunicationLink)
 					}
 					containerPlatform.CommunicationLinks["Container Platform Pull"] = commLinkPull
 					modelInput.TechnicalAssets[titleOfTargetAsset] = containerPlatform
@@ -709,7 +711,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			}
 		}
 		if codeInspectionUsed {
-			commLinks["Code Inspection Platform Traffic"] = model.InputCommunicationLink{
+			commLinks["Code Inspection Platform Traffic"] = input.InputCommunicationLink{
 				Target:                 codeInspectionPlatformID,
 				Description:            "Code Inspection Platform Traffic",
 				Protocol:               types.HTTPS.String(),
@@ -733,9 +735,9 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 				if !dryRun {
 					containerPlatform := modelInput.TechnicalAssets[macroState["container-platform"][0]+" Container Platform"]
 					if containerPlatform.CommunicationLinks == nil {
-						containerPlatform.CommunicationLinks = make(map[string]model.InputCommunicationLink)
+						containerPlatform.CommunicationLinks = make(map[string]input.InputCommunicationLink)
 					}
-					containerPlatform.CommunicationLinks["Container Spawning ("+deployTargetID+")"] = model.InputCommunicationLink{
+					containerPlatform.CommunicationLinks["Container Spawning ("+deployTargetID+")"] = input.InputCommunicationLink{
 						Target:                 deployTargetID,
 						Description:            "Container Spawning " + deployTargetID,
 						Protocol:               types.ContainerSpawning.String(),
@@ -755,7 +757,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 				}
 			} else { // No Containers used
 				if macroState["push-or-pull"][0] == pushOrPull[0] { // Push
-					commLinks["Deployment Push ("+deployTargetID+")"] = model.InputCommunicationLink{
+					commLinks["Deployment Push ("+deployTargetID+")"] = input.InputCommunicationLink{
 						Target:                 deployTargetID,
 						Description:            "Deployment Push to " + deployTargetID,
 						Protocol:               types.SSH.String(),
@@ -773,7 +775,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 					}
 				} else { // Pull
 					pullFromWhere := artifactRegistryID
-					commLinkPull := model.InputCommunicationLink{
+					commLinkPull := input.InputCommunicationLink{
 						Target:                 pullFromWhere,
 						Description:            "Deployment Pull from " + deployTargetID,
 						Protocol:               types.HTTPS.String(),
@@ -791,20 +793,19 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 					}
 					if !dryRun {
 						// take care to lookup by title (as keyed in input YAML by title and only in parsed model representation by ID)
-						titleOfTargetAsset := model.ParsedModelRoot.TechnicalAssets[deployTargetID].Title
+						titleOfTargetAsset := parsedModel.TechnicalAssets[deployTargetID].Title
 						x := modelInput.TechnicalAssets[titleOfTargetAsset]
 						if x.CommunicationLinks == nil {
-							x.CommunicationLinks = make(map[string]model.InputCommunicationLink)
+							x.CommunicationLinks = make(map[string]input.InputCommunicationLink)
 						}
 						x.CommunicationLinks["Deployment Pull ("+deployTargetID+")"] = commLinkPull
 						modelInput.TechnicalAssets[titleOfTargetAsset] = x
 					}
-
 				}
 			}
 
 			// don't forget to also add the "deployment" data asset as stored on the target
-			targetAssetTitle := model.ParsedModelRoot.TechnicalAssets[deployTargetID].Title
+			targetAssetTitle := parsedModel.TechnicalAssets[deployTargetID].Title
 			assetsStored := make([]string, 0)
 			if modelInput.TechnicalAssets[targetAssetTitle].DataAssetsStored != nil {
 				for _, val := range modelInput.TechnicalAssets[targetAssetTitle].DataAssetsStored {
@@ -823,7 +824,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			}
 		}
 
-		techAsset := model.InputTechnicalAsset{
+		techAsset := input.InputTechnicalAsset{
 			ID:                      id,
 			Description:             macroState["build-pipeline"][0] + " Build Pipeline",
 			Type:                    types.Process.String(),
@@ -833,7 +834,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			JustificationOutOfScope: "",
 			Size:                    types.Service.String(),
 			Technology:              types.BuildPipeline.String(),
-			Tags:                    []string{model.NormalizeTag(macroState["build-pipeline"][0])},
+			Tags:                    []string{input.NormalizeTag(macroState["build-pipeline"][0])},
 			Internet:                strings.ToLower(macroState["internet"][0]) == "yes",
 			Machine:                 types.Virtual.String(),
 			Encryption:              encryption,
@@ -858,14 +859,14 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 	}
 
 	id = artifactRegistryID
-	if _, exists := model.ParsedModelRoot.TechnicalAssets[id]; !exists {
+	if _, exists := parsedModel.TechnicalAssets[id]; !exists {
 		//fmt.Println("Adding technical asset:", id) // ################################################
 		serverSideTechAssets = append(serverSideTechAssets, id)
 		encryption := types.NoneEncryption.String()
 		if strings.ToLower(macroState["encryption"][0]) == "yes" {
 			encryption = types.Transparent.String()
 		}
-		techAsset := model.InputTechnicalAsset{
+		techAsset := input.InputTechnicalAsset{
 			ID:                      id,
 			Description:             macroState["artifact-registry"][0] + " Artifact Registry",
 			Type:                    types.Process.String(),
@@ -875,7 +876,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			JustificationOutOfScope: "",
 			Size:                    types.Service.String(),
 			Technology:              types.ArtifactRegistry.String(),
-			Tags:                    []string{model.NormalizeTag(macroState["artifact-registry"][0])},
+			Tags:                    []string{input.NormalizeTag(macroState["artifact-registry"][0])},
 			Internet:                strings.ToLower(macroState["internet"][0]) == "yes",
 			Machine:                 types.Virtual.String(),
 			Encryption:              encryption,
@@ -901,14 +902,14 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 
 	if codeInspectionUsed {
 		id = codeInspectionPlatformID
-		if _, exists := model.ParsedModelRoot.TechnicalAssets[id]; !exists {
+		if _, exists := parsedModel.TechnicalAssets[id]; !exists {
 			//fmt.Println("Adding technical asset:", id) // ################################################
 			serverSideTechAssets = append(serverSideTechAssets, id)
 			encryption := types.NoneEncryption.String()
 			if strings.ToLower(macroState["encryption"][0]) == "yes" {
 				encryption = types.Transparent.String()
 			}
-			techAsset := model.InputTechnicalAsset{
+			techAsset := input.InputTechnicalAsset{
 				ID:                      id,
 				Description:             macroState["code-inspection-platform"][0] + " Code Inspection Platform",
 				Type:                    types.Process.String(),
@@ -918,7 +919,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 				JustificationOutOfScope: "",
 				Size:                    types.Service.String(),
 				Technology:              types.CodeInspectionPlatform.String(),
-				Tags:                    []string{model.NormalizeTag(macroState["code-inspection-platform"][0])},
+				Tags:                    []string{input.NormalizeTag(macroState["code-inspection-platform"][0])},
 				Internet:                strings.ToLower(macroState["internet"][0]) == "yes",
 				Machine:                 types.Virtual.String(),
 				Encryption:              encryption,
@@ -948,7 +949,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			trustBoundaryType := macroState["new-trust-boundary-type"][0]
 			//fmt.Println("Adding new trust boundary of type:", trustBoundaryType)
 			title := "DevOps Network"
-			trustBoundary := model.InputTrustBoundary{
+			trustBoundary := input.InputTrustBoundary{
 				ID:                    "devops-network",
 				Description:           "DevOps Network",
 				Type:                  trustBoundaryType,
@@ -963,7 +964,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 		} else {
 			existingTrustBoundaryToAddTo := macroState["selected-trust-boundary"][0]
 			//fmt.Println("Adding to existing trust boundary:", existingTrustBoundaryToAddTo)
-			title := model.ParsedModelRoot.TrustBoundaries[existingTrustBoundaryToAddTo].Title
+			title := parsedModel.TrustBoundaries[existingTrustBoundaryToAddTo].Title
 			assetsInside := make([]string, 0)
 			if modelInput.TrustBoundaries[title].TechnicalAssetsInside != nil {
 				values := modelInput.TrustBoundaries[title].TechnicalAssetsInside
@@ -979,7 +980,7 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			*changeLogCollector = append(*changeLogCollector, "filling existing trust boundary: "+existingTrustBoundaryToAddTo)
 			if !dryRun {
 				if modelInput.TrustBoundaries == nil {
-					modelInput.TrustBoundaries = make(map[string]model.InputTrustBoundary)
+					modelInput.TrustBoundaries = make(map[string]input.InputTrustBoundary)
 				}
 				tb := modelInput.TrustBoundaries[title]
 				tb.TechnicalAssetsInside = mergedArrays
@@ -995,16 +996,16 @@ func applyChange(modelInput *model.ModelInput, changeLogCollector *[]string, dry
 			assetsRunning = append(assetsRunning, deployTargetID)
 		}
 		title := macroState["container-platform"][0] + " Runtime"
-		sharedRuntime := model.InputSharedRuntime{
+		sharedRuntime := input.InputSharedRuntime{
 			ID:                     containerSharedRuntimeID,
 			Description:            title,
-			Tags:                   []string{model.NormalizeTag(macroState["container-platform"][0])},
+			Tags:                   []string{input.NormalizeTag(macroState["container-platform"][0])},
 			TechnicalAssetsRunning: assetsRunning,
 		}
 		*changeLogCollector = append(*changeLogCollector, "adding shared runtime: "+containerSharedRuntimeID)
 		if !dryRun {
 			if modelInput.SharedRuntimes == nil {
-				modelInput.SharedRuntimes = make(map[string]model.InputSharedRuntime)
+				modelInput.SharedRuntimes = make(map[string]input.InputSharedRuntime)
 			}
 			modelInput.SharedRuntimes[title] = sharedRuntime
 		}

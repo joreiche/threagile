@@ -1,7 +1,7 @@
 package accidental_secret_leak
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 

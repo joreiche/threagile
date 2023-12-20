@@ -16,53 +16,53 @@ import (
 
 	"github.com/jung-kurt/gofpdf"
 	"github.com/jung-kurt/gofpdf/contrib/gofpdi"
-	"github.com/threagile/threagile/model"
 	"github.com/threagile/threagile/pkg/colors"
 	"github.com/threagile/threagile/pkg/docs"
+	"github.com/threagile/threagile/pkg/model"
+	"github.com/threagile/threagile/pkg/security/risks"
+	accidental_secret_leak "github.com/threagile/threagile/pkg/security/risks/built-in/accidental-secret-leak"
+	code_backdooring "github.com/threagile/threagile/pkg/security/risks/built-in/code-backdooring"
+	container_baseimage_backdooring "github.com/threagile/threagile/pkg/security/risks/built-in/container-baseimage-backdooring"
+	container_platform_escape "github.com/threagile/threagile/pkg/security/risks/built-in/container-platform-escape"
+	cross_site_request_forgery "github.com/threagile/threagile/pkg/security/risks/built-in/cross-site-request-forgery"
+	cross_site_scripting "github.com/threagile/threagile/pkg/security/risks/built-in/cross-site-scripting"
+	dos_risky_access_across_trust_boundary "github.com/threagile/threagile/pkg/security/risks/built-in/dos-risky-access-across-trust-boundary"
+	incomplete_model "github.com/threagile/threagile/pkg/security/risks/built-in/incomplete-model"
+	ldap_injection "github.com/threagile/threagile/pkg/security/risks/built-in/ldap-injection"
+	missing_authentication "github.com/threagile/threagile/pkg/security/risks/built-in/missing-authentication"
+	missing_authentication_second_factor "github.com/threagile/threagile/pkg/security/risks/built-in/missing-authentication-second-factor"
+	missing_build_infrastructure "github.com/threagile/threagile/pkg/security/risks/built-in/missing-build-infrastructure"
+	missing_cloud_hardening "github.com/threagile/threagile/pkg/security/risks/built-in/missing-cloud-hardening"
+	missing_file_validation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-file-validation"
+	missing_hardening "github.com/threagile/threagile/pkg/security/risks/built-in/missing-hardening"
+	missing_identity_propagation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-identity-propagation"
+	missing_identity_provider_isolation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-identity-provider-isolation"
+	missing_identity_store "github.com/threagile/threagile/pkg/security/risks/built-in/missing-identity-store"
+	missing_network_segmentation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-network-segmentation"
+	missing_vault "github.com/threagile/threagile/pkg/security/risks/built-in/missing-vault"
+	missing_vault_isolation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-vault-isolation"
+	missing_waf "github.com/threagile/threagile/pkg/security/risks/built-in/missing-waf"
+	mixed_targets_on_shared_runtime "github.com/threagile/threagile/pkg/security/risks/built-in/mixed-targets-on-shared-runtime"
+	path_traversal "github.com/threagile/threagile/pkg/security/risks/built-in/path-traversal"
+	push_instead_of_pull_deployment "github.com/threagile/threagile/pkg/security/risks/built-in/push-instead-of-pull-deployment"
+	search_query_injection "github.com/threagile/threagile/pkg/security/risks/built-in/search-query-injection"
+	server_side_request_forgery "github.com/threagile/threagile/pkg/security/risks/built-in/server-side-request-forgery"
+	service_registry_poisoning "github.com/threagile/threagile/pkg/security/risks/built-in/service-registry-poisoning"
+	sql_nosql_injection "github.com/threagile/threagile/pkg/security/risks/built-in/sql-nosql-injection"
+	unchecked_deployment "github.com/threagile/threagile/pkg/security/risks/built-in/unchecked-deployment"
+	unencrypted_asset "github.com/threagile/threagile/pkg/security/risks/built-in/unencrypted-asset"
+	unencrypted_communication "github.com/threagile/threagile/pkg/security/risks/built-in/unencrypted-communication"
+	unguarded_access_from_internet "github.com/threagile/threagile/pkg/security/risks/built-in/unguarded-access-from-internet"
+	unguarded_direct_datastore_access "github.com/threagile/threagile/pkg/security/risks/built-in/unguarded-direct-datastore-access"
+	unnecessary_communication_link "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-communication-link"
+	unnecessary_data_asset "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-data-asset"
+	unnecessary_data_transfer "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-data-transfer"
+	unnecessary_technical_asset "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-technical-asset"
+	untrusted_deserialization "github.com/threagile/threagile/pkg/security/risks/built-in/untrusted-deserialization"
+	wrong_communication_link_content "github.com/threagile/threagile/pkg/security/risks/built-in/wrong-communication-link-content"
+	wrong_trust_boundary_content "github.com/threagile/threagile/pkg/security/risks/built-in/wrong-trust-boundary-content"
+	xml_external_entity "github.com/threagile/threagile/pkg/security/risks/built-in/xml-external-entity"
 	"github.com/threagile/threagile/pkg/security/types"
-	"github.com/threagile/threagile/risks"
-	accidental_secret_leak "github.com/threagile/threagile/risks/built-in/accidental-secret-leak"
-	code_backdooring "github.com/threagile/threagile/risks/built-in/code-backdooring"
-	container_baseimage_backdooring "github.com/threagile/threagile/risks/built-in/container-baseimage-backdooring"
-	container_platform_escape "github.com/threagile/threagile/risks/built-in/container-platform-escape"
-	cross_site_request_forgery "github.com/threagile/threagile/risks/built-in/cross-site-request-forgery"
-	cross_site_scripting "github.com/threagile/threagile/risks/built-in/cross-site-scripting"
-	dos_risky_access_across_trust_boundary "github.com/threagile/threagile/risks/built-in/dos-risky-access-across-trust-boundary"
-	incomplete_model "github.com/threagile/threagile/risks/built-in/incomplete-model"
-	ldap_injection "github.com/threagile/threagile/risks/built-in/ldap-injection"
-	missing_authentication "github.com/threagile/threagile/risks/built-in/missing-authentication"
-	missing_authentication_second_factor "github.com/threagile/threagile/risks/built-in/missing-authentication-second-factor"
-	missing_build_infrastructure "github.com/threagile/threagile/risks/built-in/missing-build-infrastructure"
-	missing_cloud_hardening "github.com/threagile/threagile/risks/built-in/missing-cloud-hardening"
-	missing_file_validation "github.com/threagile/threagile/risks/built-in/missing-file-validation"
-	missing_hardening "github.com/threagile/threagile/risks/built-in/missing-hardening"
-	missing_identity_propagation "github.com/threagile/threagile/risks/built-in/missing-identity-propagation"
-	missing_identity_provider_isolation "github.com/threagile/threagile/risks/built-in/missing-identity-provider-isolation"
-	missing_identity_store "github.com/threagile/threagile/risks/built-in/missing-identity-store"
-	missing_network_segmentation "github.com/threagile/threagile/risks/built-in/missing-network-segmentation"
-	missing_vault "github.com/threagile/threagile/risks/built-in/missing-vault"
-	missing_vault_isolation "github.com/threagile/threagile/risks/built-in/missing-vault-isolation"
-	missing_waf "github.com/threagile/threagile/risks/built-in/missing-waf"
-	mixed_targets_on_shared_runtime "github.com/threagile/threagile/risks/built-in/mixed-targets-on-shared-runtime"
-	path_traversal "github.com/threagile/threagile/risks/built-in/path-traversal"
-	push_instead_of_pull_deployment "github.com/threagile/threagile/risks/built-in/push-instead-of-pull-deployment"
-	search_query_injection "github.com/threagile/threagile/risks/built-in/search-query-injection"
-	server_side_request_forgery "github.com/threagile/threagile/risks/built-in/server-side-request-forgery"
-	service_registry_poisoning "github.com/threagile/threagile/risks/built-in/service-registry-poisoning"
-	sql_nosql_injection "github.com/threagile/threagile/risks/built-in/sql-nosql-injection"
-	unchecked_deployment "github.com/threagile/threagile/risks/built-in/unchecked-deployment"
-	unencrypted_asset "github.com/threagile/threagile/risks/built-in/unencrypted-asset"
-	unencrypted_communication "github.com/threagile/threagile/risks/built-in/unencrypted-communication"
-	unguarded_access_from_internet "github.com/threagile/threagile/risks/built-in/unguarded-access-from-internet"
-	unguarded_direct_datastore_access "github.com/threagile/threagile/risks/built-in/unguarded-direct-datastore-access"
-	unnecessary_communication_link "github.com/threagile/threagile/risks/built-in/unnecessary-communication-link"
-	unnecessary_data_asset "github.com/threagile/threagile/risks/built-in/unnecessary-data-asset"
-	unnecessary_data_transfer "github.com/threagile/threagile/risks/built-in/unnecessary-data-transfer"
-	unnecessary_technical_asset "github.com/threagile/threagile/risks/built-in/unnecessary-technical-asset"
-	untrusted_deserialization "github.com/threagile/threagile/risks/built-in/untrusted-deserialization"
-	wrong_communication_link_content "github.com/threagile/threagile/risks/built-in/wrong-communication-link-content"
-	wrong_trust_boundary_content "github.com/threagile/threagile/risks/built-in/wrong-trust-boundary-content"
-	xml_external_entity "github.com/threagile/threagile/risks/built-in/xml-external-entity"
 	"github.com/wcharczuk/go-chart"
 	"github.com/wcharczuk/go-chart/drawing"
 )
@@ -122,10 +122,11 @@ func WriteReportPDF(reportFilename string,
 	buildTimestamp string,
 	modelHash string,
 	introTextRAA string,
-	customRiskRules map[string]*risks.CustomRisk,
-	tempFolder string) {
+	customRiskRules map[string]*model.CustomRisk,
+	tempFolder string,
+	model *model.ParsedModel) {
 	initReport()
-	createPdfAndInitMetadata()
+	createPdfAndInitMetadata(model)
 	parseBackgroundTemplate(templateFilename)
 	createCover()
 	createTableOfContents()
@@ -147,7 +148,7 @@ func WriteReportPDF(reportFilename string,
 	createModelFailures()
 	createQuestions()
 	createRiskCategories()
-	createTechnicalAssets()
+	createTechnicalAssets(model)
 	createDataAssets()
 	createTrustBoundaries()
 	createSharedRuntimes()
@@ -162,12 +163,12 @@ func checkErr(err error) {
 	}
 }
 
-func createPdfAndInitMetadata() {
+func createPdfAndInitMetadata(model *model.ParsedModel) {
 	pdf = gofpdf.New("P", "mm", "A4", "")
-	pdf.SetCreator(model.ParsedModelRoot.Author.Homepage, true)
-	pdf.SetAuthor(model.ParsedModelRoot.Author.Name, true)
-	pdf.SetTitle("Threat Model Report: "+model.ParsedModelRoot.Title, true)
-	pdf.SetSubject("Threat Model Report: "+model.ParsedModelRoot.Title, true)
+	pdf.SetCreator(model.Author.Homepage, true)
+	pdf.SetAuthor(model.Author.Name, true)
+	pdf.SetTitle("Threat Model Report: "+model.Title, true)
+	pdf.SetSubject("Threat Model Report: "+model.Title, true)
 	//	pdf.SetPageBox("crop", 0, 0, 100, 010)
 	pdf.SetHeaderFunc(headerFunc)
 	pdf.SetFooterFunc(footerFunc)
@@ -1610,7 +1611,7 @@ func createDataRiskQuickWins() {
 }
 */
 
-func addCategories(riskCategories []model.RiskCategory, severity types.RiskSeverity, bothInitialAndRemainingRisks bool, initialRisks bool, describeImpact bool, describeDescription bool) {
+func addCategories(riskCategories []risks.RiskCategory, severity types.RiskSeverity, bothInitialAndRemainingRisks bool, initialRisks bool, describeImpact bool, describeDescription bool) {
 	html := pdf.HTMLBasicNew()
 	var strBuilder strings.Builder
 	sort.Sort(model.ByRiskCategoryTitleSort(riskCategories))
@@ -2512,7 +2513,7 @@ func writeRiskTrackingStatus(risk model.Risk) {
 	pdfColorBlack()
 }
 
-func createTechnicalAssets() {
+func createTechnicalAssets(model model.ParsedModel) {
 	uni := pdf.UnicodeTranslatorFromDescriptor("")
 	// category title
 	title := "Identified Risks by Technical Asset"

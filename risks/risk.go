@@ -1,9 +1,10 @@
 package risks
 
 import (
-	"github.com/threagile/threagile/model"
-	"github.com/threagile/threagile/run"
 	"log"
+
+	"github.com/threagile/threagile/pkg/internal"
+	"github.com/threagile/threagile/pkg/model"
 )
 
 type BuiltInRisk struct {
@@ -16,7 +17,7 @@ type CustomRisk struct {
 	ID       string
 	Category model.RiskCategory
 	Tags     []string
-	Runner   *run.Runner
+	Runner   *internal.Runner
 }
 
 func (r *CustomRisk) GenerateRisks(m *model.ParsedModel) []model.Risk {

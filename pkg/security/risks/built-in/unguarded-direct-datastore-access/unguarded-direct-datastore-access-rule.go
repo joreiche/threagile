@@ -1,7 +1,7 @@
 package unguarded_direct_datastore_access
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -69,6 +69,32 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 		}
 	}
 	return risks
+}
+
+func IsSharingSameParentTrustBoundary(input *model.ParsedModel, left, right model.TechnicalAsset) bool {
+	tbIDLeft, tbIDRight := left.GetTrustBoundaryId(), right.GetTrustBoundaryId()
+	if len(tbIDLeft) == 0 && len(tbIDRight) > 0 {
+		return false
+	}
+	if len(tbIDLeft) > 0 && len(tbIDRight) == 0 {
+		return false
+	}
+	if len(tbIDLeft) == 0 && len(tbIDRight) == 0 {
+		return true
+	}
+	if tbIDLeft == tbIDRight {
+		return true
+	}
+	tbLeft, tbRight := input.TrustBoundaries[tbIDLeft], input.TrustBoundaries[tbIDRight]
+	tbParentsLeft, tbParentsRight := tbLeft.AllParentTrustBoundaryIDs(), tbRight.AllParentTrustBoundaryIDs()
+	for _, parentLeft := range tbParentsLeft {
+		for _, parentRight := range tbParentsRight {
+			if parentLeft == parentRight {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func FileServerAccessViaFTP(technicalAsset model.TechnicalAsset, incomingAccess model.CommunicationLink) bool {

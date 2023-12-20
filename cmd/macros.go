@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/threagile/threagile/pkg/docs"
-	"github.com/threagile/threagile/pkg/macros"
+	builinmacros "github.com/threagile/threagile/pkg/macros/built-in"
 )
 
 var listMacrosCmd = &cobra.Command{
@@ -27,7 +27,7 @@ var listMacrosCmd = &cobra.Command{
 		cmd.Println("----------------------")
 		cmd.Println("Built-in model macros:")
 		cmd.Println("----------------------")
-		for _, macros := range macros.ListBuiltInMacros() {
+		for _, macros := range builinmacros.ListBuiltInMacros() {
 			cmd.Println(macros.ID, "-->", macros.Title)
 		}
 		cmd.Println()
