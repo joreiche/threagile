@@ -2,8 +2,9 @@ package report
 
 import (
 	"encoding/json"
-	"github.com/threagile/threagile/model"
 	"os"
+
+	"github.com/threagile/threagile/pkg/model"
 )
 
 func WriteRisksJSON(filename string) {
@@ -28,8 +29,8 @@ func WriteRisksJSON(filename string) {
 
 // TODO: also a "data assets" json?
 
-func WriteTechnicalAssetsJSON(filename string) {
-	jsonBytes, err := json.Marshal(model.ParsedModelRoot.TechnicalAssets)
+func WriteTechnicalAssetsJSON(parsedModel *model.ParsedModel, filename string) {
+	jsonBytes, err := json.Marshal(parsedModel.TechnicalAssets)
 	if err != nil {
 		panic(err)
 	}

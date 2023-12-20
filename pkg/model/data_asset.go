@@ -270,3 +270,11 @@ func (what ByDataAssetDataBreachProbabilityAndTitleSortStillAtRisk) Less(i, j in
 	}
 	return highestDataBreachProbabilityLeft > highestDataBreachProbabilityRight
 }
+
+type ByDataAssetTitleSort []DataAsset
+
+func (what ByDataAssetTitleSort) Len() int      { return len(what) }
+func (what ByDataAssetTitleSort) Swap(i, j int) { what[i], what[j] = what[j], what[i] }
+func (what ByDataAssetTitleSort) Less(i, j int) bool {
+	return what[i].Title < what[j].Title
+}

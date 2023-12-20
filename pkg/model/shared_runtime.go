@@ -4,6 +4,8 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package model
 
 import (
+	"sort"
+
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -21,10 +23,10 @@ func (what SharedRuntime) IsTaggedWithBaseTag(baseTag string) bool {
 	return isTaggedWithBaseTag(what.Tags, baseTag)
 }
 
-func (what SharedRuntime) HighestConfidentiality() types.Confidentiality {
+func (what SharedRuntime) HighestConfidentiality(model *ParsedModel) types.Confidentiality {
 	highest := types.Public
 	for _, id := range what.TechnicalAssetsRunning {
-		techAsset := ParsedModelRoot.TechnicalAssets[id]
+		techAsset := model.TechnicalAssets[id]
 		if techAsset.HighestConfidentiality() > highest {
 			highest = techAsset.HighestConfidentiality()
 		}
@@ -32,35 +34,54 @@ func (what SharedRuntime) HighestConfidentiality() types.Confidentiality {
 	return highest
 }
 
-func (what SharedRuntime) HighestIntegrity() types.Criticality {
+func (what SharedRuntime) HighestIntegrity(model *ParsedModel) types.Criticality {
 	highest := types.Archive
 	for _, id := range what.TechnicalAssetsRunning {
-		techAsset := ParsedModelRoot.TechnicalAssets[id]
-		if techAsset.HighestIntegrity() > highest {
-			highest = techAsset.HighestIntegrity()
+		techAsset := model.TechnicalAssets[id]
+		if techAsset.HighestIntegrity(model) > highest {
+			highest = techAsset.HighestIntegrity(model)
 		}
 	}
 	return highest
 }
 
-func (what SharedRuntime) HighestAvailability() types.Criticality {
+func (what SharedRuntime) HighestAvailability(model *ParsedModel) types.Criticality {
 	highest := types.Archive
 	for _, id := range what.TechnicalAssetsRunning {
-		techAsset := ParsedModelRoot.TechnicalAssets[id]
-		if techAsset.HighestAvailability() > highest {
-			highest = techAsset.HighestAvailability()
+		techAsset := model.TechnicalAssets[id]
+		if techAsset.HighestAvailability(model) > highest {
+			highest = techAsset.HighestAvailability(model)
 		}
 	}
 	return highest
 }
 
-func (what SharedRuntime) TechnicalAssetWithHighestRAA() TechnicalAsset {
-	result := ParsedModelRoot.TechnicalAssets[what.TechnicalAssetsRunning[0]]
+func (what SharedRuntime) TechnicalAssetWithHighestRAA(model *ParsedModel) TechnicalAsset {
+	result := model.TechnicalAssets[what.TechnicalAssetsRunning[0]]
 	for _, asset := range what.TechnicalAssetsRunning {
-		candidate := ParsedModelRoot.TechnicalAssets[asset]
+		candidate := model.TechnicalAssets[asset]
 		if candidate.RAA > result.RAA {
 			result = candidate
 		}
 	}
 	return result
+}
+
+// as in Go ranging over map is random order, range over them in sorted (hence reproducible) way:
+
+func SortedKeysOfSharedRuntime(model *ParsedModel) []string {
+	keys := make([]string, 0)
+	for k := range model.SharedRuntimes {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+type BySharedRuntimeTitleSort []SharedRuntime
+
+func (what BySharedRuntimeTitleSort) Len() int      { return len(what) }
+func (what BySharedRuntimeTitleSort) Swap(i, j int) { what[i], what[j] = what[j], what[i] }
+func (what BySharedRuntimeTitleSort) Less(i, j int) bool {
+	return what[i].Title < what[j].Title
 }

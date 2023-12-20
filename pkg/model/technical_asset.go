@@ -43,7 +43,7 @@ func (what TechnicalAsset) IsTaggedWithBaseTag(baseTag string) bool {
 
 // first use the tag(s) of the asset itself, then their trust boundaries (recursively up) and then their shared runtime
 
-func (what TechnicalAsset) IsTaggedWithAnyTraversingUp(model ParsedModel, tags ...string) bool {
+func (what TechnicalAsset) IsTaggedWithAnyTraversingUp(model *ParsedModel, tags ...string) bool {
 	if containsCaseInsensitiveAny(what.Tags, tags...) {
 		return true
 	}
@@ -147,7 +147,7 @@ func (what TechnicalAsset) CommunicationLinksSorted() []CommunicationLink {
 	return result
 }
 
-func (what TechnicalAsset) HighestIntegrity(model ParsedModel) types.Criticality {
+func (what TechnicalAsset) HighestIntegrity(model *ParsedModel) types.Criticality {
 	highest := what.Integrity
 	for _, dataId := range what.DataAssetsProcessed {
 		dataAsset := model.DataAssets[dataId]
@@ -164,7 +164,7 @@ func (what TechnicalAsset) HighestIntegrity(model ParsedModel) types.Criticality
 	return highest
 }
 
-func (what TechnicalAsset) HighestAvailability(model ParsedModel) types.Criticality {
+func (what TechnicalAsset) HighestAvailability(model *ParsedModel) types.Criticality {
 	highest := what.Availability
 	for _, dataId := range what.DataAssetsProcessed {
 		dataAsset := model.DataAssets[dataId]
@@ -230,10 +230,10 @@ func (what TechnicalAsset) IsZero() bool {
 }
 
 func (what TechnicalAsset) ProcessesOrStoresDataAsset(dataAssetId string) bool {
-	if Contains(what.DataAssetsProcessed, dataAssetId) {
+	if contains(what.DataAssetsProcessed, dataAssetId) {
 		return true
 	}
-	if Contains(what.DataAssetsStored, dataAssetId) {
+	if contains(what.DataAssetsStored, dataAssetId) {
 		return true
 	}
 	return false
@@ -241,19 +241,19 @@ func (what TechnicalAsset) ProcessesOrStoresDataAsset(dataAssetId string) bool {
 
 // red when >= confidential data stored in unencrypted technical asset
 
-func (what TechnicalAsset) DetermineLabelColor() string {
+func (what TechnicalAsset) DetermineLabelColor(model *ParsedModel) string {
 	// TODO: Just move into main.go and let the generated risk determine the color, don't duplicate the logic here
 	// Check for red
 	if what.Integrity == types.MissionCritical {
 		return colors.Red
 	}
 	for _, storedDataAsset := range what.DataAssetsStored {
-		if ParsedModelRoot.DataAssets[storedDataAsset].Integrity == types.MissionCritical {
+		if model.DataAssets[storedDataAsset].Integrity == types.MissionCritical {
 			return colors.Red
 		}
 	}
 	for _, processedDataAsset := range what.DataAssetsProcessed {
-		if ParsedModelRoot.DataAssets[processedDataAsset].Integrity == types.MissionCritical {
+		if model.DataAssets[processedDataAsset].Integrity == types.MissionCritical {
 			return colors.Red
 		}
 	}
@@ -262,12 +262,12 @@ func (what TechnicalAsset) DetermineLabelColor() string {
 		return colors.Amber
 	}
 	for _, storedDataAsset := range what.DataAssetsStored {
-		if ParsedModelRoot.DataAssets[storedDataAsset].Integrity == types.Critical {
+		if model.DataAssets[storedDataAsset].Integrity == types.Critical {
 			return colors.Amber
 		}
 	}
 	for _, processedDataAsset := range what.DataAssetsProcessed {
-		if ParsedModelRoot.DataAssets[processedDataAsset].Integrity == types.Critical {
+		if model.DataAssets[processedDataAsset].Integrity == types.Critical {
 			return colors.Amber
 		}
 	}
@@ -420,8 +420,8 @@ func (what TechnicalAsset) DetermineShapeStyle() string {
 	return "filled"
 }
 
-func (what TechnicalAsset) GetTrustBoundaryId() string {
-	for _, trustBoundary := range ParsedModelRoot.TrustBoundaries {
+func (what TechnicalAsset) GetTrustBoundaryId(model *ParsedModel) string {
+	for _, trustBoundary := range model.TrustBoundaries {
 		for _, techAssetInside := range trustBoundary.TechnicalAssetsInside {
 			if techAssetInside == what.Id {
 				return trustBoundary.Id
@@ -429,6 +429,32 @@ func (what TechnicalAsset) GetTrustBoundaryId() string {
 		}
 	}
 	return ""
+}
+
+func (what TechnicalAsset) DetermineShapeFillColor() string {
+	fillColor := colors.VeryLightGray
+	if len(what.DataAssetsProcessed) == 0 && len(what.DataAssetsStored) == 0 ||
+		what.Technology == types.UnknownTechnology {
+		fillColor = colors.LightPink // lightPink, because it's strange when too many technical assets process no data... some ok, but many in a diagram ist a sign of model forgery...
+	} else if len(what.CommunicationLinks) == 0 && len(IncomingTechnicalCommunicationLinksMappedByTargetId[what.Id]) == 0 {
+		fillColor = colors.LightPink
+	} else if what.Internet {
+		fillColor = colors.ExtremeLightBlue
+	} else if what.OutOfScope {
+		fillColor = colors.OutOfScopeFancy
+	} else if what.CustomDevelopedParts {
+		fillColor = colors.CustomDevelopedParts
+	}
+	switch what.Machine {
+	case types.Physical:
+		fillColor = colors.DarkenHexColor(fillColor)
+	case types.Container:
+		fillColor = colors.BrightenHexColor(fillColor)
+	case types.Serverless:
+		fillColor = colors.BrightenHexColor(colors.BrightenHexColor(fillColor))
+	case types.Virtual:
+	}
+	return fillColor
 }
 
 type ByTechnicalAssetRiskSeverityAndTitleSortStillAtRisk []TechnicalAsset
@@ -462,6 +488,16 @@ func (what ByTechnicalAssetRiskSeverityAndTitleSortStillAtRisk) Less(i, j int) b
 		result = true
 	}
 	return result
+}
+
+func (what TechnicalAsset) DetermineShapeBorderPenWidth() string {
+	if what.DetermineShapeBorderColor() == colors.Pink {
+		return fmt.Sprintf("%f", 3.5)
+	}
+	if what.DetermineShapeBorderColor() != colors.Black {
+		return fmt.Sprintf("%f", 3.0)
+	}
+	return fmt.Sprintf("%f", 2.0)
 }
 
 type ByTechnicalAssetRAAAndTitleSort []TechnicalAsset
@@ -498,4 +534,15 @@ func (what ByTechnicalAssetTitleSort) Len() int      { return len(what) }
 func (what ByTechnicalAssetTitleSort) Swap(i, j int) { what[i], what[j] = what[j], what[i] }
 func (what ByTechnicalAssetTitleSort) Less(i, j int) bool {
 	return what[i].Title < what[j].Title
+}
+
+type ByOrderAndIdSort []TechnicalAsset
+
+func (what ByOrderAndIdSort) Len() int      { return len(what) }
+func (what ByOrderAndIdSort) Swap(i, j int) { what[i], what[j] = what[j], what[i] }
+func (what ByOrderAndIdSort) Less(i, j int) bool {
+	if what[i].DiagramTweakOrder == what[j].DiagramTweakOrder {
+		return what[i].Id > what[j].Id
+	}
+	return what[i].DiagramTweakOrder < what[j].DiagramTweakOrder
 }

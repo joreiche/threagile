@@ -5,26 +5,26 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/threagile/threagile/model"
 	"github.com/threagile/threagile/pkg/colors"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 	"github.com/xuri/excelize/v2"
 )
 
 var excelRow int
 
-func WriteRisksExcelToFile(filename string) {
+func WriteRisksExcelToFile(parsedModel *model.ParsedModel, filename string) {
 	excelRow = 0
 	excel := excelize.NewFile()
-	sheetName := model.ParsedModelRoot.Title
+	sheetName := parsedModel.Title
 	err := excel.SetDocProps(&excelize.DocProperties{
 		Category:       "Threat Model Risks Summary",
 		ContentStatus:  "Final",
-		Creator:        model.ParsedModelRoot.Author.Name,
+		Creator:        parsedModel.Author.Name,
 		Description:    sheetName + " via Threagile",
 		Identifier:     "xlsx",
 		Keywords:       "Threat Model",
-		LastModifiedBy: model.ParsedModelRoot.Author.Name,
+		LastModifiedBy: parsedModel.Author.Name,
 		Revision:       "0",
 		Subject:        sheetName,
 		Title:          sheetName,
@@ -47,7 +47,7 @@ func WriteRisksExcelToFile(filename string) {
 		OddFooter:        "&C&F",
 		EvenHeader:       "&L&P",
 		EvenFooter:       "&L&D&R&T",
-		FirstHeader:      `&Threat Model &"-,` + model.ParsedModelRoot.Title + `"Bold&"-,Regular"Risks Summary+000A&D`,
+		FirstHeader:      `&Threat Model &"-,` + parsedModel.Title + `"Bold&"-,Regular"Risks Summary+000A&D`,
 	})
 	checkErr(err)
 
@@ -343,7 +343,7 @@ func WriteRisksExcelToFile(filename string) {
 		risks := model.SortedRisksOfCategory(category)
 		for _, risk := range risks {
 			excelRow++
-			techAsset := model.ParsedModelRoot.TechnicalAssets[risk.MostRelevantTechnicalAssetId]
+			techAsset := parsedModel.TechnicalAssets[risk.MostRelevantTechnicalAssetId]
 			commLink := model.CommunicationLinks[risk.MostRelevantCommunicationLinkId]
 			riskTrackingStatus := risk.GetRiskTrackingStatusDefaultingUnchecked()
 			// content
@@ -456,18 +456,18 @@ func WriteRisksExcelToFile(filename string) {
 	checkErr(err)
 }
 
-func WriteTagsExcelToFile(filename string) { // TODO: eventually when len(sortedTagsAvailable) == 0 is: write a hint in the Excel that no tags are used
+func WriteTagsExcelToFile(parsedModel *model.ParsedModel, filename string) { // TODO: eventually when len(sortedTagsAvailable) == 0 is: write a hint in the Excel that no tags are used
 	excelRow = 0
 	excel := excelize.NewFile()
-	sheetName := model.ParsedModelRoot.Title
+	sheetName := parsedModel.Title
 	err := excel.SetDocProps(&excelize.DocProperties{
 		Category:       "Tag Matrix",
 		ContentStatus:  "Final",
-		Creator:        model.ParsedModelRoot.Author.Name,
+		Creator:        parsedModel.Author.Name,
 		Description:    sheetName + " via Threagile",
 		Identifier:     "xlsx",
 		Keywords:       "Tag Matrix",
-		LastModifiedBy: model.ParsedModelRoot.Author.Name,
+		LastModifiedBy: parsedModel.Author.Name,
 		Revision:       "0",
 		Subject:        sheetName,
 		Title:          sheetName,
@@ -490,12 +490,12 @@ func WriteTagsExcelToFile(filename string) { // TODO: eventually when len(sorted
 		OddFooter:        "&C&F",
 		EvenHeader:       "&L&P",
 		EvenFooter:       "&L&D&R&T",
-		FirstHeader:      `&Tag Matrix &"-,` + model.ParsedModelRoot.Title + `"Bold&"-,Regular"Summary+000A&D`,
+		FirstHeader:      `&Tag Matrix &"-,` + parsedModel.Title + `"Bold&"-,Regular"Summary+000A&D`,
 	})
 	checkErr(err)
 
 	err = excel.SetCellValue(sheetName, "A1", "Element") // TODO is "Element" the correct generic name when referencing assets, links, trust boundaries etc.? Eventually add separate column "type of element" like "technical asset" or "data asset"?
-	sortedTagsAvailable := model.TagsActuallyUsed()
+	sortedTagsAvailable := parsedModel.TagsActuallyUsed()
 	sort.Strings(sortedTagsAvailable)
 	axis := ""
 	for i, tag := range sortedTagsAvailable {
@@ -537,19 +537,19 @@ func WriteTagsExcelToFile(filename string) { // TODO: eventually when len(sorted
 
 	excelRow++ // as we have a header line
 	if len(sortedTagsAvailable) > 0 {
-		for _, techAsset := range model.SortedTechnicalAssetsByTitle() {
+		for _, techAsset := range sortedTechnicalAssetsByTitle(parsedModel) {
 			writeRow(excel, sheetName, axis, styleBlackLeftBold, styleBlackCenter, sortedTagsAvailable, techAsset.Title, techAsset.Tags)
 			for _, commLink := range techAsset.CommunicationLinksSorted() {
 				writeRow(excel, sheetName, axis, styleBlackLeftBold, styleBlackCenter, sortedTagsAvailable, commLink.Title, commLink.Tags)
 			}
 		}
-		for _, dataAsset := range model.SortedDataAssetsByTitle() {
+		for _, dataAsset := range sortedDataAssetsByTitle(parsedModel) {
 			writeRow(excel, sheetName, axis, styleBlackLeftBold, styleBlackCenter, sortedTagsAvailable, dataAsset.Title, dataAsset.Tags)
 		}
-		for _, trustBoundary := range model.SortedTrustBoundariesByTitle() {
+		for _, trustBoundary := range sortedTrustBoundariesByTitle(parsedModel) {
 			writeRow(excel, sheetName, axis, styleBlackLeftBold, styleBlackCenter, sortedTagsAvailable, trustBoundary.Title, trustBoundary.Tags)
 		}
-		for _, sharedRuntime := range model.SortedSharedRuntimesByTitle() {
+		for _, sharedRuntime := range sortedSharedRuntimesByTitle(parsedModel) {
 			writeRow(excel, sheetName, axis, styleBlackLeftBold, styleBlackCenter, sortedTagsAvailable, sharedRuntime.Title, sharedRuntime.Tags)
 		}
 	}
@@ -598,6 +598,24 @@ func WriteTagsExcelToFile(filename string) { // TODO: eventually when len(sorted
 	excel.SetActiveSheet(sheetIndex)
 	err = excel.SaveAs(filename)
 	checkErr(err)
+}
+
+func sortedTrustBoundariesByTitle(parsedModel *model.ParsedModel) []model.TrustBoundary {
+	boundaries := make([]model.TrustBoundary, 0)
+	for _, boundary := range parsedModel.TrustBoundaries {
+		boundaries = append(boundaries, boundary)
+	}
+	sort.Sort(model.ByTrustBoundaryTitleSort(boundaries))
+	return boundaries
+}
+
+func sortedDataAssetsByTitle(parsedModel *model.ParsedModel) []model.DataAsset {
+	assets := make([]model.DataAsset, 0)
+	for _, asset := range parsedModel.DataAssets {
+		assets = append(assets, asset)
+	}
+	sort.Sort(model.ByDataAssetTitleSort(assets))
+	return assets
 }
 
 func writeRow(excel *excelize.File, sheetName string, axis string, styleBlackLeftBold int, styleBlackCenter int,

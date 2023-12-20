@@ -13,6 +13,15 @@ func MakeID(val string) string {
 	return strings.Trim(reg.ReplaceAllString(strings.ToLower(val), "-"), "- ")
 }
 
+func contains(a []string, x string) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
+}
+
 func containsCaseInsensitiveAny(a []string, x ...string) bool {
 	for _, n := range a {
 		for _, c := range x {

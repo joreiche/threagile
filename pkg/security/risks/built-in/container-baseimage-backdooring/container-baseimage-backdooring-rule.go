@@ -1,7 +1,7 @@
 package container_baseimage_backdooring
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -44,23 +44,23 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks(input *model.ParsedModel) []model.Risk {
+func GenerateRisks(parsedModel *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := input.TechnicalAssets[id]
+	for _, id := range parsedModel.SortedTechnicalAssetIDs() {
+		technicalAsset := parsedModel.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope && technicalAsset.Machine == types.Container {
-			risks = append(risks, createRisk(technicalAsset))
+			risks = append(risks, createRisk(parsedModel, technicalAsset))
 		}
 	}
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset) model.Risk {
+func createRisk(parsedModel *model.ParsedModel, technicalAsset model.TechnicalAsset) model.Risk {
 	title := "<b>Container Base Image Backdooring</b> risk at <b>" + technicalAsset.Title + "</b>"
 	impact := types.MediumImpact
 	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
-		technicalAsset.HighestIntegrity() == types.MissionCritical ||
-		technicalAsset.HighestAvailability() == types.MissionCritical {
+		technicalAsset.HighestIntegrity(parsedModel) == types.MissionCritical ||
+		technicalAsset.HighestAvailability(parsedModel) == types.MissionCritical {
 		impact = types.HighImpact
 	}
 	risk := model.Risk{

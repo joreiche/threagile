@@ -186,7 +186,7 @@ func footerFunc() {
 	addBreadcrumb()
 	pdf.SetFont("Helvetica", "", 10)
 	pdf.SetTextColor(127, 127, 127)
-	pdf.Text(8.6, 284, "Threat Model Report via Threagile") //: "+model.ParsedModelRoot.Title)
+	pdf.Text(8.6, 284, "Threat Model Report via Threagile") //: "+parsedModel.Title)
 	pdf.Link(8.4, 281, 54.6, 4, homeLink)
 	pageNo++
 	text := "Page " + strconv.Itoa(pageNo)
@@ -205,7 +205,7 @@ func addBreadcrumb() {
 		uni := pdf.UnicodeTranslatorFromDescriptor("")
 		pdf.SetFont("Helvetica", "", 10)
 		pdf.SetTextColor(127, 127, 127)
-		pdf.Text(46.7, 24.5, uni(currentChapterTitleBreadcrumb+"   -   "+model.ParsedModelRoot.Title))
+		pdf.Text(46.7, 24.5, uni(currentChapterTitleBreadcrumb+"   -   "+parsedModel.Title))
 	}
 }
 
@@ -232,22 +232,22 @@ func createCover() {
 	pdf.SetFont("Helvetica", "B", 28)
 	pdf.SetTextColor(0, 0, 0)
 	pdf.Text(40, 110, "Threat Model Report")
-	pdf.Text(40, 125, uni(model.ParsedModelRoot.Title))
+	pdf.Text(40, 125, uni(parsedModel.Title))
 	pdf.SetFont("Helvetica", "", 12)
-	reportDate := model.ParsedModelRoot.Date
+	reportDate := parsedModel.Date
 	if reportDate.IsZero() {
 		reportDate = time.Now()
 	}
 	pdf.Text(40.7, 145, reportDate.Format("2 January 2006"))
-	pdf.Text(40.7, 153, uni(model.ParsedModelRoot.Author.Name))
+	pdf.Text(40.7, 153, uni(parsedModel.Author.Name))
 	pdf.SetFont("Helvetica", "", 10)
 	pdf.SetTextColor(80, 80, 80)
-	pdf.Text(8.6, 275, model.ParsedModelRoot.Author.Homepage)
+	pdf.Text(8.6, 275, parsedModel.Author.Homepage)
 	pdf.SetFont("Helvetica", "", 12)
 	pdf.SetTextColor(0, 0, 0)
 }
 
-func createTableOfContents() {
+func createTableOfContents(parsedModel *model.ParsedModel) {
 	uni := pdf.UnicodeTranslatorFromDescriptor("")
 	pdf.AddPage()
 	currentChapterTitleBreadcrumb = "Table of Contents"
@@ -381,7 +381,7 @@ func createTableOfContents() {
 
 	y += 6
 	assets := "Assets"
-	count = len(model.OutOfScopeTechnicalAssets())
+	count = len(parsedModel.OutOfScopeTechnicalAssets())
 	if count == 1 {
 		assets = "Asset"
 	}
@@ -409,14 +409,14 @@ func createTableOfContents() {
 
 	y += 6
 	questions := "Questions"
-	count = len(model.ParsedModelRoot.Questions)
+	count = len(parsedModel.Questions)
 	if count == 1 {
 		questions = "Question"
 	}
-	if model.QuestionsUnanswered() > 0 {
+	if questionsUnanswered(parsedModel) > 0 {
 		colors.ColorModelFailure(pdf)
 	}
-	pdf.Text(11, y, "    "+"Questions: "+strconv.Itoa(model.QuestionsUnanswered())+" / "+strconv.Itoa(count)+" "+questions)
+	pdf.Text(11, y, "    "+"Questions: "+strconv.Itoa(questionsUnanswered(parsedModel))+" / "+strconv.Itoa(count)+" "+questions)
 	pdf.Text(175, y, "{questions}")
 	pdfColorBlack()
 	pdf.Line(15.6, y+1.3, 11+171.5, y+1.3)
@@ -479,7 +479,7 @@ func createTableOfContents() {
 
 	// ===============
 
-	if len(model.ParsedModelRoot.TechnicalAssets) > 0 {
+	if len(parsedModel.TechnicalAssets) > 0 {
 		y += 6
 		y += 6
 		if y > 260 { // 260 instead of 275 for major group headlines to avoid "Schusterjungen"
@@ -495,7 +495,7 @@ func createTableOfContents() {
 		pdf.Text(175, y, "{intro-risks-by-technical-asset}")
 		pdf.Line(15.6, y+1.3, 11+171.5, y+1.3)
 		pdf.Link(10, y-5, 172.5, 6.5, pdf.AddLink())
-		for _, technicalAsset := range model.SortedTechnicalAssetsByRiskSeverityAndTitle() {
+		for _, technicalAsset := range sortedTechnicalAssetsByRiskSeverityAndTitle(parsedModel) {
 			newRisksStr := technicalAsset.GeneratedRisks()
 			y += 6
 			if y > 275 {
@@ -539,7 +539,7 @@ func createTableOfContents() {
 
 	// ===============
 
-	if len(model.ParsedModelRoot.DataAssets) > 0 {
+	if len(parsedModel.DataAssets) > 0 {
 		y += 6
 		y += 6
 		if y > 260 { // 260 instead of 275 for major group headlines to avoid "Schusterjungen"
@@ -555,7 +555,7 @@ func createTableOfContents() {
 		pdf.Text(175, y, "{intro-risks-by-data-asset}")
 		pdf.Line(15.6, y+1.3, 11+171.5, y+1.3)
 		pdf.Link(10, y-5, 172.5, 6.5, pdf.AddLink())
-		for _, dataAsset := range model.SortedDataAssetsByDataBreachProbabilityAndTitle() {
+		for _, dataAsset := range sortedDataAssetsByDataBreachProbabilityAndTitle(parsedModel) {
 			y += 6
 			if y > 275 {
 				pageBreakInLists()
@@ -590,7 +590,7 @@ func createTableOfContents() {
 
 	// ===============
 
-	if len(model.ParsedModelRoot.TrustBoundaries) > 0 {
+	if len(parsedModel.TrustBoundaries) > 0 {
 		y += 6
 		y += 6
 		if y > 260 { // 260 instead of 275 for major group headlines to avoid "Schusterjungen"
@@ -602,7 +602,7 @@ func createTableOfContents() {
 		pdf.Text(11, y, "Trust Boundaries")
 		pdf.SetFont("Helvetica", "", fontSizeBody)
 		for _, key := range model.SortedKeysOfTrustBoundaries() {
-			trustBoundary := model.ParsedModelRoot.TrustBoundaries[key]
+			trustBoundary := parsedModel.TrustBoundaries[key]
 			y += 6
 			if y > 275 {
 				pageBreakInLists()
@@ -623,7 +623,7 @@ func createTableOfContents() {
 
 	// ===============
 
-	if len(model.ParsedModelRoot.SharedRuntimes) > 0 {
+	if len(parsedModel.SharedRuntimes) > 0 {
 		y += 6
 		y += 6
 		if y > 260 { // 260 instead of 275 for major group headlines to avoid "Schusterjungen"
@@ -635,7 +635,7 @@ func createTableOfContents() {
 		pdf.Text(11, y, "Shared Runtime")
 		pdf.SetFont("Helvetica", "", fontSizeBody)
 		for _, key := range model.SortedKeysOfSharedRuntime() {
-			sharedRuntime := model.ParsedModelRoot.SharedRuntimes[key]
+			sharedRuntime := parsedModel.SharedRuntimes[key]
 			y += 6
 			if y > 275 {
 				pageBreakInLists()
@@ -690,6 +690,24 @@ func createTableOfContents() {
 	// by the current page number. --> See the "pdf.RegisterAlias()" calls during the PDF creation in this file
 }
 
+func sortedTechnicalAssetsByRiskSeverityAndTitle(parsedModel *model.ParsedModel) []model.TechnicalAsset {
+	assets := make([]model.TechnicalAsset, 0)
+	for _, asset := range parsedModel.TechnicalAssets {
+		assets = append(assets, asset)
+	}
+	sort.Sort(model.ByTechnicalAssetRiskSeverityAndTitleSortStillAtRisk(assets))
+	return assets
+}
+
+func sortedDataAssetsByDataBreachProbabilityAndTitle(parsedModel *model.ParsedModel) []model.DataAsset {
+	assets := make([]model.DataAsset, 0)
+	for _, asset := range parsedModel.DataAssets {
+		assets = append(assets, asset)
+	}
+	sort.Sort(model.ByDataAssetDataBreachProbabilityAndTitleSortStillAtRisk(assets))
+	return assets
+}
+
 func defineLinkTarget(alias string) {
 	pageNumbStr := strconv.Itoa(pdf.PageNo())
 	if len(pageNumbStr) == 1 {
@@ -714,7 +732,7 @@ func createDisclaimer() {
 	pdf.SetY(46)
 
 	var disclaimer strings.Builder
-	disclaimer.WriteString(model.ParsedModelRoot.Author.Name + " conducted this threat analysis using the open-source Threagile toolkit " +
+	disclaimer.WriteString(parsedModel.Author.Name + " conducted this threat analysis using the open-source Threagile toolkit " +
 		"on the applications and systems that were modeled as of this report's date. " +
 		"Information security threats are continually changing, with new " +
 		"vulnerabilities discovered on a daily basis, and no application can ever be 100% secure no matter how much " +
@@ -722,7 +740,7 @@ func createDisclaimer() {
 		"(for example yearly) to ensure a high ongoing level of security and constantly check for new attack vectors. " +
 		"<br><br>" +
 		"This report cannot and does not protect against personal or business loss as the result of use of the " +
-		"applications or systems described. " + model.ParsedModelRoot.Author.Name + " and the Threagile toolkit offers no warranties, representations or " +
+		"applications or systems described. " + parsedModel.Author.Name + " and the Threagile toolkit offers no warranties, representations or " +
 		"legal certifications concerning the applications or systems it tests. All software includes defects: nothing " +
 		"in this document is intended to represent or warrant that threat modeling was complete and without error, " +
 		"nor does this document represent or warrant that the architecture analyzed is suitable to task, free of other " +
@@ -732,7 +750,7 @@ func createDisclaimer() {
 		"These kinds of checks would only be possible with a separate code review and penetration test against " +
 		"a working system and not via a threat model." +
 		"<br><br>" +
-		"By using the resulting information you agree that " + model.ParsedModelRoot.Author.Name + " and the Threagile toolkit " +
+		"By using the resulting information you agree that " + parsedModel.Author.Name + " and the Threagile toolkit " +
 		"shall be held harmless in any event." +
 		"<br><br>" +
 		"This report is confidential and intended for internal, confidential use by the client. The recipient " +
@@ -776,12 +794,12 @@ func createManagementSummary(tempFolder string) {
 	countStatusFalsePositive := len(model.FilteredByRiskTrackingFalsePositive())
 
 	html := pdf.HTMLBasicNew()
-	html.Write(5, "Threagile toolkit was used to model the architecture of \""+uni(model.ParsedModelRoot.Title)+"\" "+
+	html.Write(5, "Threagile toolkit was used to model the architecture of \""+uni(parsedModel.Title)+"\" "+
 		"and derive risks by analyzing the components and data flows. The risks identified during this analysis are shown "+
 		"in the following chapters. Identified risks during threat modeling do not necessarily mean that the "+
 		"vulnerability associated with this risk actually exists: it is more to be seen as a list of potential risks and "+
 		"threats, which should be individually reviewed and reduced by removing false positives. For the remaining risks it should "+
-		"be checked in the design and implementation of \""+uni(model.ParsedModelRoot.Title)+"\" whether the mitigation advices "+
+		"be checked in the design and implementation of \""+uni(parsedModel.Title)+"\" whether the mitigation advices "+
 		"have been applied or not."+
 		"<br><br>"+
 		"Each risk finding references a chapter of the OWASP ASVS (Application Security Verification Standard) audit checklist. "+
@@ -936,9 +954,9 @@ func createManagementSummary(tempFolder string) {
 
 	// individual management summary comment
 	pdfColorBlack()
-	if len(model.ParsedModelRoot.ManagementSummaryComment) > 0 {
+	if len(parsedModel.ManagementSummaryComment) > 0 {
 		html.Write(5, "<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>"+
-			model.ParsedModelRoot.ManagementSummaryComment)
+			parsedModel.ManagementSummaryComment)
 	}
 }
 
@@ -1351,11 +1369,11 @@ func renderImpactAnalysis(initialRisks bool) {
 	pdf.SetDashPattern([]float64{}, 0)
 }
 
-func createOutOfScopeAssets() {
+func createOutOfScopeAssets(parsedModel *model.ParsedModel) {
 	uni := pdf.UnicodeTranslatorFromDescriptor("")
 	pdf.SetTextColor(0, 0, 0)
 	assets := "Assets"
-	count := len(model.OutOfScopeTechnicalAssets())
+	count := len(parsedModel.OutOfScopeTechnicalAssets())
 	if count == 1 {
 		assets = "Asset"
 	}
@@ -1377,7 +1395,7 @@ func createOutOfScopeAssets() {
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 
 	outOfScopeAssetCount := 0
-	for _, technicalAsset := range model.SortedTechnicalAssetsByRAAAndTitle() {
+	for _, technicalAsset := range sortedTechnicalAssetsByRAAAndTitle(parsedModel) {
 		if technicalAsset.OutOfScope {
 			outOfScopeAssetCount++
 			if pdf.GetY() > 250 {
@@ -1412,6 +1430,15 @@ func createOutOfScopeAssets() {
 
 	pdf.SetDrawColor(0, 0, 0)
 	pdf.SetDashPattern([]float64{}, 0)
+}
+
+func sortedTechnicalAssetsByRAAAndTitle(parsedModel *model.ParsedModel) []model.TechnicalAsset {
+	assets := make([]model.TechnicalAsset, 0)
+	for _, asset := range parsedModel.TechnicalAssets {
+		assets = append(assets, asset)
+	}
+	sort.Sort(model.ByTechnicalAssetRAAAndTitleSort(assets))
+	return assets
 }
 
 func createModelFailures() {
@@ -1465,7 +1492,7 @@ func createModelFailures() {
 	pdf.SetDashPattern([]float64{}, 0)
 }
 
-func createRAA(introTextRAA string) {
+func createRAA(parsedModel *model.ParsedModel, introTextRAA string) {
 	uni := pdf.UnicodeTranslatorFromDescriptor("")
 	pdf.SetTextColor(0, 0, 0)
 	chapTitle := "RAA Analysis"
@@ -1484,7 +1511,7 @@ func createRAA(introTextRAA string) {
 	html.Write(5, "Technical asset paragraphs are clickable and link to the corresponding chapter.")
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 
-	for _, technicalAsset := range model.SortedTechnicalAssetsByRAAAndTitle() {
+	for _, technicalAsset := range sortedTechnicalAssetsByRAAAndTitle(parsedModel) {
 		if technicalAsset.OutOfScope {
 			continue
 		}
@@ -2067,7 +2094,7 @@ func createSTRIDE() {
 	pdf.SetDashPattern([]float64{}, 0)
 }
 
-func createSecurityRequirements() {
+func createSecurityRequirements(parsedModel *model.ParsedModel) {
 	uni := pdf.UnicodeTranslatorFromDescriptor("")
 	pdf.SetTextColor(0, 0, 0)
 	chapTitle := "Security Requirements"
@@ -2078,8 +2105,8 @@ func createSecurityRequirements() {
 	html := pdf.HTMLBasicNew()
 	html.Write(5, "This chapter lists the custom security requirements which have been defined for the modeled target.")
 	pdfColorBlack()
-	for _, title := range model.SortedKeysOfSecurityRequirements() {
-		description := model.ParsedModelRoot.SecurityRequirements[title]
+	for _, title := range sortedKeysOfSecurityRequirements(parsedModel) {
+		description := parsedModel.SecurityRequirements[title]
 		if pdf.GetY() > 250 {
 			pageBreak()
 			pdf.SetY(36)
@@ -2099,7 +2126,16 @@ func createSecurityRequirements() {
 		"taken into account as well. Also custom individual security requirements might exist for the project.</i>")
 }
 
-func createAbuseCases() {
+func sortedKeysOfSecurityRequirements(parsedModel *model.ParsedModel) []string {
+	keys := make([]string, 0)
+	for k := range parsedModel.SecurityRequirements {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func createAbuseCases(parsedModel *model.ParsedModel) {
 	pdf.SetTextColor(0, 0, 0)
 	chapTitle := "Abuse Cases"
 	addHeadline(chapTitle, false)
@@ -2109,8 +2145,8 @@ func createAbuseCases() {
 	html := pdf.HTMLBasicNew()
 	html.Write(5, "This chapter lists the custom abuse cases which have been defined for the modeled target.")
 	pdfColorBlack()
-	for _, title := range model.SortedKeysOfAbuseCases() {
-		description := model.ParsedModelRoot.AbuseCases[title]
+	for _, title := range sortedKeysOfAbuseCases(parsedModel) {
+		description := parsedModel.AbuseCases[title]
 		if pdf.GetY() > 250 {
 			pageBreak()
 			pdf.SetY(36)
@@ -2130,18 +2166,27 @@ func createAbuseCases() {
 		"taken into account as well. Also custom individual abuse cases might exist for the project.</i>")
 }
 
-func createQuestions() {
+func sortedKeysOfAbuseCases(parsedModel *model.ParsedModel) []string {
+	keys := make([]string, 0)
+	for k := range parsedModel.AbuseCases {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func createQuestions(parsedModel *model.ParsedModel) {
 	uni := pdf.UnicodeTranslatorFromDescriptor("")
 	pdf.SetTextColor(0, 0, 0)
 	questions := "Questions"
-	count := len(model.ParsedModelRoot.Questions)
+	count := len(parsedModel.Questions)
 	if count == 1 {
 		questions = "Question"
 	}
-	if model.QuestionsUnanswered() > 0 {
+	if questionsUnanswered(parsedModel) > 0 {
 		colors.ColorModelFailure(pdf)
 	}
-	chapTitle := "Questions: " + strconv.Itoa(model.QuestionsUnanswered()) + " / " + strconv.Itoa(count) + " " + questions
+	chapTitle := "Questions: " + strconv.Itoa(questionsUnanswered(parsedModel)) + " / " + strconv.Itoa(count) + " " + questions
 	addHeadline(chapTitle, false)
 	defineLinkTarget("{questions}")
 	currentChapterTitleBreadcrumb = chapTitle
@@ -2150,14 +2195,14 @@ func createQuestions() {
 	html := pdf.HTMLBasicNew()
 	html.Write(5, "This chapter lists custom questions that arose during the threat modeling process.")
 
-	if len(model.ParsedModelRoot.Questions) == 0 {
+	if len(parsedModel.Questions) == 0 {
 		pdfColorLightGray()
 		html.Write(5, "<br><br><br>")
 		html.Write(5, "No custom questions arose during the threat modeling process.")
 	}
 	pdfColorBlack()
-	for _, question := range model.SortedKeysOfQuestions() {
-		answer := model.ParsedModelRoot.Questions[question]
+	for _, question := range sortedKeysOfQuestions(parsedModel) {
+		answer := parsedModel.Questions[question]
 		if pdf.GetY() > 250 {
 			pageBreak()
 			pdf.SetY(36)
@@ -2178,7 +2223,16 @@ func createQuestions() {
 	}
 }
 
-func createTagListing() {
+func sortedKeysOfQuestions(parsedModel *model.ParsedModel) []string {
+	keys := make([]string, 0)
+	for k := range parsedModel.Questions {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func createTagListing(parsedModel *model.ParsedModel) {
 	pdf.SetTextColor(0, 0, 0)
 	chapTitle := "Tag Listing"
 	addHeadline(chapTitle, false)
@@ -2188,19 +2242,19 @@ func createTagListing() {
 	html := pdf.HTMLBasicNew()
 	html.Write(5, "This chapter lists what tags are used by which elements.")
 	pdfColorBlack()
-	sorted := model.ParsedModelRoot.TagsAvailable
+	sorted := parsedModel.TagsAvailable
 	sort.Strings(sorted)
 	for _, tag := range sorted {
 		description := "" // TODO: add some separation texts to distinguish between technical assets and data assets etc. for example?
-		for _, techAsset := range model.SortedTechnicalAssetsByTitle() {
-			if model.Contains(techAsset.Tags, tag) {
+		for _, techAsset := sortedTechnicalAssetsByTitle(parsedModel) {
+			if contains(techAsset.Tags, tag) {
 				if len(description) > 0 {
 					description += ", "
 				}
 				description += techAsset.Title
 			}
 			for _, commLink := range techAsset.CommunicationLinksSorted() {
-				if model.Contains(commLink.Tags, tag) {
+				if contains(commLink.Tags, tag) {
 					if len(description) > 0 {
 						description += ", "
 					}
@@ -2208,24 +2262,24 @@ func createTagListing() {
 				}
 			}
 		}
-		for _, dataAsset := range model.SortedDataAssetsByTitle() {
-			if model.Contains(dataAsset.Tags, tag) {
+		for _, dataAsset := range sortedDataAssetsByTitle(parsedModel) {
+			if contains(dataAsset.Tags, tag) {
 				if len(description) > 0 {
 					description += ", "
 				}
 				description += dataAsset.Title
 			}
 		}
-		for _, trustBoundary := range model.SortedTrustBoundariesByTitle() {
-			if model.Contains(trustBoundary.Tags, tag) {
+		for _, trustBoundary := range sortedTrustBoundariesByTitle(parsedModel) {
+			if contains(trustBoundary.Tags, tag) {
 				if len(description) > 0 {
 					description += ", "
 				}
 				description += trustBoundary.Title
 			}
 		}
-		for _, sharedRuntime := range model.SortedSharedRuntimesByTitle() {
-			if model.Contains(sharedRuntime.Tags, tag) {
+		for _, sharedRuntime := range sortedSharedRuntimesByTitle(parsedModel) {
+			if contains(sharedRuntime.Tags, tag) {
 				if len(description) > 0 {
 					description += ", "
 				}
@@ -2244,6 +2298,25 @@ func createTagListing() {
 			html.Write(5, description)
 		}
 	}
+}
+
+func sortedSharedRuntimesByTitle(parsedModel *model.ParsedModel) []model.SharedRuntime {
+	result := make([]model.SharedRuntime, 0)
+	for _, runtime := range parsedModel.SharedRuntimes {
+		result = append(result, runtime)
+	}
+	sort.Sort(model.BySharedRuntimeTitleSort(result))
+	return result
+}
+
+
+func sortedTechnicalAssetsByTitle(parsedModel *model.ParsedModel) []model.TechnicalAsset {
+	assets := make([]model.TechnicalAsset, 0)
+	for _, asset := range parsedModel.TechnicalAssets {
+		assets = append(assets, asset)
+	}
+	sort.Sort(model.ByTechnicalAssetTitleSort(assets))
+	return assets
 }
 
 func createRiskCategories() {
@@ -2513,7 +2586,7 @@ func writeRiskTrackingStatus(risk model.Risk) {
 	pdfColorBlack()
 }
 
-func createTechnicalAssets(model model.ParsedModel) {
+func createTechnicalAssets(parsedModel *model.ParsedModel) {
 	uni := pdf.UnicodeTranslatorFromDescriptor("")
 	// category title
 	title := "Identified Risks by Technical Asset"
@@ -2535,7 +2608,7 @@ func createTechnicalAssets(model model.ParsedModel) {
 	html.Write(5, text.String())
 	text.Reset()
 	currentChapterTitleBreadcrumb = title
-	for _, technicalAsset := range model.SortedTechnicalAssetsByRiskSeverityAndTitle() {
+	for _, technicalAsset := range sortedTechnicalAssetsByRiskSeverityAndTitle(parsedModel) {
 		risksStr := technicalAsset.GeneratedRisks()
 		countStillAtRisk := len(model.ReduceToOnlyStillAtRisk(risksStr))
 		suffix := strconv.Itoa(countStillAtRisk) + " / " + strconv.Itoa(len(risksStr)) + " Risk"
@@ -3019,7 +3092,7 @@ func createTechnicalAssets(model model.ParsedModel) {
 				pdf.CellFormat(15, 6, "", "0", 0, "", false, 0, "")
 				pdf.CellFormat(35, 6, "Target:", "0", 0, "", false, 0, "")
 				pdfColorBlack()
-				pdf.MultiCell(125, 6, uni(model.ParsedModelRoot.TechnicalAssets[outgoingCommLink.TargetId].Title), "0", "0", false)
+				pdf.MultiCell(125, 6, uni(parsedModel.TechnicalAssets[outgoingCommLink.TargetId].Title), "0", "0", false)
 				pdf.Link(60, pdf.GetY()-5, 70, 5, tocLinkIdByAssetId[outgoingCommLink.TargetId])
 				if pdf.GetY() > 270 {
 					pageBreak()
@@ -3189,7 +3262,7 @@ func createTechnicalAssets(model model.ParsedModel) {
 				pdf.CellFormat(15, 6, "", "0", 0, "", false, 0, "")
 				pdf.CellFormat(35, 6, "Source:", "0", 0, "", false, 0, "")
 				pdfColorBlack()
-				pdf.MultiCell(140, 6, uni(model.ParsedModelRoot.TechnicalAssets[incomingCommLink.SourceId].Title), "0", "0", false)
+				pdf.MultiCell(140, 6, uni(parsedModel.TechnicalAssets[incomingCommLink.SourceId].Title), "0", "0", false)
 				pdf.Link(60, pdf.GetY()-5, 70, 5, tocLinkIdByAssetId[incomingCommLink.SourceId])
 				if pdf.GetY() > 270 {
 					pageBreak()
@@ -3325,7 +3398,7 @@ func createTechnicalAssets(model model.ParsedModel) {
 	}
 }
 
-func createDataAssets() {
+func createDataAssets(parsedModel *model.ParsedModel) {
 	uni := pdf.UnicodeTranslatorFromDescriptor("")
 	title := "Identified Data Breach Probabilities by Data Asset"
 	pdfColorBlack()
@@ -3339,14 +3412,14 @@ func createDataAssets() {
 		"<b>"+strconv.Itoa(len(model.FilteredByOnlyElevatedRisks()))+" as elevated</b>, "+
 		"<b>"+strconv.Itoa(len(model.FilteredByOnlyMediumRisks()))+" as medium</b>, "+
 		"and <b>"+strconv.Itoa(len(model.FilteredByOnlyLowRisks()))+" as low</b>. "+
-		"<br><br>These risks are distributed across <b>"+strconv.Itoa(len(model.ParsedModelRoot.DataAssets))+" data assets</b>. ")
+		"<br><br>These risks are distributed across <b>"+strconv.Itoa(len(parsedModel.DataAssets))+" data assets</b>. ")
 	html.Write(5, "The following sub-chapters of this section describe the derived data breach probabilities grouped by data asset.<br>") // TODO more explanation text
 	pdf.SetFont("Helvetica", "", fontSizeSmall)
 	pdfColorGray()
 	html.Write(5, "Technical asset names and risk IDs are clickable and link to the corresponding chapter.")
 	pdf.SetFont("Helvetica", "", fontSizeBody)
 	currentChapterTitleBreadcrumb = title
-	for _, dataAsset := range model.SortedDataAssetsByDataBreachProbabilityAndTitle() {
+	for _, dataAsset := range sortedDataAssetsByDataBreachProbabilityAndTitle(parsedModel) {
 		if pdf.GetY() > 280 { // 280 as only small font previously (not 250)
 			pageBreak()
 			pdf.SetY(36)
@@ -3611,7 +3684,7 @@ func createDataAssets() {
 			risksByTechAssetId := dataAsset.IdentifiedRisksByResponsibleTechnicalAssetId()
 			techAssetsResponsible := make([]model.TechnicalAsset, 0)
 			for techAssetId, _ := range risksByTechAssetId {
-				techAssetsResponsible = append(techAssetsResponsible, model.ParsedModelRoot.TechnicalAssets[techAssetId])
+				techAssetsResponsible = append(techAssetsResponsible, parsedModel.TechnicalAssets[techAssetId])
 			}
 			sort.Sort(model.ByTechnicalAssetRiskSeverityAndTitleSortStillAtRisk(techAssetsResponsible))
 			assetStr := "assets"
@@ -3746,7 +3819,7 @@ func createDataAssets() {
 	}
 }
 
-func createTrustBoundaries() {
+func createTrustBoundaries(parsedModel *model.ParsedModel) {
 	uni := pdf.UnicodeTranslatorFromDescriptor("")
 	title := "Trust Boundaries"
 	pdfColorBlack()
@@ -3754,13 +3827,13 @@ func createTrustBoundaries() {
 
 	html := pdf.HTMLBasicNew()
 	word := "has"
-	if len(model.ParsedModelRoot.TrustBoundaries) > 1 {
+	if len(parsedModel.TrustBoundaries) > 1 {
 		word = "have"
 	}
-	html.Write(5, "In total <b>"+strconv.Itoa(len(model.ParsedModelRoot.TrustBoundaries))+" trust boundaries</b> "+word+" been "+
+	html.Write(5, "In total <b>"+strconv.Itoa(len(parsedModel.TrustBoundaries))+" trust boundaries</b> "+word+" been "+
 		"modeled during the threat modeling process.")
 	currentChapterTitleBreadcrumb = title
-	for _, trustBoundary := range model.SortedTrustBoundariesByTitle() {
+	for _, trustBoundary := range sortedTrustBoundariesByTitle(parsedModel) {
 		if pdf.GetY() > 250 {
 			pageBreak()
 			pdf.SetY(36)
@@ -3834,7 +3907,7 @@ func createTrustBoundaries() {
 			if len(assetsInsideText) > 0 {
 				assetsInsideText += ", "
 			}
-			assetsInsideText += model.ParsedModelRoot.TechnicalAssets[assetKey].Title // TODO add link to technical asset detail chapter and back
+			assetsInsideText += parsedModel.TechnicalAssets[assetKey].Title // TODO add link to technical asset detail chapter and back
 		}
 		if len(assetsInsideText) == 0 {
 			pdfColorGray()
@@ -3855,7 +3928,7 @@ func createTrustBoundaries() {
 			if len(boundariesNestedText) > 0 {
 				boundariesNestedText += ", "
 			}
-			boundariesNestedText += model.ParsedModelRoot.TrustBoundaries[assetKey].Title
+			boundariesNestedText += parsedModel.TrustBoundaries[assetKey].Title
 		}
 		if len(boundariesNestedText) == 0 {
 			pdfColorGray()
@@ -3865,7 +3938,17 @@ func createTrustBoundaries() {
 	}
 }
 
-func createSharedRuntimes() {
+func questionsUnanswered(parsedModel *model.ParsedModel) int {
+	result := 0
+	for _, answer := range parsedModel.Questions {
+		if len(strings.TrimSpace(answer)) == 0 {
+			result++
+		}
+	}
+	return result
+}
+
+func createSharedRuntimes(parsedModel *model.ParsedModel) {
 	uni := pdf.UnicodeTranslatorFromDescriptor("")
 	title := "Shared Runtimes"
 	pdfColorBlack()
@@ -3873,13 +3956,13 @@ func createSharedRuntimes() {
 
 	html := pdf.HTMLBasicNew()
 	word, runtime := "has", "runtime"
-	if len(model.ParsedModelRoot.SharedRuntimes) > 1 {
+	if len(model.SharedRuntimes) > 1 {
 		word, runtime = "have", "runtimes"
 	}
-	html.Write(5, "In total <b>"+strconv.Itoa(len(model.ParsedModelRoot.SharedRuntimes))+" shared "+runtime+"</b> "+word+" been "+
+	html.Write(5, "In total <b>"+strconv.Itoa(len(model.SharedRuntimes))+" shared "+runtime+"</b> "+word+" been "+
 		"modeled during the threat modeling process.")
 	currentChapterTitleBreadcrumb = title
-	for _, sharedRuntime := range model.SortedSharedRuntimesByTitle() {
+	for _, sharedRuntime := range sortedSharedRuntimesByTitle(parsedModel) {
 		pdfColorBlack()
 		if pdf.GetY() > 250 {
 			pageBreak()
@@ -3936,7 +4019,7 @@ func createSharedRuntimes() {
 			if len(assetsInsideText) > 0 {
 				assetsInsideText += ", "
 			}
-			assetsInsideText += model.ParsedModelRoot.TechnicalAssets[assetKey].Title // TODO add link to technical asset detail chapter and back
+			assetsInsideText += parsedModel.TechnicalAssets[assetKey].Title // TODO add link to technical asset detail chapter and back
 		}
 		if len(assetsInsideText) == 0 {
 			pdfColorGray()
@@ -3946,7 +4029,7 @@ func createSharedRuntimes() {
 	}
 }
 
-func createRiskRulesChecked(modelFilename string, skipRiskRules string, buildTimestamp string, modelHash string, customRiskRules map[string]*risks.CustomRisk) {
+func createRiskRulesChecked(parsedModel *model.ParsedModel, modelFilename string, skipRiskRules string, buildTimestamp string, modelHash string, customRiskRules map[string]*risks.CustomRisk) {
 	pdf.SetTextColor(0, 0, 0)
 	title := "Risk Rules Checked by Threagile"
 	addHeadline(title, false)
@@ -3982,7 +4065,7 @@ func createRiskRulesChecked(modelFilename string, skipRiskRules string, buildTim
 	for id, customRule := range customRiskRules {
 		pdf.Ln(-1)
 		pdf.SetFont("Helvetica", "B", fontSizeBody)
-		if model.Contains(skippedRules, id) {
+		if contains(skippedRules, id) {
 			skipped = "SKIPPED - "
 		} else {
 			skipped = ""
@@ -4018,8 +4101,8 @@ func createRiskRulesChecked(modelFilename string, skipRiskRules string, buildTim
 		pdf.MultiCell(160, 6, customRule.Category.RiskAssessment, "0", "0", false)
 	}
 
-	for _, key := range model.SortedKeysOfIndividualRiskCategories() {
-		individualRiskCategory := model.ParsedModelRoot.IndividualRiskCategories[key]
+	for _, key := range sortedKeysOfIndividualRiskCategories() {
+		individualRiskCategory := parsedModel.IndividualRiskCategories[key]
 		pdf.Ln(-1)
 		pdf.SetFont("Helvetica", "B", fontSizeBody)
 		pdf.CellFormat(190, 3, individualRiskCategory.Title, "0", 0, "", false, 0, "")
@@ -4055,7 +4138,7 @@ func createRiskRulesChecked(modelFilename string, skipRiskRules string, buildTim
 
 	pdf.Ln(-1)
 	pdf.SetFont("Helvetica", "B", fontSizeBody)
-	if model.Contains(skippedRules, accidental_secret_leak.Category().Id) {
+	if contains(skippedRules, accidental_secret_leak.Category().Id) {
 		skipped = "SKIPPED - "
 	} else {
 		skipped = ""
@@ -4089,7 +4172,7 @@ func createRiskRulesChecked(modelFilename string, skipRiskRules string, buildTim
 
 	pdf.Ln(-1)
 	pdf.SetFont("Helvetica", "B", fontSizeBody)
-	if model.Contains(skippedRules, code_backdooring.Category().Id) {
+	if contains(skippedRules, code_backdooring.Category().Id) {
 		skipped = "SKIPPED - "
 	} else {
 		skipped = ""
@@ -4123,7 +4206,7 @@ func createRiskRulesChecked(modelFilename string, skipRiskRules string, buildTim
 
 	pdf.Ln(-1)
 	pdf.SetFont("Helvetica", "B", fontSizeBody)
-	if model.Contains(skippedRules, container_baseimage_backdooring.Category().Id) {
+	if contains(skippedRules, container_baseimage_backdooring.Category().Id) {
 		skipped = "SKIPPED - "
 	} else {
 		skipped = ""
@@ -4157,7 +4240,7 @@ func createRiskRulesChecked(modelFilename string, skipRiskRules string, buildTim
 
 	pdf.Ln(-1)
 	pdf.SetFont("Helvetica", "B", fontSizeBody)
-	if model.Contains(skippedRules, container_platform_escape.Category().Id) {
+	if contains(skippedRules, container_platform_escape.Category().Id) {
 		skipped = "SKIPPED - "
 	} else {
 		skipped = ""
@@ -4191,7 +4274,7 @@ func createRiskRulesChecked(modelFilename string, skipRiskRules string, buildTim
 
 	pdf.Ln(-1)
 	pdf.SetFont("Helvetica", "B", fontSizeBody)
-	if model.Contains(skippedRules, cross_site_request_forgery.Category().Id) {
+	if contains(skippedRules, cross_site_request_forgery.Category().Id) {
 		skipped = "SKIPPED - "
 	} else {
 		skipped = ""
@@ -4225,7 +4308,7 @@ func createRiskRulesChecked(modelFilename string, skipRiskRules string, buildTim
 
 	pdf.Ln(-1)
 	pdf.SetFont("Helvetica", "B", fontSizeBody)
-	if model.Contains(skippedRules, cross_site_scripting.Category().Id) {
+	if contains(skippedRules, cross_site_scripting.Category().Id) {
 		skipped = "SKIPPED - "
 	} else {
 		skipped = ""
@@ -5494,9 +5577,9 @@ func createTargetDescription(baseFolder string) {
 	html := pdf.HTMLBasicNew()
 
 	intro.WriteString("<b>Business Criticality</b><br><br>")
-	intro.WriteString("The overall business criticality of \"" + uni(model.ParsedModelRoot.Title) + "\" was rated as:<br><br>")
+	intro.WriteString("The overall business criticality of \"" + uni(parsedModel.Title) + "\" was rated as:<br><br>")
 	html.Write(5, intro.String())
-	criticality := model.ParsedModelRoot.BusinessCriticality
+	criticality := parsedModel.BusinessCriticality
 	intro.Reset()
 	pdfColorGray()
 	intro.WriteString("(  ")
@@ -5565,16 +5648,16 @@ func createTargetDescription(baseFolder string) {
 	pdfColorBlack()
 
 	intro.WriteString("<br><br><br><b>Business Overview</b><br><br>")
-	intro.WriteString(uni(model.ParsedModelRoot.BusinessOverview.Description))
+	intro.WriteString(uni(parsedModel.BusinessOverview.Description))
 	html.Write(5, intro.String())
 	intro.Reset()
-	addCustomImages(model.ParsedModelRoot.BusinessOverview.Images, baseFolder, html)
+	addCustomImages(parsedModel.BusinessOverview.Images, baseFolder, html)
 
 	intro.WriteString("<br><br><br><b>Technical Overview</b><br><br>")
-	intro.WriteString(uni(model.ParsedModelRoot.TechnicalOverview.Description))
+	intro.WriteString(uni(parsedModel.TechnicalOverview.Description))
 	html.Write(5, intro.String())
 	intro.Reset()
-	addCustomImages(model.ParsedModelRoot.TechnicalOverview.Images, baseFolder, html)
+	addCustomImages(parsedModel.TechnicalOverview.Images, baseFolder, html)
 }
 
 func addCustomImages(customImages []map[string]string, baseFolder string, html gofpdf.HTMLBasicType) {
@@ -5718,6 +5801,15 @@ func embedDataFlowDiagram(diagramFilenamePNG string, tempFolder string) {
 	}
 }
 
+func sortedKeysOfIndividualRiskCategories(parsedModel *model.ParsedModel) []string {
+	keys := make([]string, 0)
+	for k := range parsedModel.IndividualRiskCategories {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 func embedDataRiskMapping(diagramFilenamePNG string, tempFolder string) {
 	pdf.SetTextColor(0, 0, 0)
 	title := "Data Mapping"
@@ -5821,6 +5913,7 @@ func pageBreak() {
 	pdf.SetX(17)
 	pdf.SetY(20)
 }
+
 func pageBreakInLists() {
 	pageBreak()
 	pdf.SetLineWidth(0.25)
@@ -5904,4 +5997,13 @@ func pdfColorRed() {
 }
 func rgbHexColorRed() string {
 	return "#FF0000"
+}
+
+func contains(a []string, x string) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
 }

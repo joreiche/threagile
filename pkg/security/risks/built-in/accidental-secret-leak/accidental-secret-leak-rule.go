@@ -43,17 +43,17 @@ func SupportedTags() []string {
 	return []string{"git", "nexus"}
 }
 
-func GenerateRisks(input *model.ParsedModel) []model.Risk {
+func GenerateRisks(parsedModel *model.ParsedModel, input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range parsedModel.SortedTechnicalAssetIDs() {
 		techAsset := input.TechnicalAssets[id]
 		if !techAsset.OutOfScope &&
 			(techAsset.Technology == types.SourcecodeRepository || techAsset.Technology == types.ArtifactRegistry) {
 			var risk model.Risk
 			if techAsset.IsTaggedWithAny("git") {
-				risk = createRisk(techAsset, "Git", "Git Leak Prevention")
+				risk = createRisk(parsedModel, techAsset, "Git", "Git Leak Prevention")
 			} else {
-				risk = createRisk(techAsset, "", "")
+				risk = createRisk(parsedModel, techAsset, "", "")
 			}
 			risks = append(risks, risk)
 		}
@@ -61,7 +61,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset, prefix, details string) model.Risk {
+func createRisk(parsedModel *model.ParsedModel, technicalAsset model.TechnicalAsset, prefix, details string) model.Risk {
 	if len(prefix) > 0 {
 		prefix = " (" + prefix + ")"
 	}
@@ -71,13 +71,13 @@ func createRisk(technicalAsset model.TechnicalAsset, prefix, details string) mod
 	}
 	impact := types.LowImpact
 	if technicalAsset.HighestConfidentiality() >= types.Confidential ||
-		technicalAsset.HighestIntegrity() >= types.Critical ||
-		technicalAsset.HighestAvailability() >= types.Critical {
+		technicalAsset.HighestIntegrity(parsedModel) >= types.Critical ||
+		technicalAsset.HighestAvailability(parsedModel) >= types.Critical {
 		impact = types.MediumImpact
 	}
 	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
-		technicalAsset.HighestIntegrity() == types.MissionCritical ||
-		technicalAsset.HighestAvailability() == types.MissionCritical {
+		technicalAsset.HighestIntegrity(parsedModel) == types.MissionCritical ||
+		technicalAsset.HighestAvailability(parsedModel) == types.MissionCritical {
 		impact = types.HighImpact
 	}
 	// create risk

@@ -1,7 +1,7 @@
 package code_backdooring
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -49,13 +49,13 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks(input *model.ParsedModel) []model.Risk {
+func GenerateRisks(parsedModel *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := input.TechnicalAssets[id]
+	for _, id := range parsedModel.SortedTechnicalAssetIDs() {
+		technicalAsset := parsedModel.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope && technicalAsset.Technology.IsDevelopmentRelevant() {
 			if technicalAsset.Internet {
-				risks = append(risks, createRisk(input, technicalAsset, true))
+				risks = append(risks, createRisk(parsedModel, technicalAsset, true))
 				continue
 			}
 
@@ -63,9 +63,9 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 
 			//riskByLinkAdded := false
 			for _, callerLink := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
-				caller := input.TechnicalAssets[callerLink.SourceId]
+				caller := parsedModel.TechnicalAssets[callerLink.SourceId]
 				if (!callerLink.VPN && caller.Internet) || caller.OutOfScope {
-					risks = append(risks, createRisk(input, technicalAsset, true))
+					risks = append(risks, createRisk(parsedModel, technicalAsset, true))
 					//riskByLinkAdded = true
 					break
 				}
