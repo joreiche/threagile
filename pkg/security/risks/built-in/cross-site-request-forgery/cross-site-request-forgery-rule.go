@@ -1,7 +1,7 @@
 package cross_site_request_forgery
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -45,32 +45,32 @@ func SupportedTags() []string {
 	return []string{}
 }
 
-func GenerateRisks(input *model.ParsedModel) []model.Risk {
+func GenerateRisks(parsedModel *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := input.TechnicalAssets[id]
+	for _, id := range parsedModel.SortedTechnicalAssetIDs() {
+		technicalAsset := parsedModel.TechnicalAssets[id]
 		if technicalAsset.OutOfScope || !technicalAsset.Technology.IsWebApplication() {
 			continue
 		}
-		incomingFlows := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
+		incomingFlows := parsedModel.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 		for _, incomingFlow := range incomingFlows {
 			if incomingFlow.Protocol.IsPotentialWebAccessProtocol() {
 				likelihood := types.VeryLikely
 				if incomingFlow.Usage == types.DevOps {
 					likelihood = types.Likely
 				}
-				risks = append(risks, createRisk(input, technicalAsset, incomingFlow, likelihood))
+				risks = append(risks, createRisk(parsedModel, technicalAsset, incomingFlow, likelihood))
 			}
 		}
 	}
 	return risks
 }
 
-func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingFlow model.CommunicationLink, likelihood types.RiskExploitationLikelihood) model.Risk {
-	sourceAsset := input.TechnicalAssets[incomingFlow.SourceId]
+func createRisk(parsedModel *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingFlow model.CommunicationLink, likelihood types.RiskExploitationLikelihood) model.Risk {
+	sourceAsset := parsedModel.TechnicalAssets[incomingFlow.SourceId]
 	title := "<b>Cross-Site Request Forgery (CSRF)</b> risk at <b>" + technicalAsset.Title + "</b> via <b>" + incomingFlow.Title + "</b> from <b>" + sourceAsset.Title + "</b>"
 	impact := types.LowImpact
-	if incomingFlow.HighestIntegrity() == types.MissionCritical {
+	if incomingFlow.HighestIntegrity(parsedModel) == types.MissionCritical {
 		impact = types.MediumImpact
 	}
 	risk := model.Risk{

@@ -1,7 +1,7 @@
 package missing_build_infrastructure
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -49,15 +49,15 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	hasCustomDevelopedParts, hasBuildPipeline, hasSourcecodeRepo, hasDevOpsClient := false, false, false, false
 	impact := types.LowImpact
 	var mostRelevantAsset model.TechnicalAsset
-	for _, id := range model.SortedTechnicalAssetIDs() { // use the sorted one to always get the same tech asset with the highest sensitivity as example asset
+	for _, id := range input.SortedTechnicalAssetIDs() { // use the sorted one to always get the same tech asset with the highest sensitivity as example asset
 		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.CustomDevelopedParts && !technicalAsset.OutOfScope {
 			hasCustomDevelopedParts = true
 			if impact == types.LowImpact {
 				mostRelevantAsset = technicalAsset
-				if technicalAsset.HighestConfidentiality() >= types.Confidential ||
-					technicalAsset.HighestIntegrity() >= types.Critical ||
-					technicalAsset.HighestAvailability() >= types.Critical {
+				if technicalAsset.HighestConfidentiality(input) >= types.Confidential ||
+					technicalAsset.HighestIntegrity(input) >= types.Critical ||
+					technicalAsset.HighestAvailability(input) >= types.Critical {
 					impact = types.MediumImpact
 				}
 			}

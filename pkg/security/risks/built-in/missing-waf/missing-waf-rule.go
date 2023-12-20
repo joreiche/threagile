@@ -1,7 +1,7 @@
 package missing_waf
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -47,11 +47,11 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	for _, technicalAsset := range input.TechnicalAssets {
 		if !technicalAsset.OutOfScope &&
 			(technicalAsset.Technology.IsWebApplication() || technicalAsset.Technology.IsWebService()) {
-			for _, incomingAccess := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
-				if incomingAccess.IsAcrossTrustBoundaryNetworkOnly() &&
+			for _, incomingAccess := range input.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
+				if incomingAccess.IsAcrossTrustBoundaryNetworkOnly(input) &&
 					incomingAccess.Protocol.IsPotentialWebAccessProtocol() &&
 					input.TechnicalAssets[incomingAccess.SourceId].Technology != types.WAF {
-					risks = append(risks, createRisk(technicalAsset))
+					risks = append(risks, createRisk(input, technicalAsset))
 					break
 				}
 			}
@@ -60,13 +60,13 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset) model.Risk {
+func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset) model.Risk {
 	title := "<b>Missing Web Application Firewall (WAF)</b> risk at <b>" + technicalAsset.Title + "</b>"
 	likelihood := types.Unlikely
 	impact := types.LowImpact
-	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
-		technicalAsset.HighestIntegrity() == types.MissionCritical ||
-		technicalAsset.HighestAvailability() == types.MissionCritical {
+	if technicalAsset.HighestConfidentiality(input) == types.StrictlyConfidential ||
+		technicalAsset.HighestIntegrity(input) == types.MissionCritical ||
+		technicalAsset.HighestAvailability(input) == types.MissionCritical {
 		impact = types.MediumImpact
 	}
 	risk := model.Risk{

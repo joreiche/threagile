@@ -1,7 +1,7 @@
 package missing_authentication
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -44,27 +44,27 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope || technicalAsset.Technology == types.LoadBalancer ||
 			technicalAsset.Technology == types.ReverseProxy || technicalAsset.Technology == types.ServiceRegistry || technicalAsset.Technology == types.WAF || technicalAsset.Technology == types.IDS || technicalAsset.Technology == types.IPS {
 			continue
 		}
-		if technicalAsset.HighestConfidentiality() >= types.Confidential ||
-			technicalAsset.HighestIntegrity() >= types.Critical ||
-			technicalAsset.HighestAvailability() >= types.Critical ||
+		if technicalAsset.HighestConfidentiality(input) >= types.Confidential ||
+			technicalAsset.HighestIntegrity(input) >= types.Critical ||
+			technicalAsset.HighestAvailability(input) >= types.Critical ||
 			technicalAsset.MultiTenant {
 			// check each incoming data flow
-			commLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
+			commLinks := input.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 			for _, commLink := range commLinks {
 				caller := input.TechnicalAssets[commLink.SourceId]
 				if caller.Technology.IsUnprotectedCommunicationsTolerated() || caller.Type == types.Datastore {
 					continue
 				}
-				highRisk := commLink.HighestConfidentiality() == types.StrictlyConfidential ||
-					commLink.HighestIntegrity() == types.MissionCritical
-				lowRisk := commLink.HighestConfidentiality() <= types.Internal &&
-					commLink.HighestIntegrity() == types.Operational
+				highRisk := commLink.HighestConfidentiality(input) == types.StrictlyConfidential ||
+					commLink.HighestIntegrity(input) == types.MissionCritical
+				lowRisk := commLink.HighestConfidentiality(input) <= types.Internal &&
+					commLink.HighestIntegrity(input) == types.Operational
 				impact := types.MediumImpact
 				if highRisk {
 					impact = types.HighImpact

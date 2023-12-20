@@ -47,18 +47,18 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope && technicalAsset.Type == types.Datastore {
-			for _, incomingAccess := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
+			for _, incomingAccess := range input.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
 				sourceAsset := input.TechnicalAssets[incomingAccess.SourceId]
 				if (technicalAsset.Technology == types.IdentityStoreLDAP || technicalAsset.Technology == types.IdentityStoreDatabase) &&
 					sourceAsset.Technology == types.IdentityProvider {
 					continue
 				}
 				if technicalAsset.Confidentiality >= types.Confidential || technicalAsset.Integrity >= types.Critical {
-					if incomingAccess.IsAcrossTrustBoundaryNetworkOnly() && !FileServerAccessViaFTP(technicalAsset, incomingAccess) &&
-						incomingAccess.Usage != types.DevOps && !model.IsSharingSameParentTrustBoundary(technicalAsset, sourceAsset) {
+					if incomingAccess.IsAcrossTrustBoundaryNetworkOnly(input) && !FileServerAccessViaFTP(technicalAsset, incomingAccess) &&
+						incomingAccess.Usage != types.DevOps && !isSharingSameParentTrustBoundary(input, technicalAsset, sourceAsset) {
 						highRisk := technicalAsset.Confidentiality == types.StrictlyConfidential ||
 							technicalAsset.Integrity == types.MissionCritical
 						risks = append(risks, createRisk(technicalAsset, incomingAccess,
@@ -71,8 +71,8 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	return risks
 }
 
-func IsSharingSameParentTrustBoundary(input *model.ParsedModel, left, right model.TechnicalAsset) bool {
-	tbIDLeft, tbIDRight := left.GetTrustBoundaryId(), right.GetTrustBoundaryId()
+func isSharingSameParentTrustBoundary(input *model.ParsedModel, left, right model.TechnicalAsset) bool {
+	tbIDLeft, tbIDRight := left.GetTrustBoundaryId(input), right.GetTrustBoundaryId(input)
 	if len(tbIDLeft) == 0 && len(tbIDRight) > 0 {
 		return false
 	}
@@ -86,7 +86,7 @@ func IsSharingSameParentTrustBoundary(input *model.ParsedModel, left, right mode
 		return true
 	}
 	tbLeft, tbRight := input.TrustBoundaries[tbIDLeft], input.TrustBoundaries[tbIDRight]
-	tbParentsLeft, tbParentsRight := tbLeft.AllParentTrustBoundaryIDs(), tbRight.AllParentTrustBoundaryIDs()
+	tbParentsLeft, tbParentsRight := tbLeft.AllParentTrustBoundaryIDs(input), tbRight.AllParentTrustBoundaryIDs(input)
 	for _, parentLeft := range tbParentsLeft {
 		for _, parentRight := range tbParentsRight {
 			if parentLeft == parentRight {

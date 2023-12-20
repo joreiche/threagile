@@ -1,7 +1,7 @@
 package missing_vault
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -48,14 +48,14 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	hasVault := false
 	var mostRelevantAsset model.TechnicalAsset
 	impact := types.LowImpact
-	for _, id := range model.SortedTechnicalAssetIDs() { // use the sorted one to always get the same tech asset with the highest sensitivity as example asset
+	for _, id := range input.SortedTechnicalAssetIDs() { // use the sorted one to always get the same tech asset with the highest sensitivity as example asset
 		techAsset := input.TechnicalAssets[id]
 		if techAsset.Technology == types.Vault {
 			hasVault = true
 		}
-		if techAsset.HighestConfidentiality() >= types.Confidential ||
-			techAsset.HighestIntegrity() >= types.Critical ||
-			techAsset.HighestAvailability() >= types.Critical {
+		if techAsset.HighestConfidentiality(input) >= types.Confidential ||
+			techAsset.HighestIntegrity(input) >= types.Critical ||
+			techAsset.HighestAvailability(input) >= types.Critical {
 			impact = types.MediumImpact
 		}
 		if techAsset.Confidentiality >= types.Confidential ||

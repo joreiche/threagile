@@ -1,7 +1,7 @@
 package cross_site_scripting
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -45,20 +45,20 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope || !technicalAsset.Technology.IsWebApplication() { // TODO: also mobile clients or rich-clients as long as they use web-view...
 			continue
 		}
-		risks = append(risks, createRisk(technicalAsset))
+		risks = append(risks, createRisk(input, technicalAsset))
 	}
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset) model.Risk {
+func createRisk(parsedModel *model.ParsedModel, technicalAsset model.TechnicalAsset) model.Risk {
 	title := "<b>Cross-Site Scripting (XSS)</b> risk at <b>" + technicalAsset.Title + "</b>"
 	impact := types.MediumImpact
-	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential || technicalAsset.HighestIntegrity() == types.MissionCritical {
+	if technicalAsset.HighestConfidentiality(parsedModel) == types.StrictlyConfidential || technicalAsset.HighestIntegrity(parsedModel) == types.MissionCritical {
 		impact = types.HighImpact
 	}
 	risk := model.Risk{

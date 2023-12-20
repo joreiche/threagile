@@ -1,7 +1,7 @@
 package container_platform_escape
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -49,28 +49,28 @@ func SupportedTags() []string {
 	return []string{"docker", "kubernetes", "openshift"}
 }
 
-func GenerateRisks(input *model.ParsedModel) []model.Risk {
+func GenerateRisks(parsedModel *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
-		technicalAsset := input.TechnicalAssets[id]
+	for _, id := range parsedModel.SortedTechnicalAssetIDs() {
+		technicalAsset := parsedModel.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope && technicalAsset.Technology == types.ContainerPlatform {
-			risks = append(risks, createRisk(input, technicalAsset))
+			risks = append(risks, createRisk(parsedModel, technicalAsset))
 		}
 	}
 	return risks
 }
 
-func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset) model.Risk {
+func createRisk(parsedModel *model.ParsedModel, technicalAsset model.TechnicalAsset) model.Risk {
 	title := "<b>Container Platform Escape</b> risk at <b>" + technicalAsset.Title + "</b>"
 	impact := types.MediumImpact
-	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
-		technicalAsset.HighestIntegrity() == types.MissionCritical ||
-		technicalAsset.HighestAvailability() == types.MissionCritical {
+	if technicalAsset.HighestConfidentiality(parsedModel) == types.StrictlyConfidential ||
+		technicalAsset.HighestIntegrity(parsedModel) == types.MissionCritical ||
+		technicalAsset.HighestAvailability(parsedModel) == types.MissionCritical {
 		impact = types.HighImpact
 	}
 	// data breach at all container assets
 	dataBreachTechnicalAssetIDs := make([]string, 0)
-	for id, techAsset := range input.TechnicalAssets {
+	for id, techAsset := range parsedModel.TechnicalAssets {
 		if techAsset.Machine == types.Container {
 			dataBreachTechnicalAssetIDs = append(dataBreachTechnicalAssetIDs, id)
 		}

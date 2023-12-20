@@ -1,7 +1,7 @@
 package missing_identity_propagation
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -50,7 +50,7 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope {
 			continue
@@ -64,7 +64,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 						technicalAsset.Integrity >= types.Important ||
 						technicalAsset.Availability >= types.Important))) {
 			// check each incoming authenticated data flow
-			commLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
+			commLinks := input.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 			for _, commLink := range commLinks {
 				caller := input.TechnicalAssets[commLink.SourceId]
 				if !caller.Technology.IsUsuallyAbleToPropagateIdentityToOutgoingTargets() || caller.Type == types.Datastore {

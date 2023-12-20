@@ -29,37 +29,37 @@ func (what CommunicationLink) IsTaggedWithAny(tags ...string) bool {
 }
 
 func (what CommunicationLink) IsTaggedWithBaseTag(baseTag string) bool {
-	return isTaggedWithBaseTag(what.Tags, baseTag)
+	return IsTaggedWithBaseTag(what.Tags, baseTag)
 }
 
-func (what CommunicationLink) IsAcrossTrustBoundary() bool {
-	trustBoundaryOfSourceAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.SourceId]
-	trustBoundaryOfTargetAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.TargetId]
+func (what CommunicationLink) IsAcrossTrustBoundary(parsedModel *ParsedModel) bool {
+	trustBoundaryOfSourceAsset := parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.SourceId]
+	trustBoundaryOfTargetAsset := parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.TargetId]
 	return trustBoundaryOfSourceAsset.Id != trustBoundaryOfTargetAsset.Id
 }
 
-func (what CommunicationLink) IsAcrossTrustBoundaryNetworkOnly() bool {
-	trustBoundaryOfSourceAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.SourceId]
+func (what CommunicationLink) IsAcrossTrustBoundaryNetworkOnly(parsedModel *ParsedModel) bool {
+	trustBoundaryOfSourceAsset := parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.SourceId]
 	if !trustBoundaryOfSourceAsset.Type.IsNetworkBoundary() { // find and use the parent boundary then
-		trustBoundaryOfSourceAsset = ParsedModelRoot.TrustBoundaries[trustBoundaryOfSourceAsset.ParentTrustBoundaryID()]
+		trustBoundaryOfSourceAsset = parsedModel.TrustBoundaries[trustBoundaryOfSourceAsset.ParentTrustBoundaryID(parsedModel)]
 	}
-	trustBoundaryOfTargetAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.TargetId]
+	trustBoundaryOfTargetAsset := parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.TargetId]
 	if !trustBoundaryOfTargetAsset.Type.IsNetworkBoundary() { // find and use the parent boundary then
-		trustBoundaryOfTargetAsset = ParsedModelRoot.TrustBoundaries[trustBoundaryOfTargetAsset.ParentTrustBoundaryID()]
+		trustBoundaryOfTargetAsset = parsedModel.TrustBoundaries[trustBoundaryOfTargetAsset.ParentTrustBoundaryID(parsedModel)]
 	}
 	return trustBoundaryOfSourceAsset.Id != trustBoundaryOfTargetAsset.Id && trustBoundaryOfTargetAsset.Type.IsNetworkBoundary()
 }
 
-func (what CommunicationLink) HighestConfidentiality() types.Confidentiality {
+func (what CommunicationLink) HighestConfidentiality(parsedModel *ParsedModel) types.Confidentiality {
 	highest := types.Public
 	for _, dataId := range what.DataAssetsSent {
-		dataAsset := ParsedModelRoot.DataAssets[dataId]
+		dataAsset := parsedModel.DataAssets[dataId]
 		if dataAsset.Confidentiality > highest {
 			highest = dataAsset.Confidentiality
 		}
 	}
 	for _, dataId := range what.DataAssetsReceived {
-		dataAsset := ParsedModelRoot.DataAssets[dataId]
+		dataAsset := parsedModel.DataAssets[dataId]
 		if dataAsset.Confidentiality > highest {
 			highest = dataAsset.Confidentiality
 		}
@@ -67,16 +67,16 @@ func (what CommunicationLink) HighestConfidentiality() types.Confidentiality {
 	return highest
 }
 
-func (what CommunicationLink) HighestIntegrity() types.Criticality {
+func (what CommunicationLink) HighestIntegrity(parsedModel *ParsedModel) types.Criticality {
 	highest := types.Archive
 	for _, dataId := range what.DataAssetsSent {
-		dataAsset := ParsedModelRoot.DataAssets[dataId]
+		dataAsset := parsedModel.DataAssets[dataId]
 		if dataAsset.Integrity > highest {
 			highest = dataAsset.Integrity
 		}
 	}
 	for _, dataId := range what.DataAssetsReceived {
-		dataAsset := ParsedModelRoot.DataAssets[dataId]
+		dataAsset := parsedModel.DataAssets[dataId]
 		if dataAsset.Integrity > highest {
 			highest = dataAsset.Integrity
 		}
@@ -84,16 +84,16 @@ func (what CommunicationLink) HighestIntegrity() types.Criticality {
 	return highest
 }
 
-func (what CommunicationLink) HighestAvailability() types.Criticality {
+func (what CommunicationLink) HighestAvailability(parsedModel *ParsedModel) types.Criticality {
 	highest := types.Archive
 	for _, dataId := range what.DataAssetsSent {
-		dataAsset := ParsedModelRoot.DataAssets[dataId]
+		dataAsset := parsedModel.DataAssets[dataId]
 		if dataAsset.Availability > highest {
 			highest = dataAsset.Availability
 		}
 	}
 	for _, dataId := range what.DataAssetsReceived {
-		dataAsset := ParsedModelRoot.DataAssets[dataId]
+		dataAsset := parsedModel.DataAssets[dataId]
 		if dataAsset.Availability > highest {
 			highest = dataAsset.Availability
 		}
@@ -101,19 +101,19 @@ func (what CommunicationLink) HighestAvailability() types.Criticality {
 	return highest
 }
 
-func (what CommunicationLink) DataAssetsSentSorted() []DataAsset {
+func (what CommunicationLink) DataAssetsSentSorted(parsedModel *ParsedModel) []DataAsset {
 	result := make([]DataAsset, 0)
 	for _, assetID := range what.DataAssetsSent {
-		result = append(result, ParsedModelRoot.DataAssets[assetID])
+		result = append(result, parsedModel.DataAssets[assetID])
 	}
 	sort.Sort(byDataAssetTitleSort(result))
 	return result
 }
 
-func (what CommunicationLink) DataAssetsReceivedSorted() []DataAsset {
+func (what CommunicationLink) DataAssetsReceivedSorted(parsedModel *ParsedModel) []DataAsset {
 	result := make([]DataAsset, 0)
 	for _, assetID := range what.DataAssetsReceived {
-		result = append(result, ParsedModelRoot.DataAssets[assetID])
+		result = append(result, parsedModel.DataAssets[assetID])
 	}
 	sort.Sort(byDataAssetTitleSort(result))
 	return result
@@ -141,17 +141,17 @@ func (what CommunicationLink) DetermineArrowLineStyle() string {
 
 // Pen Widths:
 
-func (what CommunicationLink) DetermineArrowPenWidth() string {
-	if what.DetermineArrowColor() == colors.Pink {
+func (what CommunicationLink) DetermineArrowPenWidth(parsedModel *ParsedModel) string {
+	if what.DetermineArrowColor(parsedModel) == colors.Pink {
 		return fmt.Sprintf("%f", 3.0)
 	}
-	if what.DetermineArrowColor() != colors.Black {
+	if what.DetermineArrowColor(parsedModel) != colors.Black {
 		return fmt.Sprintf("%f", 2.5)
 	}
 	return fmt.Sprintf("%f", 1.5)
 }
 
-func (what CommunicationLink) DetermineLabelColor() string {
+func (what CommunicationLink) DetermineLabelColor(parsedModel *ParsedModel) string {
 	// TODO: Just move into main.go and let the generated risk determine the color, don't duplicate the logic here
 	/*
 		if dataFlow.Protocol.IsEncrypted() {
@@ -159,23 +159,23 @@ func (what CommunicationLink) DetermineLabelColor() string {
 		} else {*/
 	// check for red
 	for _, sentDataAsset := range what.DataAssetsSent {
-		if ParsedModelRoot.DataAssets[sentDataAsset].Integrity == types.MissionCritical {
+		if parsedModel.DataAssets[sentDataAsset].Integrity == types.MissionCritical {
 			return colors.Red
 		}
 	}
 	for _, receivedDataAsset := range what.DataAssetsReceived {
-		if ParsedModelRoot.DataAssets[receivedDataAsset].Integrity == types.MissionCritical {
+		if parsedModel.DataAssets[receivedDataAsset].Integrity == types.MissionCritical {
 			return colors.Red
 		}
 	}
 	// check for amber
 	for _, sentDataAsset := range what.DataAssetsSent {
-		if ParsedModelRoot.DataAssets[sentDataAsset].Integrity == types.Critical {
+		if parsedModel.DataAssets[sentDataAsset].Integrity == types.Critical {
 			return colors.Amber
 		}
 	}
 	for _, receivedDataAsset := range what.DataAssetsReceived {
-		if ParsedModelRoot.DataAssets[receivedDataAsset].Integrity == types.Critical {
+		if parsedModel.DataAssets[receivedDataAsset].Integrity == types.Critical {
 			return colors.Amber
 		}
 	}
@@ -186,7 +186,7 @@ func (what CommunicationLink) DetermineLabelColor() string {
 
 // pink when model forgery attempt (i.e. nothing being sent and received)
 
-func (what CommunicationLink) DetermineArrowColor() string {
+func (what CommunicationLink) DetermineArrowColor(parsedModel *ParsedModel) string {
 	// TODO: Just move into main.go and let the generated risk determine the color, don't duplicate the logic here
 	if len(what.DataAssetsSent) == 0 && len(what.DataAssetsReceived) == 0 ||
 		what.Protocol == types.UnknownProtocol {
@@ -201,23 +201,23 @@ func (what CommunicationLink) DetermineArrowColor() string {
 	}
 	// check for red
 	for _, sentDataAsset := range what.DataAssetsSent {
-		if ParsedModelRoot.DataAssets[sentDataAsset].Confidentiality == types.StrictlyConfidential {
+		if parsedModel.DataAssets[sentDataAsset].Confidentiality == types.StrictlyConfidential {
 			return colors.Red
 		}
 	}
 	for _, receivedDataAsset := range what.DataAssetsReceived {
-		if ParsedModelRoot.DataAssets[receivedDataAsset].Confidentiality == types.StrictlyConfidential {
+		if parsedModel.DataAssets[receivedDataAsset].Confidentiality == types.StrictlyConfidential {
 			return colors.Red
 		}
 	}
 	// check for amber
 	for _, sentDataAsset := range what.DataAssetsSent {
-		if ParsedModelRoot.DataAssets[sentDataAsset].Confidentiality == types.Confidential {
+		if parsedModel.DataAssets[sentDataAsset].Confidentiality == types.Confidential {
 			return colors.Amber
 		}
 	}
 	for _, receivedDataAsset := range what.DataAssetsReceived {
-		if ParsedModelRoot.DataAssets[receivedDataAsset].Confidentiality == types.Confidential {
+		if parsedModel.DataAssets[receivedDataAsset].Confidentiality == types.Confidential {
 			return colors.Amber
 		}
 	}

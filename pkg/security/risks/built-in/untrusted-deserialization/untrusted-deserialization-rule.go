@@ -1,7 +1,7 @@
 package untrusted_deserialization
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -47,7 +47,7 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope {
 			continue
@@ -63,24 +63,24 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 			hasOne = true
 		}
 		// check for any incoming IIOP and JRMP protocols
-		for _, commLink := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
+		for _, commLink := range input.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
 			if commLink.Protocol == types.IIOP || commLink.Protocol == types.IiopEncrypted ||
 				commLink.Protocol == types.JRMP || commLink.Protocol == types.JrmpEncrypted {
 				hasOne = true
-				if commLink.IsAcrossTrustBoundaryNetworkOnly() {
+				if commLink.IsAcrossTrustBoundaryNetworkOnly(input) {
 					acrossTrustBoundary = true
 					commLinkTitle = commLink.Title
 				}
 			}
 		}
 		if hasOne {
-			risks = append(risks, createRisk(technicalAsset, acrossTrustBoundary, commLinkTitle))
+			risks = append(risks, createRisk(input, technicalAsset, acrossTrustBoundary, commLinkTitle))
 		}
 	}
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset, acrossTrustBoundary bool, commLinkTitle string) model.Risk {
+func createRisk(parsedModel *model.ParsedModel, technicalAsset model.TechnicalAsset, acrossTrustBoundary bool, commLinkTitle string) model.Risk {
 	title := "<b>Untrusted Deserialization</b> risk at <b>" + technicalAsset.Title + "</b>"
 	impact := types.HighImpact
 	likelihood := types.Likely
@@ -88,9 +88,9 @@ func createRisk(technicalAsset model.TechnicalAsset, acrossTrustBoundary bool, c
 		likelihood = types.VeryLikely
 		title += " across a trust boundary (at least via communication link <b>" + commLinkTitle + "</b>)"
 	}
-	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
-		technicalAsset.HighestIntegrity() == types.MissionCritical ||
-		technicalAsset.HighestAvailability() == types.MissionCritical {
+	if technicalAsset.HighestConfidentiality(parsedModel) == types.StrictlyConfidential ||
+		technicalAsset.HighestIntegrity(parsedModel) == types.MissionCritical ||
+		technicalAsset.HighestAvailability(parsedModel) == types.MissionCritical {
 		impact = types.VeryHighImpact
 	}
 	risk := model.Risk{

@@ -3,7 +3,7 @@ package unnecessary_data_asset
 import (
 	"sort"
 
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 

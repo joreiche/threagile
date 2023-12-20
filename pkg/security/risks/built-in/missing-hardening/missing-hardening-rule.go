@@ -3,7 +3,7 @@ package missing_hardening
 import (
 	"strconv"
 
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -48,22 +48,22 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope {
 			if technicalAsset.RAA >= raaLimit || (technicalAsset.RAA >= raaLimitReduced &&
 				(technicalAsset.Type == types.Datastore || technicalAsset.Technology == types.ApplicationServer || technicalAsset.Technology == types.IdentityProvider || technicalAsset.Technology == types.ERP)) {
-				risks = append(risks, createRisk(technicalAsset))
+				risks = append(risks, createRisk(input, technicalAsset))
 			}
 		}
 	}
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset) model.Risk {
+func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset) model.Risk {
 	title := "<b>Missing Hardening</b> risk at <b>" + technicalAsset.Title + "</b>"
 	impact := types.LowImpact
-	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential || technicalAsset.HighestIntegrity() == types.MissionCritical {
+	if technicalAsset.HighestConfidentiality(input) == types.StrictlyConfidential || technicalAsset.HighestIntegrity(input) == types.MissionCritical {
 		impact = types.MediumImpact
 	}
 	risk := model.Risk{

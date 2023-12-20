@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"github.com/threagile/threagile/pkg/model"
-	"github.com/threagile/threagile/pkg/security/risks"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -72,8 +71,8 @@ func main() {
 	os.Exit(-2)
 }
 
-func (r customRiskRule) Category() risks.RiskCategory {
-	return risks.RiskCategory{
+func (r customRiskRule) Category() model.RiskCategory {
+	return model.RiskCategory{
 		Id:                         "demo",
 		Title:                      "Just a Demo",
 		Description:                "Demo Description",
@@ -97,9 +96,9 @@ func (r customRiskRule) SupportedTags() []string {
 	return []string{"demo tag"}
 }
 
-func (r customRiskRule) GenerateRisks(input *model.ParsedModel) []model.Risk {
+func (r customRiskRule) GenerateRisks(parsedModel *model.ParsedModel) []model.Risk {
 	generatedRisks := make([]model.Risk, 0)
-	for _, techAsset := range input.TechnicalAssets {
+	for _, techAsset := range parsedModel.TechnicalAssets {
 		generatedRisks = append(generatedRisks, createRisk(techAsset))
 	}
 	return generatedRisks

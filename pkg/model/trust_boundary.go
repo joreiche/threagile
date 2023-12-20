@@ -28,7 +28,7 @@ func (what TrustBoundary) IsTaggedWithAny(tags ...string) bool {
 }
 
 func (what TrustBoundary) IsTaggedWithBaseTag(baseTag string) bool {
-	return isTaggedWithBaseTag(what.Tags, baseTag)
+	return IsTaggedWithBaseTag(what.Tags, baseTag)
 }
 
 func (what TrustBoundary) IsTaggedWithAnyTraversingUp(model *ParsedModel, tags ...string) bool {
@@ -57,8 +57,8 @@ func (what TrustBoundary) HighestConfidentiality(model *ParsedModel) types.Confi
 	highest := types.Public
 	for _, id := range what.RecursivelyAllTechnicalAssetIDsInside(model) {
 		techAsset := model.TechnicalAssets[id]
-		if techAsset.HighestConfidentiality() > highest {
-			highest = techAsset.HighestConfidentiality()
+		if techAsset.HighestConfidentiality(model) > highest {
+			highest = techAsset.HighestConfidentiality(model)
 		}
 	}
 	return highest

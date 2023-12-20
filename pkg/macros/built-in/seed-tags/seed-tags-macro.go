@@ -35,7 +35,7 @@ func GetFinalChangeImpact(_ *input.ModelInput) (changes []string, message string
 
 func Execute(modelInput *input.ModelInput, parsedModel *model.ParsedModel) (message string, validResult bool, err error) {
 	tagMap := make(map[string]bool)
-	for k, v := range model.AllSupportedTags {
+	for k, v := range parsedModel.AllSupportedTags {
 		tagMap[k] = v
 	}
 	for _, tagFromModel := range parsedModel.TagsAvailable {
@@ -47,5 +47,5 @@ func Execute(modelInput *input.ModelInput, parsedModel *model.ParsedModel) (mess
 	}
 	sort.Strings(tagsSorted)
 	modelInput.TagsAvailable = tagsSorted
-	return "Model file seeding with " + strconv.Itoa(len(model.AllSupportedTags)) + " tags successful", true, nil
+	return "Model file seeding with " + strconv.Itoa(len(parsedModel.AllSupportedTags)) + " tags successful", true, nil
 }

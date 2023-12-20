@@ -38,7 +38,7 @@ func (what TechnicalAsset) IsTaggedWithAny(tags ...string) bool {
 }
 
 func (what TechnicalAsset) IsTaggedWithBaseTag(baseTag string) bool {
-	return isTaggedWithBaseTag(what.Tags, baseTag)
+	return IsTaggedWithBaseTag(what.Tags, baseTag)
 }
 
 // first use the tag(s) of the asset itself, then their trust boundaries (recursively up) and then their shared runtime
@@ -47,43 +47,43 @@ func (what TechnicalAsset) IsTaggedWithAnyTraversingUp(model *ParsedModel, tags 
 	if containsCaseInsensitiveAny(what.Tags, tags...) {
 		return true
 	}
-	tbID := what.GetTrustBoundaryId()
+	tbID := what.GetTrustBoundaryId(model)
 	if len(tbID) > 0 {
-		if model.TrustBoundaries[tbID].IsTaggedWithAnyTraversingUp(tags...) {
+		if model.TrustBoundaries[tbID].IsTaggedWithAnyTraversingUp(model, tags...) {
 			return true
 		}
 	}
 	for _, sr := range model.SharedRuntimes {
-		if Contains(sr.TechnicalAssetsRunning, what.Id) && sr.IsTaggedWithAny(tags...) {
+		if contains(sr.TechnicalAssetsRunning, what.Id) && sr.IsTaggedWithAny(tags...) {
 			return true
 		}
 	}
 	return false
 }
 
-func (what TechnicalAsset) IsSameTrustBoundary(otherAssetId string) bool {
-	trustBoundaryOfMyAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.Id]
-	trustBoundaryOfOtherAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[otherAssetId]
+func (what TechnicalAsset) IsSameTrustBoundary(parsedModel *ParsedModel, otherAssetId string) bool {
+	trustBoundaryOfMyAsset := parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.Id]
+	trustBoundaryOfOtherAsset := parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId[otherAssetId]
 	return trustBoundaryOfMyAsset.Id == trustBoundaryOfOtherAsset.Id
 }
 
-func (what TechnicalAsset) IsSameExecutionEnvironment(otherAssetId string) bool {
-	trustBoundaryOfMyAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.Id]
-	trustBoundaryOfOtherAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[otherAssetId]
+func (what TechnicalAsset) IsSameExecutionEnvironment(parsedModel *ParsedModel, otherAssetId string) bool {
+	trustBoundaryOfMyAsset := parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.Id]
+	trustBoundaryOfOtherAsset := parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId[otherAssetId]
 	if trustBoundaryOfMyAsset.Type == types.ExecutionEnvironment && trustBoundaryOfOtherAsset.Type == types.ExecutionEnvironment {
 		return trustBoundaryOfMyAsset.Id == trustBoundaryOfOtherAsset.Id
 	}
 	return false
 }
 
-func (what TechnicalAsset) IsSameTrustBoundaryNetworkOnly(otherAssetId string) bool {
-	trustBoundaryOfMyAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.Id]
+func (what TechnicalAsset) IsSameTrustBoundaryNetworkOnly(parsedModel *ParsedModel, otherAssetId string) bool {
+	trustBoundaryOfMyAsset := parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId[what.Id]
 	if !trustBoundaryOfMyAsset.Type.IsNetworkBoundary() { // find and use the parent boundary then
-		trustBoundaryOfMyAsset = ParsedModelRoot.TrustBoundaries[trustBoundaryOfMyAsset.ParentTrustBoundaryID()]
+		trustBoundaryOfMyAsset = parsedModel.TrustBoundaries[trustBoundaryOfMyAsset.ParentTrustBoundaryID(parsedModel)]
 	}
-	trustBoundaryOfOtherAsset := DirectContainingTrustBoundaryMappedByTechnicalAssetId[otherAssetId]
+	trustBoundaryOfOtherAsset := parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId[otherAssetId]
 	if !trustBoundaryOfOtherAsset.Type.IsNetworkBoundary() { // find and use the parent boundary then
-		trustBoundaryOfOtherAsset = ParsedModelRoot.TrustBoundaries[trustBoundaryOfOtherAsset.ParentTrustBoundaryID()]
+		trustBoundaryOfOtherAsset = parsedModel.TrustBoundaries[trustBoundaryOfOtherAsset.ParentTrustBoundaryID(parsedModel)]
 	}
 	return trustBoundaryOfMyAsset.Id == trustBoundaryOfOtherAsset.Id
 }
@@ -94,16 +94,16 @@ func (what TechnicalAsset) HighestSensitivityScore() float64 {
 		what.Availability.AttackerAttractivenessForAsset()
 }
 
-func (what TechnicalAsset) HighestConfidentiality() types.Confidentiality {
+func (what TechnicalAsset) HighestConfidentiality(parsedModel *ParsedModel) types.Confidentiality {
 	highest := what.Confidentiality
 	for _, dataId := range what.DataAssetsProcessed {
-		dataAsset := ParsedModelRoot.DataAssets[dataId]
+		dataAsset := parsedModel.DataAssets[dataId]
 		if dataAsset.Confidentiality > highest {
 			highest = dataAsset.Confidentiality
 		}
 	}
 	for _, dataId := range what.DataAssetsStored {
-		dataAsset := ParsedModelRoot.DataAssets[dataId]
+		dataAsset := parsedModel.DataAssets[dataId]
 		if dataAsset.Confidentiality > highest {
 			highest = dataAsset.Confidentiality
 		}
@@ -111,19 +111,19 @@ func (what TechnicalAsset) HighestConfidentiality() types.Confidentiality {
 	return highest
 }
 
-func (what TechnicalAsset) DataAssetsProcessedSorted() []DataAsset {
+func (what TechnicalAsset) DataAssetsProcessedSorted(parsedModel *ParsedModel) []DataAsset {
 	result := make([]DataAsset, 0)
 	for _, assetID := range what.DataAssetsProcessed {
-		result = append(result, ParsedModelRoot.DataAssets[assetID])
+		result = append(result, parsedModel.DataAssets[assetID])
 	}
 	sort.Sort(ByDataAssetTitleSort(result))
 	return result
 }
 
-func (what TechnicalAsset) DataAssetsStoredSorted() []DataAsset {
+func (what TechnicalAsset) DataAssetsStoredSorted(parsedModel *ParsedModel) []DataAsset {
 	result := make([]DataAsset, 0)
 	for _, assetID := range what.DataAssetsStored {
-		result = append(result, ParsedModelRoot.DataAssets[assetID])
+		result = append(result, parsedModel.DataAssets[assetID])
 	}
 	sort.Sort(ByDataAssetTitleSort(result))
 	return result
@@ -134,7 +134,7 @@ func (what TechnicalAsset) DataFormatsAcceptedSorted() []types.DataFormat {
 	for _, format := range what.DataFormatsAccepted {
 		result = append(result, format)
 	}
-	sort.Sort(ByDataFormatAcceptedSort(result))
+	sort.Sort(types.ByDataFormatAcceptedSort(result))
 	return result
 }
 
@@ -181,14 +181,14 @@ func (what TechnicalAsset) HighestAvailability(model *ParsedModel) types.Critica
 	return highest
 }
 
-func (what TechnicalAsset) HasDirectConnection(otherAssetId string) bool {
-	for _, dataFlow := range IncomingTechnicalCommunicationLinksMappedByTargetId[what.Id] {
+func (what TechnicalAsset) HasDirectConnection(parsedModel *ParsedModel, otherAssetId string) bool {
+	for _, dataFlow := range parsedModel.IncomingTechnicalCommunicationLinksMappedByTargetId[what.Id] {
 		if dataFlow.SourceId == otherAssetId {
 			return true
 		}
 	}
 	// check both directions, hence two times, just reversed
-	for _, dataFlow := range IncomingTechnicalCommunicationLinksMappedByTargetId[otherAssetId] {
+	for _, dataFlow := range parsedModel.IncomingTechnicalCommunicationLinksMappedByTargetId[otherAssetId] {
 		if dataFlow.SourceId == what.Id {
 			return true
 		}
@@ -196,20 +196,20 @@ func (what TechnicalAsset) HasDirectConnection(otherAssetId string) bool {
 	return false
 }
 
-func (what TechnicalAsset) GeneratedRisks() []Risk {
+func (what TechnicalAsset) GeneratedRisks(parsedModel *ParsedModel) []Risk {
 	resultingRisks := make([]Risk, 0)
-	if len(SortedRiskCategories()) == 0 {
+	if len(SortedRiskCategories(parsedModel)) == 0 {
 		fmt.Println("Uh, strange, no risks generated (yet?) and asking for them by tech asset...")
 	}
-	for _, category := range SortedRiskCategories() {
-		risks := SortedRisksOfCategory(category)
+	for _, category := range SortedRiskCategories(parsedModel) {
+		risks := SortedRisksOfCategory(parsedModel, category)
 		for _, risk := range risks {
 			if risk.MostRelevantTechnicalAssetId == what.Id {
 				resultingRisks = append(resultingRisks, risk)
 			}
 		}
 	}
-	sort.Sort(ByRiskSeveritySort(resultingRisks))
+	SortByRiskSeverity(resultingRisks, parsedModel)
 	return resultingRisks
 }
 
@@ -301,19 +301,19 @@ func (what TechnicalAsset) DetermineLabelColor(model *ParsedModel) string {
 // amber when critical integrity, but still unauthenticated (non-readonly) channels access it
 // pink when model forgery attempt (i.e. nothing being processed or stored)
 
-func (what TechnicalAsset) DetermineShapeBorderColor() string {
+func (what TechnicalAsset) DetermineShapeBorderColor(parsedModel *ParsedModel) string {
 	// TODO: Just move into main.go and let the generated risk determine the color, don't duplicate the logic here
 	// Check for red
 	if what.Confidentiality == types.StrictlyConfidential {
 		return colors.Red
 	}
 	for _, storedDataAsset := range what.DataAssetsStored {
-		if ParsedModelRoot.DataAssets[storedDataAsset].Confidentiality == types.StrictlyConfidential {
+		if parsedModel.DataAssets[storedDataAsset].Confidentiality == types.StrictlyConfidential {
 			return colors.Red
 		}
 	}
 	for _, processedDataAsset := range what.DataAssetsProcessed {
-		if ParsedModelRoot.DataAssets[processedDataAsset].Confidentiality == types.StrictlyConfidential {
+		if parsedModel.DataAssets[processedDataAsset].Confidentiality == types.StrictlyConfidential {
 			return colors.Red
 		}
 	}
@@ -322,12 +322,12 @@ func (what TechnicalAsset) DetermineShapeBorderColor() string {
 		return colors.Amber
 	}
 	for _, storedDataAsset := range what.DataAssetsStored {
-		if ParsedModelRoot.DataAssets[storedDataAsset].Confidentiality == types.Confidential {
+		if parsedModel.DataAssets[storedDataAsset].Confidentiality == types.Confidential {
 			return colors.Amber
 		}
 	}
 	for _, processedDataAsset := range what.DataAssetsProcessed {
-		if ParsedModelRoot.DataAssets[processedDataAsset].Confidentiality == types.Confidential {
+		if parsedModel.DataAssets[processedDataAsset].Confidentiality == types.Confidential {
 			return colors.Amber
 		}
 	}
@@ -431,12 +431,12 @@ func (what TechnicalAsset) GetTrustBoundaryId(model *ParsedModel) string {
 	return ""
 }
 
-func (what TechnicalAsset) DetermineShapeFillColor() string {
+func (what TechnicalAsset) DetermineShapeFillColor(parsedModel *ParsedModel) string {
 	fillColor := colors.VeryLightGray
 	if len(what.DataAssetsProcessed) == 0 && len(what.DataAssetsStored) == 0 ||
 		what.Technology == types.UnknownTechnology {
 		fillColor = colors.LightPink // lightPink, because it's strange when too many technical assets process no data... some ok, but many in a diagram ist a sign of model forgery...
-	} else if len(what.CommunicationLinks) == 0 && len(IncomingTechnicalCommunicationLinksMappedByTargetId[what.Id]) == 0 {
+	} else if len(what.CommunicationLinks) == 0 && len(parsedModel.IncomingTechnicalCommunicationLinksMappedByTargetId[what.Id]) == 0 {
 		fillColor = colors.LightPink
 	} else if what.Internet {
 		fillColor = colors.ExtremeLightBlue
@@ -457,44 +457,40 @@ func (what TechnicalAsset) DetermineShapeFillColor() string {
 	return fillColor
 }
 
-type ByTechnicalAssetRiskSeverityAndTitleSortStillAtRisk []TechnicalAsset
-
-func (what ByTechnicalAssetRiskSeverityAndTitleSortStillAtRisk) Len() int { return len(what) }
-func (what ByTechnicalAssetRiskSeverityAndTitleSortStillAtRisk) Swap(i, j int) {
-	what[i], what[j] = what[j], what[i]
-}
-func (what ByTechnicalAssetRiskSeverityAndTitleSortStillAtRisk) Less(i, j int) bool {
-	risksLeft := ReduceToOnlyStillAtRisk(what[i].GeneratedRisks())
-	risksRight := ReduceToOnlyStillAtRisk(what[j].GeneratedRisks())
-	highestSeverityLeft := HighestSeverityStillAtRisk(risksLeft)
-	highestSeverityRight := HighestSeverityStillAtRisk(risksRight)
-	var result bool
-	if highestSeverityLeft == highestSeverityRight {
-		if len(risksLeft) == 0 && len(risksRight) > 0 {
-			return false
-		} else if len(risksLeft) > 0 && len(risksRight) == 0 {
-			return true
+func SortByTechnicalAssetRiskSeverityAndTitleStillAtRisk(assets []TechnicalAsset, parsedModel *ParsedModel) {
+	sort.Slice(assets, func(i, j int) bool {
+		risksLeft := ReduceToOnlyStillAtRisk(parsedModel, assets[i].GeneratedRisks(parsedModel))
+		risksRight := ReduceToOnlyStillAtRisk(parsedModel, assets[j].GeneratedRisks(parsedModel))
+		highestSeverityLeft := HighestSeverityStillAtRisk(parsedModel, risksLeft)
+		highestSeverityRight := HighestSeverityStillAtRisk(parsedModel, risksRight)
+		var result bool
+		if highestSeverityLeft == highestSeverityRight {
+			if len(risksLeft) == 0 && len(risksRight) > 0 {
+				return false
+			} else if len(risksLeft) > 0 && len(risksRight) == 0 {
+				return true
+			} else {
+				result = assets[i].Title < assets[j].Title
+			}
 		} else {
-			result = what[i].Title < what[j].Title
+			result = highestSeverityLeft > highestSeverityRight
 		}
-	} else {
-		result = highestSeverityLeft > highestSeverityRight
-	}
-	if what[i].OutOfScope && what[j].OutOfScope {
-		result = what[i].Title < what[j].Title
-	} else if what[i].OutOfScope {
-		result = false
-	} else if what[j].OutOfScope {
-		result = true
-	}
-	return result
+		if assets[i].OutOfScope && assets[j].OutOfScope {
+			result = assets[i].Title < assets[j].Title
+		} else if assets[i].OutOfScope {
+			result = false
+		} else if assets[j].OutOfScope {
+			result = true
+		}
+		return result
+	})
 }
 
-func (what TechnicalAsset) DetermineShapeBorderPenWidth() string {
-	if what.DetermineShapeBorderColor() == colors.Pink {
+func (what TechnicalAsset) DetermineShapeBorderPenWidth(parsedModel *ParsedModel) string {
+	if what.DetermineShapeBorderColor(parsedModel) == colors.Pink {
 		return fmt.Sprintf("%f", 3.5)
 	}
-	if what.DetermineShapeBorderColor() != colors.Black {
+	if what.DetermineShapeBorderColor(parsedModel) != colors.Black {
 		return fmt.Sprintf("%f", 3.0)
 	}
 	return fmt.Sprintf("%f", 2.0)

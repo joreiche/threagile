@@ -1,7 +1,7 @@
 package missing_identity_provider_isolation
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -58,10 +58,10 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 				if technicalAsset.Id != sparringAssetCandidateId {
 					sparringAssetCandidate := input.TechnicalAssets[sparringAssetCandidateId]
 					if !sparringAssetCandidate.Technology.IsIdentityRelated() && !sparringAssetCandidate.Technology.IsCloseToHighValueTargetsTolerated() {
-						if technicalAsset.IsSameExecutionEnvironment(sparringAssetCandidateId) {
+						if technicalAsset.IsSameExecutionEnvironment(input, sparringAssetCandidateId) {
 							createRiskEntry = true
 							sameExecutionEnv = true
-						} else if technicalAsset.IsSameTrustBoundaryNetworkOnly(sparringAssetCandidateId) {
+						} else if technicalAsset.IsSameTrustBoundaryNetworkOnly(input, sparringAssetCandidateId) {
 							createRiskEntry = true
 						}
 					}

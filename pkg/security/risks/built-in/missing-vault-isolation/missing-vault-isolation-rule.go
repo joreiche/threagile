@@ -1,7 +1,7 @@
 package missing_vault_isolation
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -57,11 +57,11 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 			for sparringAssetCandidateId := range input.TechnicalAssets { // so inner loop again over all assets
 				if technicalAsset.Id != sparringAssetCandidateId {
 					sparringAssetCandidate := input.TechnicalAssets[sparringAssetCandidateId]
-					if sparringAssetCandidate.Technology != types.Vault && !isVaultStorage(technicalAsset, sparringAssetCandidate) {
-						if technicalAsset.IsSameExecutionEnvironment(sparringAssetCandidateId) {
+					if sparringAssetCandidate.Technology != types.Vault && !isVaultStorage(input, technicalAsset, sparringAssetCandidate) {
+						if technicalAsset.IsSameExecutionEnvironment(input, sparringAssetCandidateId) {
 							createRiskEntry = true
 							sameExecutionEnv = true
-						} else if technicalAsset.IsSameTrustBoundaryNetworkOnly(sparringAssetCandidateId) {
+						} else if technicalAsset.IsSameTrustBoundaryNetworkOnly(input, sparringAssetCandidateId) {
 							createRiskEntry = true
 						}
 					}
@@ -75,8 +75,8 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	return risks
 }
 
-func isVaultStorage(vault model.TechnicalAsset, storage model.TechnicalAsset) bool {
-	return storage.Type == types.Datastore && vault.HasDirectConnection(storage.Id)
+func isVaultStorage(parsedModel *model.ParsedModel, vault model.TechnicalAsset, storage model.TechnicalAsset) bool {
+	return storage.Type == types.Datastore && vault.HasDirectConnection(parsedModel, storage.Id)
 }
 
 func createRisk(techAsset model.TechnicalAsset, moreImpact bool, sameExecutionEnv bool) model.Risk {

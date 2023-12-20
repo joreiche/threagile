@@ -34,7 +34,7 @@ import (
 	"time"
 
 	"golang.org/x/crypto/argon2"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/akedrou/textdiff"
 	"github.com/gin-gonic/gin"
@@ -45,8 +45,15 @@ import (
 	"github.com/threagile/threagile/pkg/macros"
 	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/report"
-	"github.com/threagile/threagile/pkg/security/risks"
+	"github.com/threagile/threagile/pkg/run"
 	"github.com/threagile/threagile/pkg/security/types"
+
+	addbuildpipeline "github.com/threagile/threagile/pkg/macros/built-in/add-build-pipeline"
+	addvault "github.com/threagile/threagile/pkg/macros/built-in/add-vault"
+	prettyprint "github.com/threagile/threagile/pkg/macros/built-in/pretty-print"
+	removeunusedtags "github.com/threagile/threagile/pkg/macros/built-in/remove-unused-tags"
+	seedrisktracking "github.com/threagile/threagile/pkg/macros/built-in/seed-risk-tracking"
+	seedtags "github.com/threagile/threagile/pkg/macros/built-in/seed-tags"
 
 	accidentalsecretleak "github.com/threagile/threagile/pkg/security/risks/built-in/accidental-secret-leak"
 	codebackdooring "github.com/threagile/threagile/pkg/security/risks/built-in/code-backdooring"
@@ -105,14 +112,7 @@ type Context struct {
 
 	// TODO: remove refactoring note below
 	// moved from types.go
-	parsedModel                                           model.ParsedModel
-	communicationLinks                                    map[string]model.CommunicationLink // TODO as part of "ParsedModelRoot"?
-	incomingTechnicalCommunicationLinksMappedByTargetId   map[string][]model.CommunicationLink
-	directContainingTrustBoundaryMappedByTechnicalAssetId map[string]model.TrustBoundary
-	directContainingSharedRuntimeMappedByTechnicalAssetId map[string]model.SharedRuntime
-	generatedRisksByCategory                              map[model.RiskCategory][]model.Risk
-	generatedRisksBySyntheticId                           map[string]model.Risk
-	allSupportedTags                                      map[string]bool
+	parsedModel model.ParsedModel
 
 	modelFilename, templateFilename                                                                   *string
 	testParseModel                                                                                    *bool
@@ -156,7 +156,7 @@ type Context struct {
 
 func (context *Context) addToListOfSupportedTags(tags []string) {
 	for _, tag := range tags {
-		context.allSupportedTags[tag] = true
+		context.parsedModel.AllSupportedTags[tag] = true
 	}
 }
 
@@ -165,7 +165,7 @@ func (context *Context) checkRiskTracking() {
 		fmt.Println("Checking risk tracking")
 	}
 	for _, tracking := range context.parsedModel.RiskTracking {
-		if _, ok := context.generatedRisksBySyntheticId[tracking.SyntheticRiskId]; !ok {
+		if _, ok := context.parsedModel.GeneratedRisksBySyntheticId[tracking.SyntheticRiskId]; !ok {
 			if *context.ignoreOrphanedRiskTracking {
 				fmt.Println("Risk tracking references unknown risk (risk id not found): " + tracking.SyntheticRiskId)
 			} else {
@@ -183,10 +183,10 @@ func (context *Context) checkRiskTracking() {
 	}
 
 	// save also the risk-category-id and risk-status directly in the risk for better JSON marshalling
-	for category := range context.generatedRisksByCategory {
-		for i := range context.generatedRisksByCategory[category] {
-			context.generatedRisksByCategory[category][i].CategoryId = category.Id
-			context.generatedRisksByCategory[category][i].RiskStatus = context.generatedRisksByCategory[category][i].GetRiskTrackingStatusDefaultingUnchecked()
+	for category := range context.parsedModel.GeneratedRisksByCategory {
+		for i := range context.parsedModel.GeneratedRisksByCategory[category] {
+			context.parsedModel.GeneratedRisksByCategory[category][i].CategoryId = category.Id
+			context.parsedModel.GeneratedRisksByCategory[category][i].RiskStatus = context.parsedModel.GeneratedRisksByCategory[category][i].GetRiskTrackingStatusDefaultingUnchecked(&context.parsedModel)
 		}
 	}
 }
@@ -203,14 +203,6 @@ func (context *Context) Defaults(buildTimestamp string) *Context {
 		maxGraphvizDPI:           240,
 		backupHistoryFilesToKeep: 50,
 	}
-
-	context.communicationLinks = make(map[string]model.CommunicationLink)
-	context.incomingTechnicalCommunicationLinksMappedByTargetId = make(map[string][]model.CommunicationLink)
-	context.directContainingTrustBoundaryMappedByTechnicalAssetId = make(map[string]model.TrustBoundary)
-	context.directContainingSharedRuntimeMappedByTechnicalAssetId = make(map[string]model.SharedRuntime)
-	context.generatedRisksByCategory = make(map[model.RiskCategory][]model.Risk)
-	context.generatedRisksBySyntheticId = make(map[string]model.Risk)
-	context.allSupportedTags = make(map[string]bool)
 
 	context.tempDir = "/dev/shm" // TODO: make configurable via cmdline arg?
 	context.binDir = "/app"
@@ -246,7 +238,7 @@ func (context *Context) applyRisk(rule model.CustomRiskRule, skippedRules *map[s
 		generatedRisks := rule.GenerateRisks(&context.parsedModel)
 		if generatedRisks != nil {
 			if len(generatedRisks) > 0 {
-				context.generatedRisksByCategory[rule.Category()] = generatedRisks
+				context.parsedModel.GeneratedRisksByCategory[rule.Category()] = generatedRisks
 			}
 		} else {
 			fmt.Printf("Failed to generate risks for %q\n", id)
@@ -324,7 +316,7 @@ func (context *Context) applyRiskGeneration() {
 			context.addToListOfSupportedTags(customRule.Tags)
 			customRisks := customRule.GenerateRisks(&context.parsedModel)
 			if len(customRisks) > 0 {
-				context.generatedRisksByCategory[customRule.Category] = customRisks
+				context.parsedModel.GeneratedRisksByCategory[customRule.Category] = customRisks
 			}
 
 			if *context.verbose {
@@ -344,10 +336,10 @@ func (context *Context) applyRiskGeneration() {
 	}
 
 	// save also in map keyed by synthetic risk-id
-	for _, category := range model.SortedRiskCategories() {
-		someRisks := model.SortedRisksOfCategory(category)
+	for _, category := range model.SortedRiskCategories(&context.parsedModel) {
+		someRisks := model.SortedRisksOfCategory(&context.parsedModel, category)
 		for _, risk := range someRisks {
-			context.generatedRisksBySyntheticId[strings.ToLower(risk.SyntheticId)] = risk
+			context.parsedModel.GeneratedRisksBySyntheticId[strings.ToLower(risk.SyntheticId)] = risk
 		}
 	}
 }
@@ -510,26 +502,26 @@ func (context *Context) analyzeModelOnServerDirectly(ginContext *gin.Context) {
 		context.handleErrorInServiceCall(err, ginContext)
 		return
 	}
-	err = os.WriteFile(filepath.Join(tmpOutputDir, inputFile), []byte(yamlText), 0400)
+	err = os.WriteFile(filepath.Join(tmpOutputDir, context.inputFile), []byte(yamlText), 0400)
 	if err != nil {
 		context.handleErrorInServiceCall(err, ginContext)
 		return
 	}
 
 	files := []string{
-		filepath.Join(tmpOutputDir, inputFile),
-		filepath.Join(tmpOutputDir, dataFlowDiagramFilenamePNG),
-		filepath.Join(tmpOutputDir, dataAssetDiagramFilenamePNG),
-		filepath.Join(tmpOutputDir, reportFilename),
-		filepath.Join(tmpOutputDir, excelRisksFilename),
-		filepath.Join(tmpOutputDir, excelTagsFilename),
-		filepath.Join(tmpOutputDir, jsonRisksFilename),
-		filepath.Join(tmpOutputDir, jsonTechnicalAssetsFilename),
-		filepath.Join(tmpOutputDir, jsonStatsFilename),
+		filepath.Join(tmpOutputDir, context.inputFile),
+		filepath.Join(tmpOutputDir, context.dataFlowDiagramFilenamePNG),
+		filepath.Join(tmpOutputDir, context.dataAssetDiagramFilenamePNG),
+		filepath.Join(tmpOutputDir, context.reportFilename),
+		filepath.Join(tmpOutputDir, context.excelRisksFilename),
+		filepath.Join(tmpOutputDir, context.excelTagsFilename),
+		filepath.Join(tmpOutputDir, context.jsonRisksFilename),
+		filepath.Join(tmpOutputDir, context.jsonTechnicalAssetsFilename),
+		filepath.Join(tmpOutputDir, context.jsonStatsFilename),
 	}
 	if context.keepDiagramSourceFiles {
-		files = append(files, filepath.Join(tmpOutputDir, dataFlowDiagramFilenameDOT))
-		files = append(files, filepath.Join(tmpOutputDir, dataAssetDiagramFilenameDOT))
+		files = append(files, filepath.Join(tmpOutputDir, context.dataFlowDiagramFilenameDOT))
+		files = append(files, filepath.Join(tmpOutputDir, context.dataAssetDiagramFilenameDOT))
 	}
 	err = context.zipFiles(tmpResultFile.Name(), files)
 	checkErr(err)
@@ -598,6 +590,14 @@ func (context *Context) parseModel() {
 		DiagramTweakInvisibleConnectionsBetweenAssets: context.modelInput.DiagramTweakInvisibleConnectionsBetweenAssets,
 		DiagramTweakSameRankAssets:                    context.modelInput.DiagramTweakSameRankAssets,
 	}
+
+	context.parsedModel.CommunicationLinks = make(map[string]model.CommunicationLink)
+	context.parsedModel.IncomingTechnicalCommunicationLinksMappedByTargetId = make(map[string][]model.CommunicationLink)
+	context.parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId = make(map[string]model.TrustBoundary)
+	context.parsedModel.GeneratedRisksByCategory = make(map[model.RiskCategory][]model.Risk)
+	context.parsedModel.GeneratedRisksBySyntheticId = make(map[string]model.Risk)
+	context.parsedModel.AllSupportedTags = make(map[string]bool)
+
 	if context.parsedModel.DiagramTweakNodesep == 0 {
 		context.parsedModel.DiagramTweakNodesep = 2
 	}
@@ -1171,10 +1171,10 @@ func (context *Context) parseModel() {
 				}
 				communicationLinks = append(communicationLinks, commLink)
 				// track all comm links
-				context.CommunicationLinks[commLink.Id] = commLink
+				context.parsedModel.CommunicationLinks[commLink.Id] = commLink
 				// keep track of map of *all* comm links mapped by target-id (to be able to look up "who is calling me" kind of things)
-				context.IncomingTechnicalCommunicationLinksMappedByTargetId[commLink.TargetId] = append(
-					context.IncomingTechnicalCommunicationLinksMappedByTargetId[commLink.TargetId], commLink)
+				context.parsedModel.IncomingTechnicalCommunicationLinksMappedByTargetId[commLink.TargetId] = append(
+					context.parsedModel.IncomingTechnicalCommunicationLinksMappedByTargetId[commLink.TargetId], commLink)
 			}
 		}
 
@@ -1281,11 +1281,11 @@ func (context *Context) parseModel() {
 		}
 		context.parsedModel.TrustBoundaries[id] = trustBoundary
 		for _, technicalAsset := range trustBoundary.TechnicalAssetsInside {
-			context.DirectContainingTrustBoundaryMappedByTechnicalAssetId[technicalAsset] = trustBoundary
+			context.parsedModel.DirectContainingTrustBoundaryMappedByTechnicalAssetId[technicalAsset] = trustBoundary
 			//fmt.Println("Asset "+technicalAsset+" is directly in trust boundary "+trustBoundary.Id)
 		}
 	}
-	checkNestedTrustBoundariesExisting()
+	context.checkNestedTrustBoundariesExisting()
 
 	// Shared Runtime ===============================================================================
 	context.parsedModel.SharedRuntimes = make(map[string]model.SharedRuntime)
@@ -1298,7 +1298,7 @@ func (context *Context) parseModel() {
 			technicalAssetsRunning = make([]string, len(parsedRunningAssets))
 			for i, parsedRunningAsset := range parsedRunningAssets {
 				assetId := fmt.Sprintf("%v", parsedRunningAsset)
-				checkTechnicalAssetExists(assetId, "shared runtime '"+title+"'", false)
+				context.checkTechnicalAssetExists(assetId, "shared runtime '"+title+"'", false)
 				technicalAssetsRunning[i] = assetId
 			}
 		}
@@ -1315,9 +1315,6 @@ func (context *Context) parseModel() {
 			panic(errors.New("duplicate id used: " + id))
 		}
 		context.parsedModel.SharedRuntimes[id] = sharedRuntime
-		for _, technicalAssetId := range sharedRuntime.TechnicalAssetsRunning {
-			context.DirectContainingSharedRuntimeMappedByTechnicalAssetId[technicalAssetId] = sharedRuntime
-		}
 	}
 
 	// Individual Risk Categories (just used as regular risk categories) ===============================================================================
@@ -1441,27 +1438,27 @@ func (context *Context) parseModel() {
 
 				if len(individualRiskInstance.MostRelevantDataAsset) > 0 {
 					mostRelevantDataAssetId = fmt.Sprintf("%v", individualRiskInstance.MostRelevantDataAsset)
-					checkDataAssetTargetExists(mostRelevantDataAssetId, "individual risk '"+title+"'")
+					context.checkDataAssetTargetExists(mostRelevantDataAssetId, "individual risk '"+title+"'")
 				}
 
 				if len(individualRiskInstance.MostRelevantTechnicalAsset) > 0 {
 					mostRelevantTechnicalAssetId = fmt.Sprintf("%v", individualRiskInstance.MostRelevantTechnicalAsset)
-					checkTechnicalAssetExists(mostRelevantTechnicalAssetId, "individual risk '"+title+"'", false)
+					context.checkTechnicalAssetExists(mostRelevantTechnicalAssetId, "individual risk '"+title+"'", false)
 				}
 
 				if len(individualRiskInstance.MostRelevantCommunicationLink) > 0 {
 					mostRelevantCommunicationLinkId = fmt.Sprintf("%v", individualRiskInstance.MostRelevantCommunicationLink)
-					checkCommunicationLinkExists(mostRelevantCommunicationLinkId, "individual risk '"+title+"'")
+					context.checkCommunicationLinkExists(mostRelevantCommunicationLinkId, "individual risk '"+title+"'")
 				}
 
 				if len(individualRiskInstance.MostRelevantTrustBoundary) > 0 {
 					mostRelevantTrustBoundaryId = fmt.Sprintf("%v", individualRiskInstance.MostRelevantTrustBoundary)
-					checkTrustBoundaryExists(mostRelevantTrustBoundaryId, "individual risk '"+title+"'")
+					context.checkTrustBoundaryExists(mostRelevantTrustBoundaryId, "individual risk '"+title+"'")
 				}
 
 				if len(individualRiskInstance.MostRelevantSharedRuntime) > 0 {
 					mostRelevantSharedRuntimeId = fmt.Sprintf("%v", individualRiskInstance.MostRelevantSharedRuntime)
-					checkSharedRuntimeExists(mostRelevantSharedRuntimeId, "individual risk '"+title+"'")
+					context.checkSharedRuntimeExists(mostRelevantSharedRuntimeId, "individual risk '"+title+"'")
 				}
 
 				switch individualRiskInstance.DataBreachProbability {
@@ -1481,7 +1478,7 @@ func (context *Context) parseModel() {
 					dataBreachTechnicalAssetIDs = make([]string, len(individualRiskInstance.DataBreachTechnicalAssets))
 					for i, parsedReferencedAsset := range individualRiskInstance.DataBreachTechnicalAssets {
 						assetId := fmt.Sprintf("%v", parsedReferencedAsset)
-						checkTechnicalAssetExists(assetId, "data breach technical assets of individual risk '"+title+"'", false)
+						context.checkTechnicalAssetExists(assetId, "data breach technical assets of individual risk '"+title+"'", false)
 						dataBreachTechnicalAssetIDs[i] = assetId
 					}
 				}
@@ -1501,7 +1498,7 @@ func (context *Context) parseModel() {
 					DataBreachProbability:           dataBreachProbability,
 					DataBreachTechnicalAssetIDs:     dataBreachTechnicalAssetIDs,
 				}
-				context.GeneratedRisksByCategory[cat] = append(context.GeneratedRisksByCategory[cat], individualRiskInstance)
+				context.parsedModel.GeneratedRisksByCategory[cat] = append(context.parsedModel.GeneratedRisksByCategory[cat], individualRiskInstance)
 			}
 		}
 	}
@@ -1557,7 +1554,7 @@ func (context *Context) parseModel() {
 	// ====================== model consistency check (linking)
 	for _, technicalAsset := range context.parsedModel.TechnicalAssets {
 		for _, commLink := range technicalAsset.CommunicationLinks {
-			checkTechnicalAssetExists(commLink.TargetId, "communication link '"+commLink.Title+"' of technical asset '"+technicalAsset.Title+"'", false)
+			context.checkTechnicalAssetExists(commLink.TargetId, "communication link '"+commLink.Title+"' of technical asset '"+technicalAsset.Title+"'", false)
 		}
 	}
 }
@@ -1608,7 +1605,7 @@ func (context *Context) checkSharedRuntimeExists(referencedId, where string) {
 }
 
 func (context *Context) checkCommunicationLinkExists(referencedId, where string) {
-	if _, ok := context.communicationLinks[referencedId]; !ok {
+	if _, ok := context.parsedModel.CommunicationLinks[referencedId]; !ok {
 		panic(errors.New("missing referenced communication link at " + where + ": " + referencedId))
 	}
 }
@@ -1623,10 +1620,10 @@ func (context *Context) checkTechnicalAssetExists(referencedAsset, where string,
 	}
 }
 
-func checkNestedTrustBoundariesExisting() {
-	for _, trustBoundary := range model.ParsedModelRoot.TrustBoundaries {
+func (context *Context) checkNestedTrustBoundariesExisting() {
+	for _, trustBoundary := range context.parsedModel.TrustBoundaries {
 		for _, nestedId := range trustBoundary.TrustBoundariesNested {
-			if _, ok := model.ParsedModelRoot.TrustBoundaries[nestedId]; !ok {
+			if _, ok := context.parsedModel.TrustBoundaries[nestedId]; !ok {
 				panic(errors.New("missing referenced nested trust boundary: " + nestedId))
 			}
 		}
@@ -1748,7 +1745,7 @@ func (context *Context) writeDataFlowDiagramGraphvizDOT(diagramFilenameDOT strin
 				//color, fontColor, style, fontname = colors.Blue, colors.Blue, "dashed", "Verdana"
 				penWidth = 5.5
 			}
-			if len(trustBoundary.ParentTrustBoundaryID()) > 0 {
+			if len(trustBoundary.ParentTrustBoundaryID(&context.parsedModel)) > 0 {
 				bgColor = "#F1F1F1"
 			}
 			if trustBoundary.Type == types.NetworkPolicyNamespaceIsolation {
@@ -1830,7 +1827,7 @@ func (context *Context) writeDataFlowDiagramGraphvizDOT(diagramFilenameDOT strin
 	}
 	sort.Sort(model.ByOrderAndIdSort(techAssets))
 	for _, technicalAsset := range techAssets {
-		dotContent.WriteString(makeTechAssetNode(technicalAsset, false))
+		dotContent.WriteString(context.makeTechAssetNode(technicalAsset, false))
 		dotContent.WriteString("\n")
 	}
 
@@ -1854,8 +1851,8 @@ func (context *Context) writeDataFlowDiagramGraphvizDOT(diagramFilenameDOT strin
 					dir = "both"
 				}
 			}
-			arrowStyle = ` style="` + dataFlow.DetermineArrowLineStyle() + `" penwidth="` + dataFlow.DetermineArrowPenWidth() + `" arrowtail="` + readOrWriteTail + `" arrowhead="` + readOrWriteHead + `" dir="` + dir + `" arrowsize="2.0" `
-			arrowColor = ` color="` + dataFlow.DetermineArrowColor() + `"`
+			arrowStyle = ` style="` + dataFlow.DetermineArrowLineStyle() + `" penwidth="` + dataFlow.DetermineArrowPenWidth(&context.parsedModel) + `" arrowtail="` + readOrWriteTail + `" arrowhead="` + readOrWriteHead + `" dir="` + dir + `" arrowsize="2.0" `
+			arrowColor = ` color="` + dataFlow.DetermineArrowColor(&context.parsedModel) + `"`
 			tweaks := ""
 			if dataFlow.DiagramTweakWeight > 0 {
 				tweaks += " weight=\"" + strconv.Itoa(dataFlow.DiagramTweakWeight) + "\" "
@@ -1865,7 +1862,7 @@ func (context *Context) writeDataFlowDiagramGraphvizDOT(diagramFilenameDOT strin
 			dotContent.WriteString("  " + hash(sourceId) + " -> " + hash(targetId) +
 				` [` + arrowColor + ` ` + arrowStyle + tweaks + ` constraint=` + strconv.FormatBool(dataFlow.DiagramTweakConstraint) + ` `)
 			if !context.parsedModel.DiagramTweakSuppressEdgeLabels {
-				dotContent.WriteString(` xlabel="` + encode(dataFlow.Protocol.String()) + `" fontcolor="` + dataFlow.DetermineLabelColor() + `" `)
+				dotContent.WriteString(` xlabel="` + encode(dataFlow.Protocol.String()) + `" fontcolor="` + dataFlow.DetermineLabelColor(&context.parsedModel) + `" `)
 			}
 			dotContent.WriteString(" ];\n")
 		}
@@ -1897,7 +1894,7 @@ func (context *Context) makeDiagramSameRankNodeTweaks() string {
 				tweak += "{ rank=same; "
 				for _, id := range assetIDs {
 					context.checkTechnicalAssetExists(id, "diagram tweak same-rank", true)
-					if len(context.parsedModel.TechnicalAssets[id].GetTrustBoundaryId()) > 0 {
+					if len(context.parsedModel.TechnicalAssets[id].GetTrustBoundaryId(&context.parsedModel)) > 0 {
 						panic(errors.New("technical assets (referenced in same rank diagram tweak) are inside trust boundaries: " +
 							fmt.Sprintf("%v", context.parsedModel.DiagramTweakSameRankAssets)))
 					}
@@ -1917,8 +1914,8 @@ func (context *Context) makeDiagramInvisibleConnectionsTweaks() string {
 		for _, invisibleConnections := range context.parsedModel.DiagramTweakInvisibleConnectionsBetweenAssets {
 			assetIDs := strings.Split(invisibleConnections, ":")
 			if len(assetIDs) == 2 {
-				checkTechnicalAssetExists(assetIDs[0], "diagram tweak connections", true)
-				checkTechnicalAssetExists(assetIDs[1], "diagram tweak connections", true)
+				context.checkTechnicalAssetExists(assetIDs[0], "diagram tweak connections", true)
+				context.checkTechnicalAssetExists(assetIDs[1], "diagram tweak connections", true)
 				tweak += "\n" + hash(assetIDs[0]) + " -> " + hash(assetIDs[1]) + " [style=invis]; \n"
 			}
 		}
@@ -1946,7 +1943,6 @@ func (context *Context) DoIt() {
 		}
 	}
 
-	model.Init()
 	context.parseModel()
 	introTextRAA := context.applyRAA()
 	context.loadCustomRiskRules()
@@ -1955,7 +1951,7 @@ func (context *Context) DoIt() {
 	context.checkRiskTracking()
 
 	if len(*context.executeModelMacro) > 0 {
-		var macroDetails model.MacroDetails
+		var macroDetails macros.MacroDetails
 		switch *context.executeModelMacro {
 		case addbuildpipeline.GetMacroDetails().ID:
 			macroDetails = addbuildpipeline.GetMacroDetails()
@@ -1988,9 +1984,9 @@ func (context *Context) DoIt() {
 		for {
 			switch macroDetails.ID {
 			case addbuildpipeline.GetMacroDetails().ID:
-				nextQuestion, err = addbuildpipeline.GetNextQuestion(context.model)
+				nextQuestion, err = addbuildpipeline.GetNextQuestion(&context.parsedModel)
 			case addvault.GetMacroDetails().ID:
-				nextQuestion, err = addvault.GetNextQuestion()
+				nextQuestion, err = addvault.GetNextQuestion(&context.parsedModel)
 			case prettyprint.GetMacroDetails().ID:
 				nextQuestion, err = prettyprint.GetNextQuestion()
 			case removeunusedtags.GetMacroDetails().ID:
@@ -2163,9 +2159,9 @@ func (context *Context) DoIt() {
 			var err error
 			switch macroDetails.ID {
 			case addbuildpipeline.GetMacroDetails().ID:
-				changes, message, validResult, err = addbuildpipeline.GetFinalChangeImpact(&context.modelInput)
+				changes, message, validResult, err = addbuildpipeline.GetFinalChangeImpact(&context.modelInput, &context.parsedModel)
 			case addvault.GetMacroDetails().ID:
-				changes, message, validResult, err = addvault.GetFinalChangeImpact(&context.modelInput)
+				changes, message, validResult, err = addvault.GetFinalChangeImpact(&context.modelInput, &context.parsedModel)
 			case prettyprint.GetMacroDetails().ID:
 				changes, message, validResult, err = prettyprint.GetFinalChangeImpact(&context.modelInput)
 			case removeunusedtags.GetMacroDetails().ID:
@@ -2199,17 +2195,17 @@ func (context *Context) DoIt() {
 				var err error
 				switch macroDetails.ID {
 				case addbuildpipeline.GetMacroDetails().ID:
-					message, validResult, err = addbuildpipeline.Execute(&context.modelInput)
+					message, validResult, err = addbuildpipeline.Execute(&context.modelInput, &context.parsedModel)
 				case addvault.GetMacroDetails().ID:
-					message, validResult, err = addvault.Execute(&context.modelInput)
+					message, validResult, err = addvault.Execute(&context.modelInput, &context.parsedModel)
 				case prettyprint.GetMacroDetails().ID:
 					message, validResult, err = prettyprint.Execute(&context.modelInput)
 				case removeunusedtags.GetMacroDetails().ID:
-					message, validResult, err = removeunusedtags.Execute(&context.modelInput)
+					message, validResult, err = removeunusedtags.Execute(&context.modelInput, &context.parsedModel)
 				case seedrisktracking.GetMacroDetails().ID:
-					message, validResult, err = seedrisktracking.Execute(&context.modelInput)
+					message, validResult, err = seedrisktracking.Execute(&context.parsedModel, &context.modelInput)
 				case seedtags.GetMacroDetails().ID:
-					message, validResult, err = seedtags.Execute(&context.modelInput)
+					message, validResult, err = seedtags.Execute(&context.modelInput, &context.parsedModel)
 				}
 				checkErr(err)
 				if !validResult {
@@ -2254,9 +2250,9 @@ func (context *Context) DoIt() {
 
 	// Data-flow Diagram rendering
 	if renderDataFlowDiagram {
-		gvFile := filepath.Join(*context.outputDir, dataFlowDiagramFilenameDOT)
+		gvFile := filepath.Join(*context.outputDir, context.dataFlowDiagramFilenameDOT)
 		if !context.keepDiagramSourceFiles {
-			tmpFileGV, err := os.CreateTemp(*context.tempFolder, dataFlowDiagramFilenameDOT)
+			tmpFileGV, err := os.CreateTemp(*context.tempFolder, context.dataFlowDiagramFilenameDOT)
 			checkErr(err)
 			gvFile = tmpFileGV.Name()
 			defer func() { _ = os.Remove(gvFile) }()
@@ -2266,9 +2262,9 @@ func (context *Context) DoIt() {
 	}
 	// Data Asset Diagram rendering
 	if renderDataAssetDiagram {
-		gvFile := filepath.Join(*context.outputDir, dataAssetDiagramFilenameDOT)
+		gvFile := filepath.Join(*context.outputDir, context.dataAssetDiagramFilenameDOT)
 		if !context.keepDiagramSourceFiles {
-			tmpFile, err := os.CreateTemp(*context.tempFolder, dataAssetDiagramFilenameDOT)
+			tmpFile, err := os.CreateTemp(*context.tempFolder, context.dataAssetDiagramFilenameDOT)
 			checkErr(err)
 			gvFile = tmpFile.Name()
 			defer func() { _ = os.Remove(gvFile) }()
@@ -2282,7 +2278,7 @@ func (context *Context) DoIt() {
 		if *context.verbose {
 			fmt.Println("Writing risks json")
 		}
-		report.WriteRisksJSON(filepath.Join(*context.outputDir, jsonRisksFilename))
+		report.WriteRisksJSON(&context.parsedModel, filepath.Join(*context.outputDir, context.jsonRisksFilename))
 	}
 
 	// technical assets json
@@ -2290,7 +2286,7 @@ func (context *Context) DoIt() {
 		if *context.verbose {
 			fmt.Println("Writing technical assets json")
 		}
-		report.WriteTechnicalAssetsJSON(filepath.Join(*context.outputDir, jsonTechnicalAssetsFilename))
+		report.WriteTechnicalAssetsJSON(&context.parsedModel, filepath.Join(*context.outputDir, context.jsonTechnicalAssetsFilename))
 	}
 
 	// risks as risks json
@@ -2298,7 +2294,7 @@ func (context *Context) DoIt() {
 		if *context.verbose {
 			fmt.Println("Writing stats json")
 		}
-		report.WriteStatsJSON(filepath.Join(*context.outputDir, jsonStatsFilename))
+		report.WriteStatsJSON(&context.parsedModel, filepath.Join(*context.outputDir, context.jsonStatsFilename))
 	}
 
 	// risks Excel
@@ -2306,7 +2302,7 @@ func (context *Context) DoIt() {
 		if *context.verbose {
 			fmt.Println("Writing risks excel")
 		}
-		report.WriteRisksExcelToFile(filepath.Join(*context.outputDir, excelRisksFilename))
+		report.WriteRisksExcelToFile(&context.parsedModel, filepath.Join(*context.outputDir, context.excelRisksFilename))
 	}
 
 	// tags Excel
@@ -2314,7 +2310,7 @@ func (context *Context) DoIt() {
 		if *context.verbose {
 			fmt.Println("Writing tags excel")
 		}
-		report.WriteTagsExcelToFile(filepath.Join(*context.outputDir, excelTagsFilename))
+		report.WriteTagsExcelToFile(&context.parsedModel, filepath.Join(*context.outputDir, context.excelTagsFilename))
 	}
 
 	if renderPDF {
@@ -2331,10 +2327,10 @@ func (context *Context) DoIt() {
 		if *context.verbose {
 			fmt.Println("Writing report pdf")
 		}
-		report.WriteReportPDF(filepath.Join(*context.outputDir, reportFilename),
+		report.WriteReportPDF(filepath.Join(*context.outputDir, context.reportFilename),
 			filepath.Join(*context.appFolder, *context.templateFilename),
-			filepath.Join(*context.outputDir, dataFlowDiagramFilenamePNG),
-			filepath.Join(*context.outputDir, dataAssetDiagramFilenamePNG),
+			filepath.Join(*context.outputDir, context.dataFlowDiagramFilenamePNG),
+			filepath.Join(*context.outputDir, context.dataAssetDiagramFilenamePNG),
 			*context.modelFilename,
 			*context.skipRiskRules,
 			context.buildTimestamp,
@@ -2342,7 +2338,7 @@ func (context *Context) DoIt() {
 			introTextRAA,
 			context.customRiskRules,
 			*context.tempFolder,
-			*context.parsedModel)
+			&context.parsedModel)
 	}
 }
 
@@ -2373,7 +2369,7 @@ func (context *Context) applyRAA() string {
 		}
 	}
 
-	runError := runner.Run(model.ParsedModelRoot, &model.ParsedModelRoot)
+	runError := runner.Run(context.parsedModel, &context.parsedModel)
 	if runError != nil {
 		fmt.Printf("WARNING: raa %q not applied: %v\n", *context.raaPlugin, runError)
 		return ""
@@ -2383,7 +2379,7 @@ func (context *Context) applyRAA() string {
 }
 
 func (context *Context) loadCustomRiskRules() {
-	context.customRiskRules = make(map[string]*risks.CustomRisk)
+	context.customRiskRules = make(map[string]*model.CustomRisk)
 	if len(*context.riskRulesPlugins) > 0 {
 		if *context.verbose {
 			fmt.Println("Loading custom risk rules:", *context.riskRulesPlugins)
@@ -2396,7 +2392,7 @@ func (context *Context) loadCustomRiskRules() {
 					log.Fatalf("WARNING: Custom risk rule %q not loaded: %v\n", pluginFile, loadError)
 				}
 
-				risk := new(risks.CustomRisk)
+				risk := new(model.CustomRisk)
 				runError := runner.Run(nil, &risk, "-get-info")
 				if runError != nil {
 					log.Fatalf("WARNING: Failed to get ID for custom risk rule %q: %v\n", pluginFile, runError)
@@ -2450,7 +2446,7 @@ func (context *Context) execute(ginContext *gin.Context, dryRun bool) (yamlConte
 		}
 	}()
 
-	dpi, err := strconv.Atoi(ginContext.DefaultQuery("dpi", strconv.Itoa(defaultGraphvizDPI)))
+	dpi, err := strconv.Atoi(ginContext.DefaultQuery("dpi", strconv.Itoa(context.defaultGraphvizDPI)))
 	checkErr(err)
 
 	fileUploaded, header, err := ginContext.Request.FormFile("file")
@@ -2516,24 +2512,24 @@ func (context *Context) execute(ginContext *gin.Context, dryRun bool) (yamlConte
 
 	yamlContent, err = os.ReadFile(yamlFile)
 	checkErr(err)
-	err = os.WriteFile(filepath.Join(tmpOutputDir, inputFile), yamlContent, 0400)
+	err = os.WriteFile(filepath.Join(tmpOutputDir, context.inputFile), yamlContent, 0400)
 	checkErr(err)
 
 	if !dryRun {
 		files := []string{
-			filepath.Join(tmpOutputDir, inputFile),
-			filepath.Join(tmpOutputDir, dataFlowDiagramFilenamePNG),
-			filepath.Join(tmpOutputDir, dataAssetDiagramFilenamePNG),
-			filepath.Join(tmpOutputDir, reportFilename),
-			filepath.Join(tmpOutputDir, excelRisksFilename),
-			filepath.Join(tmpOutputDir, excelTagsFilename),
-			filepath.Join(tmpOutputDir, jsonRisksFilename),
-			filepath.Join(tmpOutputDir, jsonTechnicalAssetsFilename),
-			filepath.Join(tmpOutputDir, jsonStatsFilename),
+			filepath.Join(tmpOutputDir, context.inputFile),
+			filepath.Join(tmpOutputDir, context.dataFlowDiagramFilenamePNG),
+			filepath.Join(tmpOutputDir, context.dataAssetDiagramFilenamePNG),
+			filepath.Join(tmpOutputDir, context.reportFilename),
+			filepath.Join(tmpOutputDir, context.excelRisksFilename),
+			filepath.Join(tmpOutputDir, context.excelTagsFilename),
+			filepath.Join(tmpOutputDir, context.jsonRisksFilename),
+			filepath.Join(tmpOutputDir, context.jsonTechnicalAssetsFilename),
+			filepath.Join(tmpOutputDir, context.jsonStatsFilename),
 		}
-		if keepDiagramSourceFiles {
-			files = append(files, filepath.Join(tmpOutputDir, dataFlowDiagramFilenameDOT))
-			files = append(files, filepath.Join(tmpOutputDir, dataAssetDiagramFilenameDOT))
+		if context.keepDiagramSourceFiles {
+			files = append(files, filepath.Join(tmpOutputDir, context.dataFlowDiagramFilenameDOT))
+			files = append(files, filepath.Join(tmpOutputDir, context.dataAssetDiagramFilenameDOT))
 		}
 		err = context.zipFiles(tmpResultFile.Name(), files)
 		checkErr(err)
@@ -3037,7 +3033,7 @@ func (context *Context) streamResponse(ginContext *gin.Context, responseType res
 			ok = false
 		}
 	}()
-	dpi, err := strconv.Atoi(ginContext.DefaultQuery("dpi", strconv.Itoa(defaultGraphvizDPI)))
+	dpi, err := strconv.Atoi(ginContext.DefaultQuery("dpi", strconv.Itoa(context.defaultGraphvizDPI)))
 	if err != nil {
 		context.handleErrorInServiceCall(err, ginContext)
 		return
@@ -3065,42 +3061,42 @@ func (context *Context) streamResponse(ginContext *gin.Context, responseType res
 			context.handleErrorInServiceCall(err, ginContext)
 			return
 		}
-		ginContext.File(filepath.Join(tmpOutputDir, dataFlowDiagramFilenamePNG))
+		ginContext.File(filepath.Join(tmpOutputDir, context.dataFlowDiagramFilenamePNG))
 	} else if responseType == dataAssetDiagram {
 		context.doItViaRuntimeCall(tmpModelFile.Name(), tmpOutputDir, false, true, false, false, false, false, false, false, dpi)
 		if err != nil {
 			context.handleErrorInServiceCall(err, ginContext)
 			return
 		}
-		ginContext.File(filepath.Join(tmpOutputDir, dataAssetDiagramFilenamePNG))
+		ginContext.File(filepath.Join(tmpOutputDir, context.dataAssetDiagramFilenamePNG))
 	} else if responseType == reportPDF {
 		context.doItViaRuntimeCall(tmpModelFile.Name(), tmpOutputDir, false, false, true, false, false, false, false, false, dpi)
 		if err != nil {
 			context.handleErrorInServiceCall(err, ginContext)
 			return
 		}
-		ginContext.FileAttachment(filepath.Join(tmpOutputDir, reportFilename), reportFilename)
+		ginContext.FileAttachment(filepath.Join(tmpOutputDir, context.reportFilename), context.reportFilename)
 	} else if responseType == risksExcel {
 		context.doItViaRuntimeCall(tmpModelFile.Name(), tmpOutputDir, false, false, false, true, false, false, false, false, dpi)
 		if err != nil {
 			context.handleErrorInServiceCall(err, ginContext)
 			return
 		}
-		ginContext.FileAttachment(filepath.Join(tmpOutputDir, excelRisksFilename), excelRisksFilename)
+		ginContext.FileAttachment(filepath.Join(tmpOutputDir, context.excelRisksFilename), context.excelRisksFilename)
 	} else if responseType == tagsExcel {
 		context.doItViaRuntimeCall(tmpModelFile.Name(), tmpOutputDir, false, false, false, false, true, false, false, false, dpi)
 		if err != nil {
 			context.handleErrorInServiceCall(err, ginContext)
 			return
 		}
-		ginContext.FileAttachment(filepath.Join(tmpOutputDir, excelTagsFilename), excelTagsFilename)
+		ginContext.FileAttachment(filepath.Join(tmpOutputDir, context.excelTagsFilename), context.excelTagsFilename)
 	} else if responseType == risksJSON {
 		context.doItViaRuntimeCall(tmpModelFile.Name(), tmpOutputDir, false, false, false, false, false, true, false, false, dpi)
 		if err != nil {
 			context.handleErrorInServiceCall(err, ginContext)
 			return
 		}
-		jsonData, err := os.ReadFile(filepath.Join(tmpOutputDir, jsonRisksFilename))
+		jsonData, err := os.ReadFile(filepath.Join(tmpOutputDir, context.jsonRisksFilename))
 		if err != nil {
 			context.handleErrorInServiceCall(err, ginContext)
 			return
@@ -3112,7 +3108,7 @@ func (context *Context) streamResponse(ginContext *gin.Context, responseType res
 			context.handleErrorInServiceCall(err, ginContext)
 			return
 		}
-		jsonData, err := os.ReadFile(filepath.Join(tmpOutputDir, jsonTechnicalAssetsFilename))
+		jsonData, err := os.ReadFile(filepath.Join(tmpOutputDir, context.jsonTechnicalAssetsFilename))
 		if err != nil {
 			context.handleErrorInServiceCall(err, ginContext)
 			return
@@ -3124,7 +3120,7 @@ func (context *Context) streamResponse(ginContext *gin.Context, responseType res
 			context.handleErrorInServiceCall(err, ginContext)
 			return
 		}
-		jsonData, err := os.ReadFile(filepath.Join(tmpOutputDir, jsonStatsFilename))
+		jsonData, err := os.ReadFile(filepath.Join(tmpOutputDir, context.jsonStatsFilename))
 		if err != nil {
 			context.handleErrorInServiceCall(err, ginContext)
 			return
@@ -3161,7 +3157,7 @@ func (context *Context) importModel(ginContext *gin.Context) {
 
 func (context *Context) stats(ginContext *gin.Context) {
 	keyCount, modelCount := 0, 0
-	keyFolders, err := os.ReadDir(filepath.Join(*context.serverFolder, keyDir))
+	keyFolders, err := os.ReadDir(filepath.Join(*context.serverFolder, context.keyDir))
 	if err != nil {
 		log.Println(err)
 		ginContext.JSON(http.StatusInternalServerError, gin.H{
@@ -3172,7 +3168,7 @@ func (context *Context) stats(ginContext *gin.Context) {
 	for _, keyFolder := range keyFolders {
 		if len(keyFolder.Name()) == 128 { // it's a sha512 token hash probably, so count it as token folder for the stats
 			keyCount++
-			modelFolders, err := os.ReadDir(filepath.Join(*context.serverFolder, keyDir, keyFolder.Name()))
+			modelFolders, err := os.ReadDir(filepath.Join(*context.serverFolder, context.keyDir, keyFolder.Name()))
 			if err != nil {
 				log.Println(err)
 				ginContext.JSON(http.StatusInternalServerError, gin.H{
@@ -3568,7 +3564,7 @@ func (context *Context) createNewSharedRuntime(ginContext *gin.Context) {
 			return
 		}
 		if modelInput.SharedRuntimes == nil {
-			modelInput.SharedRuntimes = make(map[string]model.InputSharedRuntime)
+			modelInput.SharedRuntimes = make(map[string]input.InputSharedRuntime)
 		}
 		modelInput.SharedRuntimes[payload.Title] = sharedRuntimeInput
 		ok = context.writeModel(ginContext, key, folderNameOfKey, &modelInput, "Shared Runtime Creation")
@@ -3581,7 +3577,7 @@ func (context *Context) createNewSharedRuntime(ginContext *gin.Context) {
 	}
 }
 
-func (context *Context) checkTechnicalAssetsExisting(modelInput model.ModelInput, techAssetIDs []string) (ok bool) {
+func (context *Context) checkTechnicalAssetsExisting(modelInput input.ModelInput, techAssetIDs []string) (ok bool) {
 	for _, techAssetID := range techAssetIDs {
 		exists := false
 		for _, val := range modelInput.TechnicalAssets {
@@ -3597,8 +3593,8 @@ func (context *Context) checkTechnicalAssetsExisting(modelInput model.ModelInput
 	return true
 }
 
-func (context *Context) populateSharedRuntime(_ *gin.Context, payload payloadSharedRuntime) (sharedRuntimeInput model.InputSharedRuntime, ok bool) {
-	sharedRuntimeInput = model.InputSharedRuntime{
+func (context *Context) populateSharedRuntime(_ *gin.Context, payload payloadSharedRuntime) (sharedRuntimeInput input.InputSharedRuntime, ok bool) {
+	sharedRuntimeInput = input.InputSharedRuntime{
 		ID:                     payload.Id,
 		Description:            payload.Description,
 		Tags:                   lowerCaseAndTrim(payload.Tags),
@@ -3691,7 +3687,7 @@ func (context *Context) createNewDataAsset(ginContext *gin.Context) {
 			return
 		}
 		if modelInput.DataAssets == nil {
-			modelInput.DataAssets = make(map[string]model.InputDataAsset)
+			modelInput.DataAssets = make(map[string]input.InputDataAsset)
 		}
 		modelInput.DataAssets[payload.Title] = dataAssetInput
 		ok = context.writeModel(ginContext, key, folderNameOfKey, &modelInput, "Data Asset Creation")
@@ -3704,7 +3700,7 @@ func (context *Context) createNewDataAsset(ginContext *gin.Context) {
 	}
 }
 
-func (context *Context) populateDataAsset(ginContext *gin.Context, payload payloadDataAsset) (dataAssetInput model.InputDataAsset, ok bool) {
+func (context *Context) populateDataAsset(ginContext *gin.Context, payload payloadDataAsset) (dataAssetInput input.InputDataAsset, ok bool) {
 	usage, err := types.ParseUsage(payload.Usage)
 	if err != nil {
 		context.handleErrorInServiceCall(err, ginContext)
@@ -3730,7 +3726,7 @@ func (context *Context) populateDataAsset(ginContext *gin.Context, payload paylo
 		context.handleErrorInServiceCall(err, ginContext)
 		return dataAssetInput, false
 	}
-	dataAssetInput = model.InputDataAsset{
+	dataAssetInput = input.InputDataAsset{
 		ID:                     payload.Id,
 		Description:            payload.Description,
 		Usage:                  usage.String(),
@@ -3813,7 +3809,7 @@ func (context *Context) getModel(ginContext *gin.Context) {
 			return
 		}
 		defer func() { _ = os.Remove(tmpResultFile.Name()) }()
-		ginContext.FileAttachment(tmpResultFile.Name(), inputFile)
+		ginContext.FileAttachment(tmpResultFile.Name(), context.inputFile)
 	}
 }
 
@@ -4116,7 +4112,7 @@ func (context *Context) listModels(ginContext *gin.Context) { // TODO currently 
 	}
 	for _, dirEntry := range modelFolders {
 		if dirEntry.IsDir() {
-			modelStat, err := os.Stat(filepath.Join(folderNameOfKey, dirEntry.Name(), inputFile))
+			modelStat, err := os.Stat(filepath.Join(folderNameOfKey, dirEntry.Name(), context.inputFile))
 			if err != nil {
 				log.Println(err)
 				ginContext.JSON(http.StatusNotFound, gin.H{
@@ -4186,7 +4182,7 @@ func (context *Context) checkModelFolder(ginContext *gin.Context, modelUUID stri
 	return modelFolder, true
 }
 
-func (context *Context) readModel(ginContext *gin.Context, modelUUID string, key []byte, folderNameOfKey string) (modelInputResult model.ModelInput, yamlText string, ok bool) {
+func (context *Context) readModel(ginContext *gin.Context, modelUUID string, key []byte, folderNameOfKey string) (modelInputResult input.ModelInput, yamlText string, ok bool) {
 	modelFolder, ok := context.checkModelFolder(ginContext, modelUUID, folderNameOfKey)
 	if !ok {
 		return modelInputResult, yamlText, false
@@ -4209,7 +4205,7 @@ func (context *Context) readModel(ginContext *gin.Context, modelUUID string, key
 		return modelInputResult, yamlText, false
 	}
 
-	fileBytes, err := os.ReadFile(filepath.Join(modelFolder, inputFile))
+	fileBytes, err := os.ReadFile(filepath.Join(modelFolder, context.inputFile))
 	if err != nil {
 		log.Println(err)
 		ginContext.JSON(http.StatusInternalServerError, gin.H{
@@ -4239,7 +4235,7 @@ func (context *Context) readModel(ginContext *gin.Context, modelUUID string, key
 	}
 	buf := new(bytes.Buffer)
 	_, _ = buf.ReadFrom(r)
-	modelInput := new(model.ModelInput).Defaults()
+	modelInput := new(input.ModelInput).Defaults()
 	yamlBytes := buf.Bytes()
 	err = yaml.Unmarshal(yamlBytes, &modelInput)
 	if err != nil {
@@ -4252,7 +4248,7 @@ func (context *Context) readModel(ginContext *gin.Context, modelUUID string, key
 	return *modelInput, string(yamlBytes), true
 }
 
-func (context *Context) writeModel(ginContext *gin.Context, key []byte, folderNameOfKey string, modelInput *model.ModelInput, changeReasonForHistory string) (ok bool) {
+func (context *Context) writeModel(ginContext *gin.Context, key []byte, folderNameOfKey string, modelInput *input.ModelInput, changeReasonForHistory string) (ok bool) {
 	modelFolder, ok := context.checkModelFolder(ginContext, ginContext.Param("model-id"), folderNameOfKey)
 	if ok {
 		modelInput.ThreagileVersion = docs.ThreagileVersion
@@ -4318,7 +4314,7 @@ func (context *Context) writeModelYAML(ginContext *gin.Context, yaml string, key
 			return false
 		}
 	}
-	f, err := os.Create(filepath.Join(modelFolder, inputFile))
+	f, err := os.Create(filepath.Join(modelFolder, context.inputFile))
 	if err != nil {
 		log.Println(err)
 		ginContext.JSON(http.StatusInternalServerError, gin.H{
@@ -4340,7 +4336,7 @@ func (context *Context) backupModelToHistory(modelFolder string, changeReasonFor
 			return err
 		}
 	}
-	input, err := os.ReadFile(filepath.Join(modelFolder, inputFile))
+	input, err := os.ReadFile(filepath.Join(modelFolder, context.inputFile))
 	if err != nil {
 		return err
 	}
@@ -4354,8 +4350,8 @@ func (context *Context) backupModelToHistory(modelFolder string, changeReasonFor
 	if err != nil {
 		return err
 	}
-	if len(files) > backupHistoryFilesToKeep {
-		requiredToDelete := len(files) - backupHistoryFilesToKeep
+	if len(files) > context.backupHistoryFilesToKeep {
+		requiredToDelete := len(files) - context.backupHistoryFilesToKeep
 		sort.Slice(files, func(i, j int) bool {
 			return files[i].Name() < files[j].Name()
 		})
@@ -4468,7 +4464,7 @@ func (context *Context) unlockFolder(folderName string) {
 
 func (context *Context) folderNameFromKey(key []byte) string {
 	sha512Hash := hashSHA256(key)
-	return filepath.Join(*context.serverFolder, keyDir, sha512Hash)
+	return filepath.Join(*context.serverFolder, context.keyDir, sha512Hash)
 }
 
 func hashSHA256(key []byte) string {
@@ -4656,11 +4652,11 @@ func (context *Context) deleteKey(ginContext *gin.Context) {
 }
 
 func (context *Context) ParseCommandlineArgs() {
-	context.tempFolder = flag.String("temp-dir", tempDir, "temporary folder location")
-	context.binFolder = flag.String("bin-dir", binDir, "binary folder location")
-	context.appFolder = flag.String("app-dir", appDir, "app folder (default: "+appDir+")")
-	context.serverFolder = flag.String("server-dir", dataDir, "base folder for server mode (default: "+dataDir+")")
-	context.modelFilename = flag.String("model", inputFile, "input model yaml file")
+	context.tempFolder = flag.String("temp-dir", context.tempDir, "temporary folder location")
+	context.binFolder = flag.String("bin-dir", context.binDir, "binary folder location")
+	context.appFolder = flag.String("app-dir", context.appDir, "app folder (default: "+context.appDir+")")
+	context.serverFolder = flag.String("server-dir", context.dataDir, "base folder for server mode (default: "+context.dataDir+")")
+	context.modelFilename = flag.String("model", context.inputFile, "input model yaml file")
 	context.outputDir = flag.String("output", ".", "output directory")
 	context.raaPlugin = flag.String("raa-run", "raa.so", "RAA calculation run (.so shared object) file name")
 	context.executeModelMacro = flag.String("execute-model-macro", "", "Execute model macro (by ID)")
@@ -4678,7 +4674,7 @@ func (context *Context) ParseCommandlineArgs() {
 	context.generateRisksExcel = flag.Bool("generate-risks-excel", true, "generate risks excel")
 	context.generateTagsExcel = flag.Bool("generate-tags-excel", true, "generate tags excel")
 	context.generateReportPDF = flag.Bool("generate-report-pdf", true, "generate report pdf, including diagrams")
-	context.diagramDPI = flag.Int("diagram-dpi", defaultGraphvizDPI, "DPI used to render: maximum is "+strconv.Itoa(maxGraphvizDPI)+"")
+	context.diagramDPI = flag.Int("diagram-dpi", context.defaultGraphvizDPI, "DPI used to render: maximum is "+strconv.Itoa(context.maxGraphvizDPI)+"")
 	context.skipRiskRules = flag.String("skip-risk-rules", "", "comma-separated list of risk rules (by their ID) to skip")
 	context.riskRulesPlugins = flag.String("custom-risk-rules-plugins", "", "comma-separated list of plugins (.so shared object) file names with custom risk rules to load")
 	context.verbose = flag.Bool("verbose", false, "verbose output")
@@ -4692,7 +4688,7 @@ func (context *Context) ParseCommandlineArgs() {
 	flag.Parse()
 	if *context.diagramDPI < 20 {
 		*context.diagramDPI = 20
-	} else if *context.diagramDPI > maxGraphvizDPI {
+	} else if *context.diagramDPI > context.maxGraphvizDPI {
 		*context.diagramDPI = 300
 	}
 	if *listRiskRules {
@@ -5001,7 +4997,7 @@ func copyFile(src, dst string) (int64, error) {
 
 func (context *Context) goTestParseModel() error {
 	flatModelFile := filepath.Join("test", "all.yaml")
-	flatModel := *new(model.ModelInput).Defaults()
+	flatModel := *new(input.ModelInput).Defaults()
 	flatLoadError := flatModel.Load(flatModelFile)
 	if flatLoadError != nil {
 		return fmt.Errorf("unable to parse model yaml %q: %v", flatModelFile, flatLoadError)
@@ -5049,7 +5045,7 @@ func (context *Context) applyWildcardRiskTrackingEvaluation() {
 
 		foundSome := false
 		var matchingRiskIdExpression = regexp.MustCompile(strings.ReplaceAll(regexp.QuoteMeta(syntheticRiskIdPattern), `\*`, `[^@]+`))
-		for syntheticRiskId := range context.generatedRisksBySyntheticId {
+		for syntheticRiskId := range context.parsedModel.GeneratedRisksBySyntheticId {
 			if matchingRiskIdExpression.Match([]byte(syntheticRiskId)) && context.hasNotYetAnyDirectNonWildcardRiskTracking(syntheticRiskId) {
 				foundSome = true
 				context.parsedModel.RiskTracking[syntheticRiskId] = model.RiskTracking{
@@ -5119,7 +5115,7 @@ func (context *Context) writeDataAssetDiagramGraphvizDOT(diagramFilenameDOT stri
 	sort.Sort(model.ByOrderAndIdSort(techAssets))
 	for _, technicalAsset := range techAssets {
 		if len(technicalAsset.DataAssetsStored) > 0 || len(technicalAsset.DataAssetsProcessed) > 0 {
-			dotContent.WriteString(makeTechAssetNode(technicalAsset, true))
+			dotContent.WriteString(context.makeTechAssetNode(technicalAsset, true))
 			dotContent.WriteString("\n")
 		}
 	}
@@ -5129,9 +5125,10 @@ func (context *Context) writeDataAssetDiagramGraphvizDOT(diagramFilenameDOT stri
 	for _, dataAsset := range context.parsedModel.DataAssets {
 		dataAssets = append(dataAssets, dataAsset)
 	}
-	sort.Sort(model.ByDataAssetDataBreachProbabilityAndTitleSort(dataAssets))
+
+	model.SortByDataAssetDataBreachProbabilityAndTitle(&context.parsedModel, dataAssets)
 	for _, dataAsset := range dataAssets {
-		dotContent.WriteString(makeDataAssetNode(dataAsset))
+		dotContent.WriteString(context.makeDataAssetNode(dataAsset))
 		dotContent.WriteString("\n")
 	}
 
@@ -5145,7 +5142,7 @@ func (context *Context) writeDataAssetDiagramGraphvizDOT(diagramFilenameDOT stri
 			dotContent.WriteString("\n")
 		}
 		for _, sourceId := range technicalAsset.DataAssetsProcessed {
-			if !model.Contains(technicalAsset.DataAssetsStored, sourceId) { // here only if not already drawn above
+			if !contains(technicalAsset.DataAssetsStored, sourceId) { // here only if not already drawn above
 				targetId := technicalAsset.Id
 				dotContent.WriteString("\n")
 				dotContent.WriteString(hash(sourceId) + " -> " + hash(targetId) +
@@ -5170,7 +5167,7 @@ func (context *Context) makeTechAssetNode(technicalAsset model.TechnicalAsset, s
 	if simplified {
 		color := colors.RgbHexColorOutOfScope()
 		if !technicalAsset.OutOfScope {
-			generatedRisks := technicalAsset.GeneratedRisks()
+			generatedRisks := technicalAsset.GeneratedRisks(&context.parsedModel)
 			switch model.HighestSeverityStillAtRisk(&context.parsedModel, generatedRisks) {
 			case types.CriticalSeverity:
 				color = colors.RgbHexColorCriticalRisk()
@@ -5185,7 +5182,7 @@ func (context *Context) makeTechAssetNode(technicalAsset model.TechnicalAsset, s
 			default:
 				color = "#444444" // since black is too dark here as fill color
 			}
-			if len(model.ReduceToOnlyStillAtRisk(generatedRisks)) == 0 {
+			if len(model.ReduceToOnlyStillAtRisk(&context.parsedModel, generatedRisks)) == 0 {
 				color = "#444444" // since black is too dark here as fill color
 			}
 		}
@@ -5229,16 +5226,16 @@ func (context *Context) makeTechAssetNode(technicalAsset model.TechnicalAsset, s
 		}
 
 		return "  " + hash(technicalAsset.Id) + ` [
-	label=<<table border="0" cellborder="` + compartmentBorder + `" cellpadding="2" cellspacing="0"><tr><td><font point-size="15" color="` + colors.DarkBlue + `">` + lineBreak + technicalAsset.Technology.String() + `</font><br/><font point-size="15" color="` + colors.LightGray + `">` + technicalAsset.Size.String() + `</font></td></tr><tr><td><b><font color="` + technicalAsset.DetermineLabelColor() + `">` + encode(title) + `</font></b><br/></td></tr><tr><td>` + attackerAttractivenessLabel + `</td></tr></table>>
-	shape=` + shape + ` style="` + technicalAsset.DetermineShapeBorderLineStyle() + `,` + technicalAsset.DetermineShapeStyle() + `" penwidth="` + technicalAsset.DetermineShapeBorderPenWidth() + `" fillcolor="` + technicalAsset.DetermineShapeFillColor() + `"
+	label=<<table border="0" cellborder="` + compartmentBorder + `" cellpadding="2" cellspacing="0"><tr><td><font point-size="15" color="` + colors.DarkBlue + `">` + lineBreak + technicalAsset.Technology.String() + `</font><br/><font point-size="15" color="` + colors.LightGray + `">` + technicalAsset.Size.String() + `</font></td></tr><tr><td><b><font color="` + technicalAsset.DetermineLabelColor(&context.parsedModel) + `">` + encode(title) + `</font></b><br/></td></tr><tr><td>` + attackerAttractivenessLabel + `</td></tr></table>>
+	shape=` + shape + ` style="` + technicalAsset.DetermineShapeBorderLineStyle() + `,` + technicalAsset.DetermineShapeStyle() + `" penwidth="` + technicalAsset.DetermineShapeBorderPenWidth(&context.parsedModel) + `" fillcolor="` + technicalAsset.DetermineShapeFillColor(&context.parsedModel) + `"
 	peripheries=` + strconv.Itoa(technicalAsset.DetermineShapePeripheries()) + `
-	color="` + technicalAsset.DetermineShapeBorderColor() + "\"\n  ]; "
+	color="` + technicalAsset.DetermineShapeBorderColor(&context.parsedModel) + "\"\n  ]; "
 	}
 }
 
-func makeDataAssetNode(dataAsset model.DataAsset) string {
+func (context *Context) makeDataAssetNode(dataAsset model.DataAsset) string {
 	var color string
-	switch dataAsset.IdentifiedDataBreachProbabilityStillAtRisk() {
+	switch dataAsset.IdentifiedDataBreachProbabilityStillAtRisk(&context.parsedModel) {
 	case types.Probable:
 		color = colors.RgbHexColorHighRisk()
 	case types.Possible:
@@ -5248,7 +5245,7 @@ func makeDataAssetNode(dataAsset model.DataAsset) string {
 	default:
 		color = "#444444" // since black is too dark here as fill color
 	}
-	if !dataAsset.IsDataBreachPotentialStillAtRisk() {
+	if !dataAsset.IsDataBreachPotentialStillAtRisk(&context.parsedModel) {
 		color = "#444444" // since black is too dark here as fill color
 	}
 	return "  " + hash(dataAsset.Id) + ` [ label=<<b>` + encode(dataAsset.Title) + `</b>> penwidth="3.0" style="filled" fillcolor="` + color + `" color="` + color + "\"\n  ]; "
@@ -5281,7 +5278,7 @@ func (context *Context) renderDataFlowDiagramGraphvizImage(dotFile *os.File, tar
 	}
 
 	// exec
-	cmd := exec.Command(filepath.Join(*context.binFolder, graphvizDataFlowDiagramConversionCall), tmpFileDOT.Name(), tmpFilePNG.Name())
+	cmd := exec.Command(filepath.Join(*context.binFolder, context.graphvizDataFlowDiagramConversionCall), tmpFileDOT.Name(), tmpFilePNG.Name())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
@@ -5294,9 +5291,9 @@ func (context *Context) renderDataFlowDiagramGraphvizImage(dotFile *os.File, tar
 		fmt.Println(err)
 		return
 	}
-	err = os.WriteFile(filepath.Join(targetDir, dataFlowDiagramFilenamePNG), input, 0644)
+	err = os.WriteFile(filepath.Join(targetDir, context.dataFlowDiagramFilenamePNG), input, 0644)
 	if err != nil {
-		fmt.Println("Error creating", dataFlowDiagramFilenamePNG)
+		fmt.Println("Error creating", context.dataFlowDiagramFilenamePNG)
 		fmt.Println(err)
 		return
 	}
@@ -5329,7 +5326,7 @@ func (context *Context) renderDataAssetDiagramGraphvizImage(dotFile *os.File, ta
 	}
 
 	// exec
-	cmd := exec.Command(filepath.Join(*context.binFolder, graphvizDataAssetDiagramConversionCall), tmpFileDOT.Name(), tmpFilePNG.Name())
+	cmd := exec.Command(filepath.Join(*context.binFolder, context.graphvizDataAssetDiagramConversionCall), tmpFileDOT.Name(), tmpFilePNG.Name())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
@@ -5342,9 +5339,9 @@ func (context *Context) renderDataAssetDiagramGraphvizImage(dotFile *os.File, ta
 		fmt.Println(err)
 		return
 	}
-	err = os.WriteFile(filepath.Join(targetDir, dataAssetDiagramFilenamePNG), input, 0644)
+	err = os.WriteFile(filepath.Join(targetDir, context.dataAssetDiagramFilenamePNG), input, 0644)
 	if err != nil {
-		fmt.Println("Error creating", dataAssetDiagramFilenamePNG)
+		fmt.Println("Error creating", context.dataAssetDiagramFilenamePNG)
 		fmt.Println(err)
 		return
 	}

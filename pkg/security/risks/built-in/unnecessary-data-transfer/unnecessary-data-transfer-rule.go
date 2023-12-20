@@ -3,7 +3,7 @@ package unnecessary_data_transfer
 import (
 	"sort"
 
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -50,7 +50,7 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope {
 			continue
@@ -64,7 +64,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 			risks = checkRisksAgainstTechnicalAsset(input, risks, technicalAsset, outgoingDataFlow, false)
 		}
 		// incoming data flows
-		commLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
+		commLinks := input.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 		sort.Sort(model.ByTechnicalCommunicationLinkIdSort(commLinks))
 		for _, incomingDataFlow := range commLinks {
 			targetAsset := input.TechnicalAssets[incomingDataFlow.SourceId]

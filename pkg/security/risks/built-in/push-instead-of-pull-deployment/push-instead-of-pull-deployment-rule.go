@@ -1,7 +1,7 @@
 package push_instead_of_pull_deployment
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -53,9 +53,9 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 				targetAsset := input.TechnicalAssets[deploymentLink.TargetId]
 				if !deploymentLink.Readonly && deploymentLink.Usage == types.DevOps &&
 					!targetAsset.OutOfScope && !targetAsset.Technology.IsDevelopmentRelevant() && targetAsset.Usage == types.Business {
-					if targetAsset.HighestConfidentiality() >= types.Confidential ||
-						targetAsset.HighestIntegrity() >= types.Critical ||
-						targetAsset.HighestAvailability() >= types.Critical {
+					if targetAsset.HighestConfidentiality(input) >= types.Confidential ||
+						targetAsset.HighestIntegrity(input) >= types.Critical ||
+						targetAsset.HighestAvailability(input) >= types.Critical {
 						impact = types.MediumImpact
 					}
 					risks = append(risks, createRisk(buildPipeline, targetAsset, deploymentLink, impact))

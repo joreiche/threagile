@@ -1,7 +1,7 @@
 package unnecessary_communication_link
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -41,7 +41,7 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		for _, commLink := range technicalAsset.CommunicationLinks {
 			if len(commLink.DataAssetsSent) == 0 && len(commLink.DataAssetsReceived) == 0 {

@@ -1,7 +1,7 @@
 package missing_authentication_second_factor
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	missing_authentication "github.com/threagile/threagile/pkg/security/risks/built-in/missing-authentication"
 	"github.com/threagile/threagile/pkg/security/types"
 )
@@ -45,41 +45,41 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope ||
 			technicalAsset.Technology.IsTrafficForwarding() ||
 			technicalAsset.Technology.IsUnprotectedCommunicationsTolerated() {
 			continue
 		}
-		if technicalAsset.HighestConfidentiality() >= types.Confidential ||
-			technicalAsset.HighestIntegrity() >= types.Critical ||
-			technicalAsset.HighestAvailability() >= types.Critical ||
+		if technicalAsset.HighestConfidentiality(input) >= types.Confidential ||
+			technicalAsset.HighestIntegrity(input) >= types.Critical ||
+			technicalAsset.HighestAvailability(input) >= types.Critical ||
 			technicalAsset.MultiTenant {
 			// check each incoming data flow
-			commLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
+			commLinks := input.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 			for _, commLink := range commLinks {
 				caller := input.TechnicalAssets[commLink.SourceId]
 				if caller.Technology.IsUnprotectedCommunicationsTolerated() || caller.Type == types.Datastore {
 					continue
 				}
 				if caller.UsedAsClientByHuman {
-					moreRisky := commLink.HighestConfidentiality() >= types.Confidential ||
-						commLink.HighestIntegrity() >= types.Critical
+					moreRisky := commLink.HighestConfidentiality(input) >= types.Confidential ||
+						commLink.HighestIntegrity(input) >= types.Critical
 					if moreRisky && commLink.Authentication != types.TwoFactor {
 						risks = append(risks, missing_authentication.CreateRisk(input, technicalAsset, commLink, commLink, "", types.MediumImpact, types.Unlikely, true, Category()))
 					}
 				} else if caller.Technology.IsTrafficForwarding() {
 					// Now try to walk a call chain up (1 hop only) to find a caller's caller used by human
-					callersCommLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[caller.Id]
+					callersCommLinks := input.IncomingTechnicalCommunicationLinksMappedByTargetId[caller.Id]
 					for _, callersCommLink := range callersCommLinks {
 						callersCaller := input.TechnicalAssets[callersCommLink.SourceId]
 						if callersCaller.Technology.IsUnprotectedCommunicationsTolerated() || callersCaller.Type == types.Datastore {
 							continue
 						}
 						if callersCaller.UsedAsClientByHuman {
-							moreRisky := callersCommLink.HighestConfidentiality() >= types.Confidential ||
-								callersCommLink.HighestIntegrity() >= types.Critical
+							moreRisky := callersCommLink.HighestConfidentiality(input) >= types.Confidential ||
+								callersCommLink.HighestIntegrity(input) >= types.Critical
 							if moreRisky && callersCommLink.Authentication != types.TwoFactor {
 								risks = append(risks, missing_authentication.CreateRisk(input, technicalAsset, commLink, callersCommLink, caller.Title, types.MediumImpact, types.Unlikely, true, Category()))
 							}

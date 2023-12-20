@@ -339,13 +339,13 @@ func WriteRisksExcelToFile(parsedModel *model.ParsedModel, filename string) {
 	})
 
 	excelRow++ // as we have a header line
-	for _, category := range model.SortedRiskCategories() {
-		risks := model.SortedRisksOfCategory(category)
+	for _, category := range model.SortedRiskCategories(parsedModel) {
+		risks := model.SortedRisksOfCategory(parsedModel, category)
 		for _, risk := range risks {
 			excelRow++
 			techAsset := parsedModel.TechnicalAssets[risk.MostRelevantTechnicalAssetId]
-			commLink := model.CommunicationLinks[risk.MostRelevantCommunicationLinkId]
-			riskTrackingStatus := risk.GetRiskTrackingStatusDefaultingUnchecked()
+			commLink := parsedModel.CommunicationLinks[risk.MostRelevantCommunicationLinkId]
+			riskTrackingStatus := risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel)
 			// content
 			err := excel.SetCellValue(sheetName, "A"+strconv.Itoa(excelRow), risk.Severity.Title())
 			err = excel.SetCellValue(sheetName, "B"+strconv.Itoa(excelRow), risk.ExploitationLikelihood.Title())
@@ -364,7 +364,7 @@ func WriteRisksExcelToFile(parsedModel *model.ParsedModel, filename string) {
 			err = excel.SetCellValue(sheetName, "O"+strconv.Itoa(excelRow), risk.SyntheticId)
 			err = excel.SetCellValue(sheetName, "P"+strconv.Itoa(excelRow), riskTrackingStatus.Title())
 			if riskTrackingStatus != types.Unchecked {
-				riskTracking := risk.GetRiskTracking()
+				riskTracking := risk.GetRiskTracking(parsedModel)
 				err = excel.SetCellValue(sheetName, "Q"+strconv.Itoa(excelRow), riskTracking.Justification)
 				if !riskTracking.Date.IsZero() {
 					err = excel.SetCellValue(sheetName, "R"+strconv.Itoa(excelRow), riskTracking.Date.Format("2006-01-02"))
@@ -623,7 +623,7 @@ func writeRow(excel *excelize.File, sheetName string, axis string, styleBlackLef
 	excelRow++
 	err := excel.SetCellValue(sheetName, "A"+strconv.Itoa(excelRow), assetTitle)
 	for i, tag := range sortedTags {
-		if model.Contains(tagsUsed, tag) {
+		if contains(tagsUsed, tag) {
 			err = excel.SetCellValue(sheetName, determineColumnLetter(i)+strconv.Itoa(excelRow), "X")
 		}
 	}

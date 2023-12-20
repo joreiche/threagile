@@ -1,7 +1,7 @@
 package unencrypted_communication
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -101,7 +101,7 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, d
 			"rated " + types.StrictlyConfidential.String() + " or integrity is rated " + types.MissionCritical.String() + ")"
 	}
 	likelihood := types.Unlikely
-	if dataFlow.IsAcrossTrustBoundaryNetworkOnly() {
+	if dataFlow.IsAcrossTrustBoundaryNetworkOnly(input) {
 		likelihood = types.Likely
 	}
 	risk := model.Risk{

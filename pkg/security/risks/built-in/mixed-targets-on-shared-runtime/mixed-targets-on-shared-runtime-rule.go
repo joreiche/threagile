@@ -3,7 +3,7 @@ package mixed_targets_on_shared_runtime
 import (
 	"sort"
 
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -62,12 +62,12 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 		riskAdded := false
 		for _, technicalAssetId := range sharedRuntime.TechnicalAssetsRunning {
 			technicalAsset := input.TechnicalAssets[technicalAssetId]
-			if len(currentTrustBoundaryId) > 0 && currentTrustBoundaryId != technicalAsset.GetTrustBoundaryId() {
+			if len(currentTrustBoundaryId) > 0 && currentTrustBoundaryId != technicalAsset.GetTrustBoundaryId(input) {
 				risks = append(risks, createRisk(input, sharedRuntime))
 				riskAdded = true
 				break
 			}
-			currentTrustBoundaryId = technicalAsset.GetTrustBoundaryId()
+			currentTrustBoundaryId = technicalAsset.GetTrustBoundaryId(input)
 			if technicalAsset.Technology.IsExclusivelyFrontendRelated() {
 				hasFrontend = true
 			}

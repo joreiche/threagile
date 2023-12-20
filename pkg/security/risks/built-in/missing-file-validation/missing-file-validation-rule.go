@@ -1,7 +1,7 @@
 package missing_file_validation
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -45,26 +45,26 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope || !technicalAsset.CustomDevelopedParts {
 			continue
 		}
 		for _, format := range technicalAsset.DataFormatsAccepted {
 			if format == types.File {
-				risks = append(risks, createRisk(technicalAsset))
+				risks = append(risks, createRisk(input, technicalAsset))
 			}
 		}
 	}
 	return risks
 }
 
-func createRisk(technicalAsset model.TechnicalAsset) model.Risk {
+func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset) model.Risk {
 	title := "<b>Missing File Validation</b> risk at <b>" + technicalAsset.Title + "</b>"
 	impact := types.LowImpact
-	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
-		technicalAsset.HighestIntegrity() == types.MissionCritical ||
-		technicalAsset.HighestAvailability() == types.MissionCritical {
+	if technicalAsset.HighestConfidentiality(input) == types.StrictlyConfidential ||
+		technicalAsset.HighestIntegrity(input) == types.MissionCritical ||
+		technicalAsset.HighestAvailability(input) == types.MissionCritical {
 		impact = types.MediumImpact
 	}
 	risk := model.Risk{

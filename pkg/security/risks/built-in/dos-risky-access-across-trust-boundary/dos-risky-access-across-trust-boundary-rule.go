@@ -1,7 +1,7 @@
 package dos_risky_access_across_trust_boundary
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -49,15 +49,15 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope && technicalAsset.Technology != types.LoadBalancer &&
 			technicalAsset.Availability >= types.Critical {
-			for _, incomingAccess := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
+			for _, incomingAccess := range input.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
 				sourceAsset := input.TechnicalAssets[incomingAccess.SourceId]
 				if sourceAsset.Technology.IsTrafficForwarding() {
 					// Now try to walk a call chain up (1 hop only) to find a caller's caller used by human
-					callersCommLinks := model.IncomingTechnicalCommunicationLinksMappedByTargetId[sourceAsset.Id]
+					callersCommLinks := input.IncomingTechnicalCommunicationLinksMappedByTargetId[sourceAsset.Id]
 					for _, callersCommLink := range callersCommLinks {
 						risks = checkRisk(input, technicalAsset, callersCommLink, sourceAsset.Title, risks)
 					}
@@ -71,7 +71,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 }
 
 func checkRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, incomingAccess model.CommunicationLink, hopBetween string, risks []model.Risk) []model.Risk {
-	if incomingAccess.IsAcrossTrustBoundaryNetworkOnly() &&
+	if incomingAccess.IsAcrossTrustBoundaryNetworkOnly(input) &&
 		!incomingAccess.Protocol.IsProcessLocal() && incomingAccess.Usage != types.DevOps {
 		highRisk := technicalAsset.Availability == types.MissionCritical &&
 			!incomingAccess.VPN && !incomingAccess.IpFiltered && !technicalAsset.Redundant

@@ -58,7 +58,7 @@ func GenerateRisks(parsedModel *model.ParsedModel) []model.Risk {
 func createRisk(parsedModel *model.ParsedModel, technicalAsset model.TechnicalAsset) model.Risk {
 	title := "<b>Container Base Image Backdooring</b> risk at <b>" + technicalAsset.Title + "</b>"
 	impact := types.MediumImpact
-	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
+	if technicalAsset.HighestConfidentiality(parsedModel) == types.StrictlyConfidential ||
 		technicalAsset.HighestIntegrity(parsedModel) == types.MissionCritical ||
 		technicalAsset.HighestAvailability(parsedModel) == types.MissionCritical {
 		impact = types.HighImpact

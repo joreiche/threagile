@@ -1,4 +1,5 @@
-package internal
+// TODO: consider moving to internal
+package run
 
 import (
 	"encoding/json"

@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/threagile/threagile/pkg/internal"
+	"github.com/threagile/threagile/pkg/run"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -42,7 +42,7 @@ type CustomRisk struct {
 	ID       string
 	Category RiskCategory
 	Tags     []string
-	Runner   *internal.Runner
+	Runner   *run.Runner
 }
 
 func (r *CustomRisk) GenerateRisks(m *ParsedModel) []Risk {
@@ -106,9 +106,9 @@ func (what Risk) IsRiskTracked(model *ParsedModel) bool {
 	return false
 }
 
-func AllRisks() []Risk {
+func AllRisks(parsedModel *ParsedModel) []Risk {
 	result := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
 			result = append(result, risk)
 		}
@@ -116,10 +116,10 @@ func AllRisks() []Risk {
 	return result
 }
 
-func ReduceToOnlyStillAtRisk(risks []Risk) []Risk {
+func ReduceToOnlyStillAtRisk(parsedModel *ParsedModel, risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked().IsStillAtRisk() {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel).IsStillAtRisk() {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
@@ -172,27 +172,23 @@ func (what ByRiskCategoryTitleSort) Less(i, j int) bool {
 	return what[i].Title < what[j].Title
 }
 
-type ByRiskCategoryHighestContainingRiskSeveritySortStillAtRisk []RiskCategory
-
-func (what ByRiskCategoryHighestContainingRiskSeveritySortStillAtRisk) Len() int { return len(what) }
-func (what ByRiskCategoryHighestContainingRiskSeveritySortStillAtRisk) Swap(i, j int) {
-	what[i], what[j] = what[j], what[i]
-}
-func (what ByRiskCategoryHighestContainingRiskSeveritySortStillAtRisk) Less(i, j int) bool {
-	risksLeft := ReduceToOnlyStillAtRisk(GeneratedRisksByCategory[what[i]])
-	risksRight := ReduceToOnlyStillAtRisk(GeneratedRisksByCategory[what[j]])
-	highestLeft := HighestSeverityStillAtRisk(risksLeft)
-	highestRight := HighestSeverityStillAtRisk(risksRight)
-	if highestLeft == highestRight {
-		if len(risksLeft) == 0 && len(risksRight) > 0 {
-			return false
+func SortByRiskCategoryHighestContainingRiskSeveritySortStillAtRisk(parsedModel *ParsedModel, riskCategories []RiskCategory) {
+	sort.Slice(riskCategories, func(i, j int) bool {
+		risksLeft := ReduceToOnlyStillAtRisk(parsedModel, parsedModel.GeneratedRisksByCategory[riskCategories[i]])
+		risksRight := ReduceToOnlyStillAtRisk(parsedModel, parsedModel.GeneratedRisksByCategory[riskCategories[j]])
+		highestLeft := HighestSeverityStillAtRisk(parsedModel, risksLeft)
+		highestRight := HighestSeverityStillAtRisk(parsedModel, risksRight)
+		if highestLeft == highestRight {
+			if len(risksLeft) == 0 && len(risksRight) > 0 {
+				return false
+			}
+			if len(risksLeft) > 0 && len(risksRight) == 0 {
+				return true
+			}
+			return riskCategories[i].Title < riskCategories[j].Title
 		}
-		if len(risksLeft) > 0 && len(risksRight) == 0 {
-			return true
-		}
-		return what[i].Title < what[j].Title
-	}
-	return highestLeft > highestRight
+		return highestLeft > highestRight
+	})
 }
 
 type RiskStatistics struct {
@@ -200,54 +196,48 @@ type RiskStatistics struct {
 	Risks map[string]map[string]int `yaml:"risks" json:"risks"`
 }
 
-type ByRiskSeveritySort []Risk
-
-func (what ByRiskSeveritySort) Len() int { return len(what) }
-func (what ByRiskSeveritySort) Swap(i, j int) {
-	what[i], what[j] = what[j], what[i]
-}
-func (what ByRiskSeveritySort) Less(i, j int) bool {
-	if what[i].Severity == what[j].Severity {
-		trackingStatusLeft := what[i].GetRiskTrackingStatusDefaultingUnchecked()
-		trackingStatusRight := what[j].GetRiskTrackingStatusDefaultingUnchecked()
-		if trackingStatusLeft == trackingStatusRight {
-			impactLeft := what[i].ExploitationImpact
-			impactRight := what[j].ExploitationImpact
-			if impactLeft == impactRight {
-				likelihoodLeft := what[i].ExploitationLikelihood
-				likelihoodRight := what[j].ExploitationLikelihood
-				if likelihoodLeft == likelihoodRight {
-					return what[i].Title < what[j].Title
+func SortByRiskSeverity(risks []Risk, parsedModel *ParsedModel) {
+	sort.Slice(risks, func(i, j int) bool {
+		if risks[i].Severity == risks[j].Severity {
+			trackingStatusLeft := risks[i].GetRiskTrackingStatusDefaultingUnchecked(parsedModel)
+			trackingStatusRight := risks[j].GetRiskTrackingStatusDefaultingUnchecked(parsedModel)
+			if trackingStatusLeft == trackingStatusRight {
+				impactLeft := risks[i].ExploitationImpact
+				impactRight := risks[j].ExploitationImpact
+				if impactLeft == impactRight {
+					likelihoodLeft := risks[i].ExploitationLikelihood
+					likelihoodRight := risks[j].ExploitationLikelihood
+					if likelihoodLeft == likelihoodRight {
+						return risks[i].Title < risks[j].Title
+					} else {
+						return likelihoodLeft > likelihoodRight
+					}
 				} else {
-					return likelihoodLeft > likelihoodRight
+					return impactLeft > impactRight
 				}
 			} else {
-				return impactLeft > impactRight
+				return trackingStatusLeft < trackingStatusRight
 			}
-		} else {
-			return trackingStatusLeft < trackingStatusRight
 		}
-	}
-	return what[i].Severity > what[j].Severity
+		return risks[i].Severity > risks[j].Severity
+
+	})
 }
 
-type ByDataBreachProbabilitySort []Risk
+func SortByDataBreachProbability(risks []Risk, parsedModel *ParsedModel) {
+	sort.Slice(risks, func(i, j int) bool {
 
-func (what ByDataBreachProbabilitySort) Len() int { return len(what) }
-func (what ByDataBreachProbabilitySort) Swap(i, j int) {
-	what[i], what[j] = what[j], what[i]
-}
-func (what ByDataBreachProbabilitySort) Less(i, j int) bool {
-	if what[i].DataBreachProbability == what[j].DataBreachProbability {
-		trackingStatusLeft := what[i].GetRiskTrackingStatusDefaultingUnchecked()
-		trackingStatusRight := what[j].GetRiskTrackingStatusDefaultingUnchecked()
-		if trackingStatusLeft == trackingStatusRight {
-			return what[i].Title < what[j].Title
-		} else {
-			return trackingStatusLeft < trackingStatusRight
+		if risks[i].DataBreachProbability == risks[j].DataBreachProbability {
+			trackingStatusLeft := risks[i].GetRiskTrackingStatusDefaultingUnchecked(parsedModel)
+			trackingStatusRight := risks[j].GetRiskTrackingStatusDefaultingUnchecked(parsedModel)
+			if trackingStatusLeft == trackingStatusRight {
+				return risks[i].Title < risks[j].Title
+			} else {
+				return trackingStatusLeft < trackingStatusRight
+			}
 		}
-	}
-	return what[i].DataBreachProbability > what[j].DataBreachProbability
+		return risks[i].DataBreachProbability > risks[j].DataBreachProbability
+	})
 }
 
 type RiskRule interface {
@@ -257,17 +247,18 @@ type RiskRule interface {
 
 // as in Go ranging over map is random order, range over them in sorted (hence reproducible) way:
 
-func SortedRiskCategories() []RiskCategory {
+func SortedRiskCategories(parsedModel *ParsedModel) []RiskCategory {
 	categories := make([]RiskCategory, 0)
-	for k := range GeneratedRisksByCategory {
+	for k := range parsedModel.GeneratedRisksByCategory {
 		categories = append(categories, k)
 	}
-	sort.Sort(ByRiskCategoryHighestContainingRiskSeveritySortStillAtRisk(categories))
+	SortByRiskCategoryHighestContainingRiskSeveritySortStillAtRisk(parsedModel, categories)
 	return categories
 }
-func SortedRisksOfCategory(category RiskCategory) []Risk {
-	risks := GeneratedRisksByCategory[category]
-	sort.Sort(ByRiskSeveritySort(risks))
+
+func SortedRisksOfCategory(parsedModel *ParsedModel, category RiskCategory) []Risk {
+	risks := parsedModel.GeneratedRisksByCategory[category]
+	SortByRiskSeverity(risks, parsedModel)
 	return risks
 }
 
@@ -399,11 +390,11 @@ func RisksOfOnlyOperation(risksByCategory map[RiskCategory][]Risk) map[RiskCateg
 	return result
 }
 
-func CategoriesOfOnlyRisksStillAtRisk(risksByCategory map[RiskCategory][]Risk) []RiskCategory {
+func CategoriesOfOnlyRisksStillAtRisk(parsedModel *ParsedModel, risksByCategory map[RiskCategory][]Risk) []RiskCategory {
 	categories := make(map[RiskCategory]struct{}) // Go's trick of unique elements is a map
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if !risk.GetRiskTrackingStatusDefaultingUnchecked().IsStillAtRisk() {
+			if !risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel).IsStillAtRisk() {
 				continue
 			}
 			categories[risk.Category] = struct{}{}
@@ -413,11 +404,11 @@ func CategoriesOfOnlyRisksStillAtRisk(risksByCategory map[RiskCategory][]Risk) [
 	return keysAsSlice(categories)
 }
 
-func CategoriesOfOnlyCriticalRisks(risksByCategory map[RiskCategory][]Risk, initialRisks bool) []RiskCategory {
+func CategoriesOfOnlyCriticalRisks(parsedModel *ParsedModel, risksByCategory map[RiskCategory][]Risk, initialRisks bool) []RiskCategory {
 	categories := make(map[RiskCategory]struct{}) // Go's trick of unique elements is a map
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if !initialRisks && !risk.GetRiskTrackingStatusDefaultingUnchecked().IsStillAtRisk() {
+			if !initialRisks && !risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel).IsStillAtRisk() {
 				continue
 			}
 			if risk.Severity == types.CriticalSeverity {
@@ -429,16 +420,16 @@ func CategoriesOfOnlyCriticalRisks(risksByCategory map[RiskCategory][]Risk, init
 	return keysAsSlice(categories)
 }
 
-func CategoriesOfOnlyHighRisks(risksByCategory map[RiskCategory][]Risk, initialRisks bool) []RiskCategory {
+func CategoriesOfOnlyHighRisks(parsedModel *ParsedModel, risksByCategory map[RiskCategory][]Risk, initialRisks bool) []RiskCategory {
 	categories := make(map[RiskCategory]struct{}) // Go's trick of unique elements is a map
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if !initialRisks && !risk.GetRiskTrackingStatusDefaultingUnchecked().IsStillAtRisk() {
+			if !initialRisks && !risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel).IsStillAtRisk() {
 				continue
 			}
-			highest := HighestSeverity(GeneratedRisksByCategory[risk.Category])
+			highest := HighestSeverity(parsedModel.GeneratedRisksByCategory[risk.Category])
 			if !initialRisks {
-				highest = HighestSeverityStillAtRisk(GeneratedRisksByCategory[risk.Category])
+				highest = HighestSeverityStillAtRisk(parsedModel, parsedModel.GeneratedRisksByCategory[risk.Category])
 			}
 			if risk.Severity == types.HighSeverity && highest < types.CriticalSeverity {
 				categories[risk.Category] = struct{}{}
@@ -449,16 +440,16 @@ func CategoriesOfOnlyHighRisks(risksByCategory map[RiskCategory][]Risk, initialR
 	return keysAsSlice(categories)
 }
 
-func CategoriesOfOnlyElevatedRisks(risksByCategory map[RiskCategory][]Risk, initialRisks bool) []RiskCategory {
+func CategoriesOfOnlyElevatedRisks(parsedModel *ParsedModel, risksByCategory map[RiskCategory][]Risk, initialRisks bool) []RiskCategory {
 	categories := make(map[RiskCategory]struct{}) // Go's trick of unique elements is a map
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if !initialRisks && !risk.GetRiskTrackingStatusDefaultingUnchecked().IsStillAtRisk() {
+			if !initialRisks && !risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel).IsStillAtRisk() {
 				continue
 			}
-			highest := HighestSeverity(GeneratedRisksByCategory[risk.Category])
+			highest := HighestSeverity(parsedModel.GeneratedRisksByCategory[risk.Category])
 			if !initialRisks {
-				highest = HighestSeverityStillAtRisk(GeneratedRisksByCategory[risk.Category])
+				highest = HighestSeverityStillAtRisk(parsedModel, parsedModel.GeneratedRisksByCategory[risk.Category])
 			}
 			if risk.Severity == types.ElevatedSeverity && highest < types.HighSeverity {
 				categories[risk.Category] = struct{}{}
@@ -469,16 +460,16 @@ func CategoriesOfOnlyElevatedRisks(risksByCategory map[RiskCategory][]Risk, init
 	return keysAsSlice(categories)
 }
 
-func CategoriesOfOnlyMediumRisks(risksByCategory map[RiskCategory][]Risk, initialRisks bool) []RiskCategory {
+func CategoriesOfOnlyMediumRisks(parsedModel *ParsedModel, risksByCategory map[RiskCategory][]Risk, initialRisks bool) []RiskCategory {
 	categories := make(map[RiskCategory]struct{}) // Go's trick of unique elements is a map
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if !initialRisks && !risk.GetRiskTrackingStatusDefaultingUnchecked().IsStillAtRisk() {
+			if !initialRisks && !risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel).IsStillAtRisk() {
 				continue
 			}
-			highest := HighestSeverity(GeneratedRisksByCategory[risk.Category])
+			highest := HighestSeverity(parsedModel.GeneratedRisksByCategory[risk.Category])
 			if !initialRisks {
-				highest = HighestSeverityStillAtRisk(GeneratedRisksByCategory[risk.Category])
+				highest = HighestSeverityStillAtRisk(parsedModel, parsedModel.GeneratedRisksByCategory[risk.Category])
 			}
 			if risk.Severity == types.MediumSeverity && highest < types.ElevatedSeverity {
 				categories[risk.Category] = struct{}{}
@@ -489,16 +480,16 @@ func CategoriesOfOnlyMediumRisks(risksByCategory map[RiskCategory][]Risk, initia
 	return keysAsSlice(categories)
 }
 
-func CategoriesOfOnlyLowRisks(risksByCategory map[RiskCategory][]Risk, initialRisks bool) []RiskCategory {
+func CategoriesOfOnlyLowRisks(parsedModel *ParsedModel, risksByCategory map[RiskCategory][]Risk, initialRisks bool) []RiskCategory {
 	categories := make(map[RiskCategory]struct{}) // Go's trick of unique elements is a map
 	for _, risks := range risksByCategory {
 		for _, risk := range risks {
-			if !initialRisks && !risk.GetRiskTrackingStatusDefaultingUnchecked().IsStillAtRisk() {
+			if !initialRisks && !risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel).IsStillAtRisk() {
 				continue
 			}
-			highest := HighestSeverity(GeneratedRisksByCategory[risk.Category])
+			highest := HighestSeverity(parsedModel.GeneratedRisksByCategory[risk.Category])
 			if !initialRisks {
-				highest = HighestSeverityStillAtRisk(GeneratedRisksByCategory[risk.Category])
+				highest = HighestSeverityStillAtRisk(parsedModel, parsedModel.GeneratedRisksByCategory[risk.Category])
 			}
 			if risk.Severity == types.LowSeverity && highest < types.MediumSeverity {
 				categories[risk.Category] = struct{}{}
@@ -527,9 +518,9 @@ func keysAsSlice(categories map[RiskCategory]struct{}) []RiskCategory {
 	return result
 }
 
-func FilteredByOnlyBusinessSide() []Risk {
+func FilteredByOnlyBusinessSide(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
 			if risk.Category.Function == types.BusinessSide {
 				filteredRisks = append(filteredRisks, risk)
@@ -539,9 +530,9 @@ func FilteredByOnlyBusinessSide() []Risk {
 	return filteredRisks
 }
 
-func FilteredByOnlyArchitecture() []Risk {
+func FilteredByOnlyArchitecture(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
 			if risk.Category.Function == types.Architecture {
 				filteredRisks = append(filteredRisks, risk)
@@ -551,9 +542,9 @@ func FilteredByOnlyArchitecture() []Risk {
 	return filteredRisks
 }
 
-func FilteredByOnlyDevelopment() []Risk {
+func FilteredByOnlyDevelopment(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
 			if risk.Category.Function == types.Development {
 				filteredRisks = append(filteredRisks, risk)
@@ -563,9 +554,9 @@ func FilteredByOnlyDevelopment() []Risk {
 	return filteredRisks
 }
 
-func FilteredByOnlyOperation() []Risk {
+func FilteredByOnlyOperation(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
 			if risk.Category.Function == types.Operations {
 				filteredRisks = append(filteredRisks, risk)
@@ -575,9 +566,9 @@ func FilteredByOnlyOperation() []Risk {
 	return filteredRisks
 }
 
-func FilteredByOnlyCriticalRisks() []Risk {
+func FilteredByOnlyCriticalRisks(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
 			if risk.Severity == types.CriticalSeverity {
 				filteredRisks = append(filteredRisks, risk)
@@ -587,9 +578,9 @@ func FilteredByOnlyCriticalRisks() []Risk {
 	return filteredRisks
 }
 
-func FilteredByOnlyHighRisks() []Risk {
+func FilteredByOnlyHighRisks(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
 			if risk.Severity == types.HighSeverity {
 				filteredRisks = append(filteredRisks, risk)
@@ -599,9 +590,9 @@ func FilteredByOnlyHighRisks() []Risk {
 	return filteredRisks
 }
 
-func FilteredByOnlyElevatedRisks() []Risk {
+func FilteredByOnlyElevatedRisks(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
 			if risk.Severity == types.ElevatedSeverity {
 				filteredRisks = append(filteredRisks, risk)
@@ -611,9 +602,9 @@ func FilteredByOnlyElevatedRisks() []Risk {
 	return filteredRisks
 }
 
-func FilteredByOnlyMediumRisks() []Risk {
+func FilteredByOnlyMediumRisks(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
 			if risk.Severity == types.MediumSeverity {
 				filteredRisks = append(filteredRisks, risk)
@@ -623,9 +614,9 @@ func FilteredByOnlyMediumRisks() []Risk {
 	return filteredRisks
 }
 
-func FilteredByOnlyLowRisks() []Risk {
+func FilteredByOnlyLowRisks(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
 			if risk.Severity == types.LowSeverity {
 				filteredRisks = append(filteredRisks, risk)
@@ -653,19 +644,19 @@ func FlattenRiskSlice(risksByCat map[RiskCategory][]Risk) []Risk {
 	return result
 }
 
-func TotalRiskCount() int {
+func TotalRiskCount(parsedModel *ParsedModel) int {
 	count := 0
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		count += len(risks)
 	}
 	return count
 }
 
-func FilteredByRiskTrackingUnchecked() []Risk {
+func FilteredByRiskTrackingUnchecked(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Unchecked {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.Unchecked {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -673,11 +664,11 @@ func FilteredByRiskTrackingUnchecked() []Risk {
 	return filteredRisks
 }
 
-func FilteredByRiskTrackingInDiscussion() []Risk {
+func FilteredByRiskTrackingInDiscussion(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.InDiscussion {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.InDiscussion {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -685,11 +676,11 @@ func FilteredByRiskTrackingInDiscussion() []Risk {
 	return filteredRisks
 }
 
-func FilteredByRiskTrackingAccepted() []Risk {
+func FilteredByRiskTrackingAccepted(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Accepted {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.Accepted {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -697,11 +688,11 @@ func FilteredByRiskTrackingAccepted() []Risk {
 	return filteredRisks
 }
 
-func FilteredByRiskTrackingInProgress() []Risk {
+func FilteredByRiskTrackingInProgress(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.InProgress {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.InProgress {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -709,11 +700,11 @@ func FilteredByRiskTrackingInProgress() []Risk {
 	return filteredRisks
 }
 
-func FilteredByRiskTrackingMitigated() []Risk {
+func FilteredByRiskTrackingMitigated(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Mitigated {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.Mitigated {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -721,11 +712,11 @@ func FilteredByRiskTrackingMitigated() []Risk {
 	return filteredRisks
 }
 
-func FilteredByRiskTrackingFalsePositive() []Risk {
+func FilteredByRiskTrackingFalsePositive(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.FalsePositive {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.FalsePositive {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -763,71 +754,71 @@ func ReduceToOnlyLowRisk(risks []Risk) []Risk {
 	return filteredRisks
 }
 
-func ReduceToOnlyRiskTrackingUnchecked(risks []Risk) []Risk {
+func ReduceToOnlyRiskTrackingUnchecked(parsedModel *ParsedModel, risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Unchecked {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.Unchecked {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
 	return filteredRisks
 }
 
-func ReduceToOnlyRiskTrackingInDiscussion(risks []Risk) []Risk {
+func ReduceToOnlyRiskTrackingInDiscussion(parsedModel *ParsedModel, risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.InDiscussion {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.InDiscussion {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
 	return filteredRisks
 }
 
-func ReduceToOnlyRiskTrackingAccepted(risks []Risk) []Risk {
+func ReduceToOnlyRiskTrackingAccepted(parsedModel *ParsedModel, risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Accepted {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.Accepted {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
 	return filteredRisks
 }
 
-func ReduceToOnlyRiskTrackingInProgress(risks []Risk) []Risk {
+func ReduceToOnlyRiskTrackingInProgress(parsedModel *ParsedModel, risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.InProgress {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.InProgress {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
 	return filteredRisks
 }
 
-func ReduceToOnlyRiskTrackingMitigated(risks []Risk) []Risk {
+func ReduceToOnlyRiskTrackingMitigated(parsedModel *ParsedModel, risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.Mitigated {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.Mitigated {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
 	return filteredRisks
 }
 
-func ReduceToOnlyRiskTrackingFalsePositive(risks []Risk) []Risk {
+func ReduceToOnlyRiskTrackingFalsePositive(parsedModel *ParsedModel, risks []Risk) []Risk {
 	filteredRisks := make([]Risk, 0)
 	for _, risk := range risks {
-		if risk.GetRiskTrackingStatusDefaultingUnchecked() == types.FalsePositive {
+		if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel) == types.FalsePositive {
 			filteredRisks = append(filteredRisks, risk)
 		}
 	}
 	return filteredRisks
 }
 
-func FilteredByStillAtRisk() []Risk {
+func FilteredByStillAtRisk(parsedModel *ParsedModel) []Risk {
 	filteredRisks := make([]Risk, 0)
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
-			if risk.GetRiskTrackingStatusDefaultingUnchecked().IsStillAtRisk() {
+			if risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel).IsStillAtRisk() {
 				filteredRisks = append(filteredRisks, risk)
 			}
 		}
@@ -835,7 +826,7 @@ func FilteredByStillAtRisk() []Risk {
 	return filteredRisks
 }
 
-func OverallRiskStatistics() RiskStatistics {
+func OverallRiskStatistics(parsedModel *ParsedModel) RiskStatistics {
 	result := RiskStatistics{}
 	result.Risks = make(map[string]map[string]int)
 	result.Risks[types.CriticalSeverity.String()] = make(map[string]int)
@@ -873,9 +864,9 @@ func OverallRiskStatistics() RiskStatistics {
 	result.Risks[types.LowSeverity.String()][types.InProgress.String()] = 0
 	result.Risks[types.LowSeverity.String()][types.Mitigated.String()] = 0
 	result.Risks[types.LowSeverity.String()][types.FalsePositive.String()] = 0
-	for _, risks := range GeneratedRisksByCategory {
+	for _, risks := range parsedModel.GeneratedRisksByCategory {
 		for _, risk := range risks {
-			result.Risks[risk.Severity.String()][risk.GetRiskTrackingStatusDefaultingUnchecked().String()]++
+			result.Risks[risk.Severity.String()][risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel).String()]++
 		}
 	}
 	return result

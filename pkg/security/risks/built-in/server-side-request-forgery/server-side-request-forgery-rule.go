@@ -1,7 +1,7 @@
 package server_side_request_forgery
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -46,7 +46,7 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if technicalAsset.OutOfScope || technicalAsset.Technology.IsClient() || technicalAsset.Technology == types.LoadBalancer {
 			continue
@@ -66,18 +66,18 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, o
 		"the target <b>" + target.Title + "</b> via <b>" + outgoingFlow.Title + "</b>"
 	impact := types.LowImpact
 	// check by the target itself (can be in another trust-boundary)
-	if target.HighestConfidentiality() == types.StrictlyConfidential {
+	if target.HighestConfidentiality(input) == types.StrictlyConfidential {
 		impact = types.MediumImpact
 	}
 	// check all potential attack targets within the same trust boundary (accessible via web protocols)
 	uniqueDataBreachTechnicalAssetIDs := make(map[string]interface{})
 	uniqueDataBreachTechnicalAssetIDs[technicalAsset.Id] = true
 	for _, potentialTargetAsset := range input.TechnicalAssets {
-		if technicalAsset.IsSameTrustBoundaryNetworkOnly(potentialTargetAsset.Id) {
-			for _, commLinkIncoming := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[potentialTargetAsset.Id] {
+		if technicalAsset.IsSameTrustBoundaryNetworkOnly(input, potentialTargetAsset.Id) {
+			for _, commLinkIncoming := range input.IncomingTechnicalCommunicationLinksMappedByTargetId[potentialTargetAsset.Id] {
 				if commLinkIncoming.Protocol.IsPotentialWebAccessProtocol() {
 					uniqueDataBreachTechnicalAssetIDs[potentialTargetAsset.Id] = true
-					if potentialTargetAsset.HighestConfidentiality() == types.StrictlyConfidential {
+					if potentialTargetAsset.HighestConfidentiality(input) == types.StrictlyConfidential {
 						impact = types.MediumImpact
 					}
 				}
@@ -85,7 +85,7 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, o
 		}
 	}
 	// adjust for cloud-based special risks
-	if impact == types.LowImpact && input.TrustBoundaries[technicalAsset.GetTrustBoundaryId()].Type.IsWithinCloud() {
+	if impact == types.LowImpact && input.TrustBoundaries[technicalAsset.GetTrustBoundaryId(input)].Type.IsWithinCloud() {
 		impact = types.MediumImpact
 	}
 	dataBreachTechnicalAssetIDs := make([]string, 0)

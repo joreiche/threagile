@@ -1,7 +1,7 @@
 package unencrypted_asset
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -48,13 +48,13 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope && !IsEncryptionWaiver(technicalAsset) &&
-			(technicalAsset.HighestConfidentiality() >= types.Confidential ||
-				technicalAsset.HighestIntegrity() >= types.Critical) {
-			verySensitive := technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
-				technicalAsset.HighestIntegrity() == types.MissionCritical
+			(technicalAsset.HighestConfidentiality(input) >= types.Confidential ||
+				technicalAsset.HighestIntegrity(input) >= types.Critical) {
+			verySensitive := technicalAsset.HighestConfidentiality(input) == types.StrictlyConfidential ||
+				technicalAsset.HighestIntegrity(input) == types.MissionCritical
 			requiresEndUserKey := verySensitive && technicalAsset.Technology.IsUsuallyStoringEndUserData()
 			if technicalAsset.Encryption == types.NoneEncryption {
 				impact := types.MediumImpact

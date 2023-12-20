@@ -3,7 +3,7 @@ package missing_network_segmentation
 import (
 	"sort"
 
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -70,8 +70,8 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 					if technicalAsset.Id != sparringAssetCandidateId {
 						sparringAssetCandidate := input.TechnicalAssets[sparringAssetCandidateId]
 						if sparringAssetCandidate.Technology.IsLessProtectedType() &&
-							technicalAsset.IsSameTrustBoundaryNetworkOnly(sparringAssetCandidateId) &&
-							!technicalAsset.HasDirectConnection(sparringAssetCandidateId) &&
+							technicalAsset.IsSameTrustBoundaryNetworkOnly(input, sparringAssetCandidateId) &&
+							!technicalAsset.HasDirectConnection(input, sparringAssetCandidateId) &&
 							!sparringAssetCandidate.Technology.IsCloseToHighValueTargetsTolerated() {
 							highRisk := technicalAsset.Confidentiality == types.StrictlyConfidential ||
 								technicalAsset.Integrity == types.MissionCritical || technicalAsset.Availability == types.MissionCritical

@@ -34,10 +34,10 @@ func GetFinalChangeImpact(_ *input.ModelInput) (changes []string, message string
 	return []string{"seed the model file with with initial risk tracking entries for all untracked risks"}, "Changeset valid", true, err
 }
 
-func Execute(modelInput *input.ModelInput) (message string, validResult bool, err error) {
+func Execute(parsedModel *model.ParsedModel, modelInput *input.ModelInput) (message string, validResult bool, err error) {
 	syntheticRiskIDsToCreateTrackingFor := make([]string, 0)
-	for id, risk := range model.GeneratedRisksBySyntheticId {
-		if !risk.IsRiskTracked() {
+	for id, risk := range parsedModel.GeneratedRisksBySyntheticId {
+		if !risk.IsRiskTracked(parsedModel) {
 			syntheticRiskIDsToCreateTrackingFor = append(syntheticRiskIDsToCreateTrackingFor, id)
 		}
 	}

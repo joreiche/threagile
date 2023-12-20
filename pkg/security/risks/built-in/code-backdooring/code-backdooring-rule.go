@@ -62,7 +62,7 @@ func GenerateRisks(parsedModel *model.ParsedModel) []model.Risk {
 			// TODO: ensure that even internet or unmanaged clients coming over a reverse-proxy or load-balancer like component are treated as if it was directly accessed/exposed on the internet or towards unmanaged dev clients
 
 			//riskByLinkAdded := false
-			for _, callerLink := range model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
+			for _, callerLink := range parsedModel.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id] {
 				caller := parsedModel.TechnicalAssets[callerLink.SourceId]
 				if (!callerLink.VPN && caller.Internet) || caller.OutOfScope {
 					risks = append(risks, createRisk(parsedModel, technicalAsset, true))
@@ -82,7 +82,7 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, e
 		if elevatedRisk {
 			impact = types.MediumImpact
 		}
-		if technicalAsset.HighestConfidentiality() >= types.Confidential || technicalAsset.HighestIntegrity() >= types.Critical {
+		if technicalAsset.HighestConfidentiality(input) >= types.Confidential || technicalAsset.HighestIntegrity(input) >= types.Critical {
 			impact = types.MediumImpact
 			if elevatedRisk {
 				impact = types.HighImpact

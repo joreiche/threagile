@@ -1,7 +1,7 @@
 package service_registry_poisoning
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -43,10 +43,10 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if !technicalAsset.OutOfScope && technicalAsset.Technology == types.ServiceRegistry {
-			incomingFlows := model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
+			incomingFlows := input.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]
 			risks = append(risks, createRisk(input, technicalAsset, incomingFlows))
 		}
 	}
@@ -59,9 +59,9 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset, i
 
 	for _, incomingFlow := range incomingFlows {
 		caller := input.TechnicalAssets[incomingFlow.SourceId]
-		if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential || technicalAsset.HighestIntegrity() == types.MissionCritical || technicalAsset.HighestAvailability() == types.MissionCritical ||
-			caller.HighestConfidentiality() == types.StrictlyConfidential || caller.HighestIntegrity() == types.MissionCritical || caller.HighestAvailability() == types.MissionCritical ||
-			incomingFlow.HighestConfidentiality() == types.StrictlyConfidential || incomingFlow.HighestIntegrity() == types.MissionCritical || incomingFlow.HighestAvailability() == types.MissionCritical {
+		if technicalAsset.HighestConfidentiality(input) == types.StrictlyConfidential || technicalAsset.HighestIntegrity(input) == types.MissionCritical || technicalAsset.HighestAvailability(input) == types.MissionCritical ||
+			caller.HighestConfidentiality(input) == types.StrictlyConfidential || caller.HighestIntegrity(input) == types.MissionCritical || caller.HighestAvailability(input) == types.MissionCritical ||
+			incomingFlow.HighestConfidentiality(input) == types.StrictlyConfidential || incomingFlow.HighestIntegrity(input) == types.MissionCritical || incomingFlow.HighestAvailability(input) == types.MissionCritical {
 			impact = types.MediumImpact
 			break
 		}

@@ -29,12 +29,20 @@ type ParsedModel struct {
 	SharedRuntimes                                map[string]SharedRuntime
 	IndividualRiskCategories                      map[string]RiskCategory
 	RiskTracking                                  map[string]RiskTracking
+	CommunicationLinks                            map[string]CommunicationLink
+	AllSupportedTags                              map[string]bool
 	DiagramTweakNodesep, DiagramTweakRanksep      int
 	DiagramTweakEdgeLayout                        string
 	DiagramTweakSuppressEdgeLabels                bool
 	DiagramTweakLayoutLeftToRight                 bool
 	DiagramTweakInvisibleConnectionsBetweenAssets []string
 	DiagramTweakSameRankAssets                    []string
+
+	// TODO: those are generated based on items above and needs to be private
+	IncomingTechnicalCommunicationLinksMappedByTargetId   map[string][]CommunicationLink
+	DirectContainingTrustBoundaryMappedByTechnicalAssetId map[string]TrustBoundary
+	GeneratedRisksByCategory                              map[RiskCategory][]Risk
+	GeneratedRisksBySyntheticId                           map[string]Risk
 }
 
 func CalculateSeverity(likelihood types.RiskExploitationLikelihood, impact types.RiskExploitationImpact) types.RiskSeverity {

@@ -1,7 +1,7 @@
 package missing_identity_store
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -55,7 +55,7 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	riskIdentified := false
 	var mostRelevantAsset model.TechnicalAsset
 	impact := types.LowImpact
-	for _, id := range model.SortedTechnicalAssetIDs() { // use the sorted one to always get the same tech asset with the highest sensitivity as example asset
+	for _, id := range input.SortedTechnicalAssetIDs() { // use the sorted one to always get the same tech asset with the highest sensitivity as example asset
 		technicalAsset := input.TechnicalAssets[id]
 		for _, commLink := range technicalAsset.CommunicationLinksSorted() { // use the sorted one to always get the same tech asset with the highest sensitivity as example asset
 			if commLink.Authorization == types.EndUserIdentityPropagation {
@@ -63,9 +63,9 @@ func GenerateRisks(input *model.ParsedModel) []model.Risk {
 				targetAsset := input.TechnicalAssets[commLink.TargetId]
 				if impact == types.LowImpact {
 					mostRelevantAsset = targetAsset
-					if targetAsset.HighestConfidentiality() >= types.Confidential ||
-						targetAsset.HighestIntegrity() >= types.Critical ||
-						targetAsset.HighestAvailability() >= types.Critical {
+					if targetAsset.HighestConfidentiality(input) >= types.Confidential ||
+						targetAsset.HighestIntegrity(input) >= types.Critical ||
+						targetAsset.HighestAvailability(input) >= types.Critical {
 						impact = types.MediumImpact
 					}
 				}

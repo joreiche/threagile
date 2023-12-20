@@ -20,15 +20,15 @@ func (what SharedRuntime) IsTaggedWithAny(tags ...string) bool {
 }
 
 func (what SharedRuntime) IsTaggedWithBaseTag(baseTag string) bool {
-	return isTaggedWithBaseTag(what.Tags, baseTag)
+	return IsTaggedWithBaseTag(what.Tags, baseTag)
 }
 
 func (what SharedRuntime) HighestConfidentiality(model *ParsedModel) types.Confidentiality {
 	highest := types.Public
 	for _, id := range what.TechnicalAssetsRunning {
 		techAsset := model.TechnicalAssets[id]
-		if techAsset.HighestConfidentiality() > highest {
-			highest = techAsset.HighestConfidentiality()
+		if techAsset.HighestConfidentiality(model) > highest {
+			highest = techAsset.HighestConfidentiality(model)
 		}
 	}
 	return highest

@@ -43,10 +43,10 @@ func SupportedTags() []string {
 	return []string{"git", "nexus"}
 }
 
-func GenerateRisks(parsedModel *model.ParsedModel, input *model.ParsedModel) []model.Risk {
+func GenerateRisks(parsedModel *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
 	for _, id := range parsedModel.SortedTechnicalAssetIDs() {
-		techAsset := input.TechnicalAssets[id]
+		techAsset := parsedModel.TechnicalAssets[id]
 		if !techAsset.OutOfScope &&
 			(techAsset.Technology == types.SourcecodeRepository || techAsset.Technology == types.ArtifactRegistry) {
 			var risk model.Risk
@@ -70,12 +70,12 @@ func createRisk(parsedModel *model.ParsedModel, technicalAsset model.TechnicalAs
 		title += ": <u>" + details + "</u>"
 	}
 	impact := types.LowImpact
-	if technicalAsset.HighestConfidentiality() >= types.Confidential ||
+	if technicalAsset.HighestConfidentiality(parsedModel) >= types.Confidential ||
 		technicalAsset.HighestIntegrity(parsedModel) >= types.Critical ||
 		technicalAsset.HighestAvailability(parsedModel) >= types.Critical {
 		impact = types.MediumImpact
 	}
-	if technicalAsset.HighestConfidentiality() == types.StrictlyConfidential ||
+	if technicalAsset.HighestConfidentiality(parsedModel) == types.StrictlyConfidential ||
 		technicalAsset.HighestIntegrity(parsedModel) == types.MissionCritical ||
 		technicalAsset.HighestAvailability(parsedModel) == types.MissionCritical {
 		impact = types.HighImpact

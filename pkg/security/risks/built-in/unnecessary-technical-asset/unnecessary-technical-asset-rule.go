@@ -1,7 +1,7 @@
 package unnecessary_technical_asset
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -42,10 +42,10 @@ func SupportedTags() []string {
 
 func GenerateRisks(input *model.ParsedModel) []model.Risk {
 	risks := make([]model.Risk, 0)
-	for _, id := range model.SortedTechnicalAssetIDs() {
+	for _, id := range input.SortedTechnicalAssetIDs() {
 		technicalAsset := input.TechnicalAssets[id]
 		if len(technicalAsset.DataAssetsProcessed) == 0 && len(technicalAsset.DataAssetsStored) == 0 ||
-			(len(technicalAsset.CommunicationLinks) == 0 && len(model.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]) == 0) {
+			(len(technicalAsset.CommunicationLinks) == 0 && len(input.IncomingTechnicalCommunicationLinksMappedByTargetId[technicalAsset.Id]) == 0) {
 			risks = append(risks, createRisk(technicalAsset))
 		}
 	}

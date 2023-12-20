@@ -1,7 +1,7 @@
 package unchecked_deployment
 
 import (
-	"github.com/threagile/threagile/model"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -69,9 +69,9 @@ func createRisk(input *model.ParsedModel, technicalAsset model.TechnicalAsset) m
 					// here we've got a deployment target which has its data assets at risk via deployment of backdoored code
 					uniqueDataBreachTechnicalAssetIDs[codeDeploymentTargetCommLink.TargetId] = true
 					targetTechAsset := input.TechnicalAssets[codeDeploymentTargetCommLink.TargetId]
-					if targetTechAsset.HighestConfidentiality() >= types.Confidential ||
-						targetTechAsset.HighestIntegrity() >= types.Critical ||
-						targetTechAsset.HighestAvailability() >= types.Critical {
+					if targetTechAsset.HighestConfidentiality(input) >= types.Confidential ||
+						targetTechAsset.HighestIntegrity(input) >= types.Critical ||
+						targetTechAsset.HighestAvailability(input) >= types.Critical {
 						impact = types.MediumImpact
 					}
 					break
