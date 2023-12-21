@@ -56,13 +56,5 @@ var explainMacrosCmd = &cobra.Command{
 		}
 
 		cmd.Println()
-		/*
-			fmt.Printf("%v: %v\n", addbuildpipeline.GetMacroDetails().ID, addbuildpipeline.GetMacroDetails().Description)
-			fmt.Printf("%v: %v\n", addvault.GetMacroDetails().ID, addvault.GetMacroDetails().Description)
-			fmt.Printf("%v: %v\n", prettyprint.GetMacroDetails().ID, prettyprint.GetMacroDetails().Description)
-			fmt.Printf("%v: %v\n", removeunusedtags.GetMacroDetails().ID, removeunusedtags.GetMacroDetails().Description)
-			fmt.Printf("%v: %v\n", seedrisktracking.GetMacroDetails().ID, seedrisktracking.GetMacroDetails().Description)
-			fmt.Printf("%v: %v\n", seedtags.GetMacroDetails().ID, seedtags.GetMacroDetails().Description)
-			fmt.Println()*/
 	},
 }

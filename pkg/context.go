@@ -33,6 +33,13 @@ import (
 	"sync"
 	"time"
 
+	addbuildpipeline "github.com/threagile/threagile/pkg/macros/built-in/add-build-pipeline"
+	addvault "github.com/threagile/threagile/pkg/macros/built-in/add-vault"
+	prettyprint "github.com/threagile/threagile/pkg/macros/built-in/pretty-print"
+	removeunusedtags "github.com/threagile/threagile/pkg/macros/built-in/remove-unused-tags"
+	seedrisktracking "github.com/threagile/threagile/pkg/macros/built-in/seed-risk-tracking"
+	seedtags "github.com/threagile/threagile/pkg/macros/built-in/seed-tags"
+
 	"golang.org/x/crypto/argon2"
 	"gopkg.in/yaml.v3"
 
@@ -46,57 +53,8 @@ import (
 	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/report"
 	"github.com/threagile/threagile/pkg/run"
+	risks "github.com/threagile/threagile/pkg/security/risks"
 	"github.com/threagile/threagile/pkg/security/types"
-
-	addbuildpipeline "github.com/threagile/threagile/pkg/macros/built-in/add-build-pipeline"
-	addvault "github.com/threagile/threagile/pkg/macros/built-in/add-vault"
-	prettyprint "github.com/threagile/threagile/pkg/macros/built-in/pretty-print"
-	removeunusedtags "github.com/threagile/threagile/pkg/macros/built-in/remove-unused-tags"
-	seedrisktracking "github.com/threagile/threagile/pkg/macros/built-in/seed-risk-tracking"
-	seedtags "github.com/threagile/threagile/pkg/macros/built-in/seed-tags"
-
-	accidentalsecretleak "github.com/threagile/threagile/pkg/security/risks/built-in/accidental-secret-leak"
-	codebackdooring "github.com/threagile/threagile/pkg/security/risks/built-in/code-backdooring"
-	containerbaseimagebackdooring "github.com/threagile/threagile/pkg/security/risks/built-in/container-baseimage-backdooring"
-	containerplatformescape "github.com/threagile/threagile/pkg/security/risks/built-in/container-platform-escape"
-	crosssiterequestforgery "github.com/threagile/threagile/pkg/security/risks/built-in/cross-site-request-forgery"
-	crosssitescripting "github.com/threagile/threagile/pkg/security/risks/built-in/cross-site-scripting"
-	dosriskyaccessacrosstrustboundary "github.com/threagile/threagile/pkg/security/risks/built-in/dos-risky-access-across-trust-boundary"
-	incompletemodel "github.com/threagile/threagile/pkg/security/risks/built-in/incomplete-model"
-	ldapinjection "github.com/threagile/threagile/pkg/security/risks/built-in/ldap-injection"
-	missingauthentication "github.com/threagile/threagile/pkg/security/risks/built-in/missing-authentication"
-	missingauthenticationsecondfactor "github.com/threagile/threagile/pkg/security/risks/built-in/missing-authentication-second-factor"
-	missingbuildinfrastructure "github.com/threagile/threagile/pkg/security/risks/built-in/missing-build-infrastructure"
-	missingcloudhardening "github.com/threagile/threagile/pkg/security/risks/built-in/missing-cloud-hardening"
-	missingfilevalidation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-file-validation"
-	missinghardening "github.com/threagile/threagile/pkg/security/risks/built-in/missing-hardening"
-	missingidentitypropagation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-identity-propagation"
-	missingidentityproviderisolation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-identity-provider-isolation"
-	missingidentitystore "github.com/threagile/threagile/pkg/security/risks/built-in/missing-identity-store"
-	missingnetworksegmentation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-network-segmentation"
-	missingvault "github.com/threagile/threagile/pkg/security/risks/built-in/missing-vault"
-	missingvaultisolation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-vault-isolation"
-	missingwaf "github.com/threagile/threagile/pkg/security/risks/built-in/missing-waf"
-	mixedtargetsonsharedruntime "github.com/threagile/threagile/pkg/security/risks/built-in/mixed-targets-on-shared-runtime"
-	pathtraversal "github.com/threagile/threagile/pkg/security/risks/built-in/path-traversal"
-	pushinsteadofpulldeployment "github.com/threagile/threagile/pkg/security/risks/built-in/push-instead-of-pull-deployment"
-	searchqueryinjection "github.com/threagile/threagile/pkg/security/risks/built-in/search-query-injection"
-	serversiderequestforgery "github.com/threagile/threagile/pkg/security/risks/built-in/server-side-request-forgery"
-	serviceregistrypoisoning "github.com/threagile/threagile/pkg/security/risks/built-in/service-registry-poisoning"
-	sqlnosqlinjection "github.com/threagile/threagile/pkg/security/risks/built-in/sql-nosql-injection"
-	uncheckeddeployment "github.com/threagile/threagile/pkg/security/risks/built-in/unchecked-deployment"
-	unencryptedasset "github.com/threagile/threagile/pkg/security/risks/built-in/unencrypted-asset"
-	unencryptedcommunication "github.com/threagile/threagile/pkg/security/risks/built-in/unencrypted-communication"
-	unguardedaccessfrominternet "github.com/threagile/threagile/pkg/security/risks/built-in/unguarded-access-from-internet"
-	unguardeddirectdatastoreaccess "github.com/threagile/threagile/pkg/security/risks/built-in/unguarded-direct-datastore-access"
-	unnecessarycommunicationlink "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-communication-link"
-	unnecessarydataasset "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-data-asset"
-	unnecessarydatatransfer "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-data-transfer"
-	unnecessarytechnicalasset "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-technical-asset"
-	untrusteddeserialization "github.com/threagile/threagile/pkg/security/risks/built-in/untrusted-deserialization"
-	wrongcommunicationlinkcontent "github.com/threagile/threagile/pkg/security/risks/built-in/wrong-communication-link-content"
-	wrongtrustboundarycontent "github.com/threagile/threagile/pkg/security/risks/built-in/wrong-trust-boundary-content"
-	xmlexternalentity "github.com/threagile/threagile/pkg/security/risks/built-in/xml-external-entity"
 )
 
 type Context struct {
@@ -152,6 +110,8 @@ type Context struct {
 	graphvizDataFlowDiagramConversionCall  string
 	graphvizDataAssetDiagramConversionCall string
 	inputFile                              string
+
+	progressReporter progressReporter
 }
 
 func (context *Context) addToListOfSupportedTags(tags []string) {
@@ -258,48 +218,9 @@ func (context *Context) applyRiskGeneration() {
 		}
 	}
 
-	context.applyRisk(accidentalsecretleak.Rule(), &skippedRules)
-	context.applyRisk(codebackdooring.Rule(), &skippedRules)
-	context.applyRisk(containerbaseimagebackdooring.Rule(), &skippedRules)
-	context.applyRisk(containerplatformescape.Rule(), &skippedRules)
-	context.applyRisk(crosssiterequestforgery.Rule(), &skippedRules)
-	context.applyRisk(crosssitescripting.Rule(), &skippedRules)
-	context.applyRisk(dosriskyaccessacrosstrustboundary.Rule(), &skippedRules)
-	context.applyRisk(incompletemodel.Rule(), &skippedRules)
-	context.applyRisk(ldapinjection.Rule(), &skippedRules)
-	context.applyRisk(missingauthentication.Rule(), &skippedRules)
-	context.applyRisk(missingauthenticationsecondfactor.Rule(), &skippedRules)
-	context.applyRisk(missingbuildinfrastructure.Rule(), &skippedRules)
-	context.applyRisk(missingcloudhardening.Rule(), &skippedRules)
-	context.applyRisk(missingfilevalidation.Rule(), &skippedRules)
-	context.applyRisk(missinghardening.Rule(), &skippedRules)
-	context.applyRisk(missingidentitypropagation.Rule(), &skippedRules)
-	context.applyRisk(missingidentityproviderisolation.Rule(), &skippedRules)
-	context.applyRisk(missingidentitystore.Rule(), &skippedRules)
-	context.applyRisk(missingnetworksegmentation.Rule(), &skippedRules)
-	context.applyRisk(missingvault.Rule(), &skippedRules)
-	context.applyRisk(missingvaultisolation.Rule(), &skippedRules)
-	context.applyRisk(missingwaf.Rule(), &skippedRules)
-	context.applyRisk(mixedtargetsonsharedruntime.Rule(), &skippedRules)
-	context.applyRisk(pathtraversal.Rule(), &skippedRules)
-	context.applyRisk(pushinsteadofpulldeployment.Rule(), &skippedRules)
-	context.applyRisk(searchqueryinjection.Rule(), &skippedRules)
-	context.applyRisk(serversiderequestforgery.Rule(), &skippedRules)
-	context.applyRisk(serviceregistrypoisoning.Rule(), &skippedRules)
-	context.applyRisk(sqlnosqlinjection.Rule(), &skippedRules)
-	context.applyRisk(uncheckeddeployment.Rule(), &skippedRules)
-	context.applyRisk(unencryptedasset.Rule(), &skippedRules)
-	context.applyRisk(unencryptedcommunication.Rule(), &skippedRules)
-	context.applyRisk(unguardedaccessfrominternet.Rule(), &skippedRules)
-	context.applyRisk(unguardeddirectdatastoreaccess.Rule(), &skippedRules)
-	context.applyRisk(unnecessarycommunicationlink.Rule(), &skippedRules)
-	context.applyRisk(unnecessarydataasset.Rule(), &skippedRules)
-	context.applyRisk(unnecessarydatatransfer.Rule(), &skippedRules)
-	context.applyRisk(unnecessarytechnicalasset.Rule(), &skippedRules)
-	context.applyRisk(untrusteddeserialization.Rule(), &skippedRules)
-	context.applyRisk(wrongcommunicationlinkcontent.Rule(), &skippedRules)
-	context.applyRisk(wrongtrustboundarycontent.Rule(), &skippedRules)
-	context.applyRisk(xmlexternalentity.Rule(), &skippedRules)
+	for _, rule := range risks.GetBuiltInRiskRules() {
+		context.applyRisk(rule, &skippedRules)
+	}
 
 	// NOW THE CUSTOM RISK RULES (if any)
 	for id, customRule := range context.customRiskRules {
@@ -1924,6 +1845,7 @@ func (context *Context) makeDiagramInvisibleConnectionsTweaks() string {
 }
 
 func (context *Context) DoIt() {
+
 	defer func() {
 		var err error
 		if r := recover(); r != nil {
@@ -1945,7 +1867,9 @@ func (context *Context) DoIt() {
 
 	context.parseModel()
 	introTextRAA := context.applyRAA()
-	context.loadCustomRiskRules()
+
+	// TODO: get raa.so from parameters
+	context.customRiskRules = risks.LoadCustomRiskRules([]string{"raa.so"}, context.progressReporter)
 	context.applyRiskGeneration()
 	context.applyWildcardRiskTrackingEvaluation()
 	context.checkRiskTracking()
@@ -2378,40 +2302,6 @@ func (context *Context) applyRAA() string {
 	return runner.ErrorOutput
 }
 
-func (context *Context) loadCustomRiskRules() {
-	context.customRiskRules = make(map[string]*model.CustomRisk)
-	if len(*context.riskRulesPlugins) > 0 {
-		if *context.verbose {
-			fmt.Println("Loading custom risk rules:", *context.riskRulesPlugins)
-		}
-
-		for _, pluginFile := range strings.Split(*context.riskRulesPlugins, ",") {
-			if len(pluginFile) > 0 {
-				runner, loadError := new(run.Runner).Load(pluginFile)
-				if loadError != nil {
-					log.Fatalf("WARNING: Custom risk rule %q not loaded: %v\n", pluginFile, loadError)
-				}
-
-				risk := new(model.CustomRisk)
-				runError := runner.Run(nil, &risk, "-get-info")
-				if runError != nil {
-					log.Fatalf("WARNING: Failed to get ID for custom risk rule %q: %v\n", pluginFile, runError)
-				}
-
-				risk.Runner = runner
-				context.customRiskRules[risk.ID] = risk
-				if *context.verbose {
-					fmt.Println("Custom risk rule loaded:", risk.ID)
-				}
-			}
-		}
-
-		if *context.verbose {
-			fmt.Println("Loaded custom risk rules:", len(context.customRiskRules))
-		}
-	}
-}
-
 func (context *Context) checkIdSyntax(id string) {
 	validIdSyntax := regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
 	if !validIdSyntax.MatchString(id) {
@@ -2746,132 +2636,13 @@ func (context *Context) addSupportedTags(input []byte) []byte {
 			supportedTags[strings.ToLower(tag)] = true
 		}
 	}
-	for _, tag := range accidentalsecretleak.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
+
+	for _, rule := range risks.GetBuiltInRiskRules() {
+		for _, tag := range rule.SupportedTags() {
+			supportedTags[strings.ToLower(tag)] = true
+		}
 	}
-	for _, tag := range codebackdooring.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range containerbaseimagebackdooring.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range containerplatformescape.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range crosssiterequestforgery.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range crosssitescripting.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range dosriskyaccessacrosstrustboundary.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range incompletemodel.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range ldapinjection.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingauthentication.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingauthenticationsecondfactor.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingbuildinfrastructure.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingcloudhardening.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingfilevalidation.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missinghardening.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingidentitypropagation.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingidentityproviderisolation.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingidentitystore.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingnetworksegmentation.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingvault.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingvaultisolation.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range missingwaf.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range mixedtargetsonsharedruntime.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range pathtraversal.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range pushinsteadofpulldeployment.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range searchqueryinjection.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range serversiderequestforgery.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range serviceregistrypoisoning.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range sqlnosqlinjection.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range uncheckeddeployment.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range unencryptedasset.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range unencryptedcommunication.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range unguardedaccessfrominternet.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range unguardeddirectdatastoreaccess.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range unnecessarycommunicationlink.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range unnecessarydataasset.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range unnecessarydatatransfer.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range unnecessarytechnicalasset.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range untrusteddeserialization.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range wrongcommunicationlinkcontent.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range wrongtrustboundarycontent.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
-	for _, tag := range xmlexternalentity.SupportedTags() {
-		supportedTags[strings.ToLower(tag)] = true
-	}
+
 	tags := make([]string, 0, len(supportedTags))
 	for t := range supportedTags {
 		tags = append(tags, t)
@@ -4679,9 +4450,7 @@ func (context *Context) ParseCommandlineArgs() {
 	context.riskRulesPlugins = flag.String("custom-risk-rules-plugins", "", "comma-separated list of plugins (.so shared object) file names with custom risk rules to load")
 	context.verbose = flag.Bool("verbose", false, "verbose output")
 	context.ignoreOrphanedRiskTracking = flag.Bool("ignore-orphaned-risk-tracking", false, "ignore orphaned risk tracking (just log them) not matching a concrete risk")
-	listRiskRules := flag.Bool("list-risk-rules", false, "print risk rules")
 	explainTypes := flag.Bool("explain-types", false, "Detailed explanation of all the types")
-	explainRiskRules := flag.Bool("explain-risk-rules", false, "Detailed explanation of all the risk rules")
 	print3rdParty := flag.Bool("print-3rd-party-licenses", false, "print 3rd-party license information")
 	license := flag.Bool("print-license", false, "print license information")
 	flag.Parse()
@@ -4690,66 +4459,12 @@ func (context *Context) ParseCommandlineArgs() {
 	} else if *context.diagramDPI > context.maxGraphvizDPI {
 		*context.diagramDPI = 300
 	}
-	if *listRiskRules {
-		fmt.Println(docs.Logo + "\n\n" + docs.VersionText)
-		fmt.Println("The following risk rules are available (can be extended via custom risk rules):")
-		fmt.Println()
-		fmt.Println("------------------")
-		fmt.Println("Custom risk rules:")
-		fmt.Println("------------------")
-		context.loadCustomRiskRules()
-		for id, customRule := range context.customRiskRules {
-			fmt.Println(id, "-->", customRule.Category.Title, "--> with tags:", customRule.Tags)
-		}
-		fmt.Println()
-		fmt.Println("--------------------")
-		fmt.Println("Built-in risk rules:")
-		fmt.Println("--------------------")
-		fmt.Println(accidentalsecretleak.Category().Id, "-->", accidentalsecretleak.Category().Title, "--> with tags:", accidentalsecretleak.SupportedTags())
-		fmt.Println(codebackdooring.Category().Id, "-->", codebackdooring.Category().Title, "--> with tags:", codebackdooring.SupportedTags())
-		fmt.Println(containerbaseimagebackdooring.Category().Id, "-->", containerbaseimagebackdooring.Category().Title, "--> with tags:", containerbaseimagebackdooring.SupportedTags())
-		fmt.Println(containerplatformescape.Category().Id, "-->", containerplatformescape.Category().Title, "--> with tags:", containerplatformescape.SupportedTags())
-		fmt.Println(crosssiterequestforgery.Category().Id, "-->", crosssiterequestforgery.Category().Title, "--> with tags:", crosssiterequestforgery.SupportedTags())
-		fmt.Println(crosssitescripting.Category().Id, "-->", crosssitescripting.Category().Title, "--> with tags:", crosssitescripting.SupportedTags())
-		fmt.Println(dosriskyaccessacrosstrustboundary.Category().Id, "-->", dosriskyaccessacrosstrustboundary.Category().Title, "--> with tags:", dosriskyaccessacrosstrustboundary.SupportedTags())
-		fmt.Println(incompletemodel.Category().Id, "-->", incompletemodel.Category().Title, "--> with tags:", incompletemodel.SupportedTags())
-		fmt.Println(ldapinjection.Category().Id, "-->", ldapinjection.Category().Title, "--> with tags:", ldapinjection.SupportedTags())
-		fmt.Println(missingauthentication.Category().Id, "-->", missingauthentication.Category().Title, "--> with tags:", missingauthentication.SupportedTags())
-		fmt.Println(missingauthenticationsecondfactor.Category().Id, "-->", missingauthenticationsecondfactor.Category().Title, "--> with tags:", missingauthenticationsecondfactor.SupportedTags())
-		fmt.Println(missingbuildinfrastructure.Category().Id, "-->", missingbuildinfrastructure.Category().Title, "--> with tags:", missingbuildinfrastructure.SupportedTags())
-		fmt.Println(missingcloudhardening.Category().Id, "-->", missingcloudhardening.Category().Title, "--> with tags:", missingcloudhardening.SupportedTags())
-		fmt.Println(missingfilevalidation.Category().Id, "-->", missingfilevalidation.Category().Title, "--> with tags:", missingfilevalidation.SupportedTags())
-		fmt.Println(missinghardening.Category().Id, "-->", missinghardening.Category().Title, "--> with tags:", missinghardening.SupportedTags())
-		fmt.Println(missingidentitypropagation.Category().Id, "-->", missingidentitypropagation.Category().Title, "--> with tags:", missingidentitypropagation.SupportedTags())
-		fmt.Println(missingidentityproviderisolation.Category().Id, "-->", missingidentityproviderisolation.Category().Title, "--> with tags:", missingidentityproviderisolation.SupportedTags())
-		fmt.Println(missingidentitystore.Category().Id, "-->", missingidentitystore.Category().Title, "--> with tags:", missingidentitystore.SupportedTags())
-		fmt.Println(missingnetworksegmentation.Category().Id, "-->", missingnetworksegmentation.Category().Title, "--> with tags:", missingnetworksegmentation.SupportedTags())
-		fmt.Println(missingvault.Category().Id, "-->", missingvault.Category().Title, "--> with tags:", missingvault.SupportedTags())
-		fmt.Println(missingvaultisolation.Category().Id, "-->", missingvaultisolation.Category().Title, "--> with tags:", missingvaultisolation.SupportedTags())
-		fmt.Println(missingwaf.Category().Id, "-->", missingwaf.Category().Title, "--> with tags:", missingwaf.SupportedTags())
-		fmt.Println(mixedtargetsonsharedruntime.Category().Id, "-->", mixedtargetsonsharedruntime.Category().Title, "--> with tags:", mixedtargetsonsharedruntime.SupportedTags())
-		fmt.Println(pathtraversal.Category().Id, "-->", pathtraversal.Category().Title, "--> with tags:", pathtraversal.SupportedTags())
-		fmt.Println(pushinsteadofpulldeployment.Category().Id, "-->", pushinsteadofpulldeployment.Category().Title, "--> with tags:", pushinsteadofpulldeployment.SupportedTags())
-		fmt.Println(searchqueryinjection.Category().Id, "-->", searchqueryinjection.Category().Title, "--> with tags:", searchqueryinjection.SupportedTags())
-		fmt.Println(serversiderequestforgery.Category().Id, "-->", serversiderequestforgery.Category().Title, "--> with tags:", serversiderequestforgery.SupportedTags())
-		fmt.Println(serviceregistrypoisoning.Category().Id, "-->", serviceregistrypoisoning.Category().Title, "--> with tags:", serviceregistrypoisoning.SupportedTags())
-		fmt.Println(sqlnosqlinjection.Category().Id, "-->", sqlnosqlinjection.Category().Title, "--> with tags:", sqlnosqlinjection.SupportedTags())
-		fmt.Println(uncheckeddeployment.Category().Id, "-->", uncheckeddeployment.Category().Title, "--> with tags:", uncheckeddeployment.SupportedTags())
-		fmt.Println(unencryptedasset.Category().Id, "-->", unencryptedasset.Category().Title, "--> with tags:", unencryptedasset.SupportedTags())
-		fmt.Println(unencryptedcommunication.Category().Id, "-->", unencryptedcommunication.Category().Title, "--> with tags:", unencryptedcommunication.SupportedTags())
-		fmt.Println(unguardedaccessfrominternet.Category().Id, "-->", unguardedaccessfrominternet.Category().Title, "--> with tags:", unguardedaccessfrominternet.SupportedTags())
-		fmt.Println(unguardeddirectdatastoreaccess.Category().Id, "-->", unguardeddirectdatastoreaccess.Category().Title, "--> with tags:", unguardeddirectdatastoreaccess.SupportedTags())
-		fmt.Println(unnecessarycommunicationlink.Category().Id, "-->", unnecessarycommunicationlink.Category().Title, "--> with tags:", unnecessarycommunicationlink.SupportedTags())
-		fmt.Println(unnecessarydataasset.Category().Id, "-->", unnecessarydataasset.Category().Title, "--> with tags:", unnecessarydataasset.SupportedTags())
-		fmt.Println(unnecessarydatatransfer.Category().Id, "-->", unnecessarydatatransfer.Category().Title, "--> with tags:", unnecessarydatatransfer.SupportedTags())
-		fmt.Println(unnecessarytechnicalasset.Category().Id, "-->", unnecessarytechnicalasset.Category().Title, "--> with tags:", unnecessarytechnicalasset.SupportedTags())
-		fmt.Println(untrusteddeserialization.Category().Id, "-->", untrusteddeserialization.Category().Title, "--> with tags:", untrusteddeserialization.SupportedTags())
-		fmt.Println(wrongcommunicationlinkcontent.Category().Id, "-->", wrongcommunicationlinkcontent.Category().Title, "--> with tags:", wrongcommunicationlinkcontent.SupportedTags())
-		fmt.Println(wrongtrustboundarycontent.Category().Id, "-->", wrongtrustboundarycontent.Category().Title, "--> with tags:", wrongtrustboundarycontent.SupportedTags())
-		fmt.Println(xmlexternalentity.Category().Id, "-->", xmlexternalentity.Category().Title, "--> with tags:", xmlexternalentity.SupportedTags())
-		fmt.Println()
-		os.Exit(0)
+
+	context.progressReporter = SilentProgressReporter{}
+	if *context.verbose {
+		context.progressReporter = CommandLineProgressReporter{}
 	}
+
 	if *explainTypes {
 		fmt.Println(docs.Logo + "\n\n" + docs.VersionText)
 		fmt.Println("Explanation for the types:")
@@ -4776,55 +4491,6 @@ func (context *Context) ParseCommandlineArgs() {
 		printExplainTypes("Trust Boundary Type", types.TrustBoundaryTypeValues())
 		printExplainTypes("Usage", types.UsageValues())
 
-		os.Exit(0)
-	}
-	if *explainRiskRules {
-		fmt.Println(docs.Logo + "\n\n" + docs.VersionText)
-		fmt.Println("Explanation for risk rules:")
-		fmt.Println()
-		fmt.Printf("%v: %v\n", accidentalsecretleak.Category().Id, accidentalsecretleak.Category().Description)
-		fmt.Printf("%v: %v\n", codebackdooring.Category().Id, codebackdooring.Category().Description)
-		fmt.Printf("%v: %v\n", containerbaseimagebackdooring.Category().Id, containerbaseimagebackdooring.Category().Description)
-		fmt.Printf("%v: %v\n", containerplatformescape.Category().Id, containerplatformescape.Category().Description)
-		fmt.Printf("%v: %v\n", crosssiterequestforgery.Category().Id, crosssiterequestforgery.Category().Description)
-		fmt.Printf("%v: %v\n", crosssitescripting.Category().Id, crosssitescripting.Category().Description)
-		fmt.Printf("%v: %v\n", dosriskyaccessacrosstrustboundary.Category().Id, dosriskyaccessacrosstrustboundary.Category().Description)
-		fmt.Printf("%v: %v\n", incompletemodel.Category().Id, incompletemodel.Category().Description)
-		fmt.Printf("%v: %v\n", ldapinjection.Category().Id, ldapinjection.Category().Description)
-		fmt.Printf("%v: %v\n", missingauthentication.Category().Id, missingauthentication.Category().Description)
-		fmt.Printf("%v: %v\n", missingauthenticationsecondfactor.Category().Id, missingauthenticationsecondfactor.Category().Description)
-		fmt.Printf("%v: %v\n", missingbuildinfrastructure.Category().Id, missingbuildinfrastructure.Category().Description)
-		fmt.Printf("%v: %v\n", missingcloudhardening.Category().Id, missingcloudhardening.Category().Description)
-		fmt.Printf("%v: %v\n", missingfilevalidation.Category().Id, missingfilevalidation.Category().Description)
-		fmt.Printf("%v: %v\n", missinghardening.Category().Id, missinghardening.Category().Description)
-		fmt.Printf("%v: %v\n", missingidentitypropagation.Category().Id, missingidentitypropagation.Category().Description)
-		fmt.Printf("%v: %v\n", missingidentityproviderisolation.Category().Id, missingidentityproviderisolation.Category().Description)
-		fmt.Printf("%v: %v\n", missingidentitystore.Category().Id, missingidentitystore.Category().Description)
-		fmt.Printf("%v: %v\n", missingnetworksegmentation.Category().Id, missingnetworksegmentation.Category().Description)
-		fmt.Printf("%v: %v\n", missingvault.Category().Id, missingvault.Category().Description)
-		fmt.Printf("%v: %v\n", missingvaultisolation.Category().Id, missingvaultisolation.Category().Description)
-		fmt.Printf("%v: %v\n", missingwaf.Category().Id, missingwaf.Category().Description)
-		fmt.Printf("%v: %v\n", mixedtargetsonsharedruntime.Category().Id, mixedtargetsonsharedruntime.Category().Description)
-		fmt.Printf("%v: %v\n", pathtraversal.Category().Id, pathtraversal.Category().Description)
-		fmt.Printf("%v: %v\n", pushinsteadofpulldeployment.Category().Id, pushinsteadofpulldeployment.Category().Description)
-		fmt.Printf("%v: %v\n", searchqueryinjection.Category().Id, searchqueryinjection.Category().Description)
-		fmt.Printf("%v: %v\n", serversiderequestforgery.Category().Id, serversiderequestforgery.Category().Description)
-		fmt.Printf("%v: %v\n", serviceregistrypoisoning.Category().Id, serviceregistrypoisoning.Category().Description)
-		fmt.Printf("%v: %v\n", sqlnosqlinjection.Category().Id, sqlnosqlinjection.Category().Description)
-		fmt.Printf("%v: %v\n", uncheckeddeployment.Category().Id, uncheckeddeployment.Category().Description)
-		fmt.Printf("%v: %v\n", unencryptedasset.Category().Id, unencryptedasset.Category().Description)
-		fmt.Printf("%v: %v\n", unencryptedcommunication.Category().Id, unencryptedcommunication.Category().Description)
-		fmt.Printf("%v: %v\n", unguardedaccessfrominternet.Category().Id, unguardedaccessfrominternet.Category().Description)
-		fmt.Printf("%v: %v\n", unguardeddirectdatastoreaccess.Category().Id, unguardeddirectdatastoreaccess.Category().Description)
-		fmt.Printf("%v: %v\n", unnecessarycommunicationlink.Category().Id, unnecessarycommunicationlink.Category().Description)
-		fmt.Printf("%v: %v\n", unnecessarydataasset.Category().Id, unnecessarydataasset.Category().Description)
-		fmt.Printf("%v: %v\n", unnecessarydatatransfer.Category().Id, unnecessarydatatransfer.Category().Description)
-		fmt.Printf("%v: %v\n", unnecessarytechnicalasset.Category().Id, unnecessarytechnicalasset.Category().Description)
-		fmt.Printf("%v: %v\n", untrusteddeserialization.Category().Id, untrusteddeserialization.Category().Description)
-		fmt.Printf("%v: %v\n", wrongcommunicationlinkcontent.Category().Id, wrongcommunicationlinkcontent.Category().Description)
-		fmt.Printf("%v: %v\n", wrongtrustboundarycontent.Category().Id, wrongtrustboundarycontent.Category().Description)
-		fmt.Printf("%v: %v\n", xmlexternalentity.Category().Id, xmlexternalentity.Category().Description)
-		fmt.Println()
 		os.Exit(0)
 	}
 	if *print3rdParty {
