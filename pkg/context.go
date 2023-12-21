@@ -4449,7 +4449,6 @@ func (context *Context) ParseCommandlineArgs() {
 	context.riskRulesPlugins = flag.String("custom-risk-rules-plugins", "", "comma-separated list of plugins (.so shared object) file names with custom risk rules to load")
 	context.verbose = flag.Bool("verbose", false, "verbose output")
 	context.ignoreOrphanedRiskTracking = flag.Bool("ignore-orphaned-risk-tracking", false, "ignore orphaned risk tracking (just log them) not matching a concrete risk")
-	explainTypes := flag.Bool("explain-types", false, "Detailed explanation of all the types")
 	print3rdParty := flag.Bool("print-3rd-party-licenses", false, "print 3rd-party license information")
 	license := flag.Bool("print-license", false, "print license information")
 	flag.Parse()
@@ -4464,34 +4463,6 @@ func (context *Context) ParseCommandlineArgs() {
 		context.progressReporter = CommandLineProgressReporter{}
 	}
 
-	if *explainTypes {
-		fmt.Println(docs.Logo + "\n\n" + docs.VersionText)
-		fmt.Println("Explanation for the types:")
-		fmt.Println()
-		printExplainTypes("Authentication", types.AuthenticationValues())
-		printExplainTypes("Authorization", types.AuthorizationValues())
-		printExplainTypes("Confidentiality", types.ConfidentialityValues())
-		printExplainTypes("Criticality", types.CriticalityValues())
-		printExplainTypes("Data Breach Probability", types.DataBreachProbabilityValues())
-		printExplainTypes("Data Format", types.DataFormatValues())
-		printExplainTypes("Encryption", types.EncryptionStyleValues())
-		printExplainTypes("Protocol", types.ProtocolValues())
-		printExplainTypes("Quantity", types.QuantityValues())
-		printExplainTypes("Risk Exploitation Impact", types.RiskExploitationImpactValues())
-		printExplainTypes("Risk Exploitation likelihood", types.RiskExploitationLikelihoodValues())
-		printExplainTypes("Risk Function", types.RiskFunctionValues())
-		printExplainTypes("Risk Severity", types.RiskSeverityValues())
-		printExplainTypes("Risk Status", types.RiskStatusValues())
-		printExplainTypes("STRIDE", types.STRIDEValues())
-		printExplainTypes("Technical Asset Machine", types.TechnicalAssetMachineValues())
-		printExplainTypes("Technical Asset Size", types.TechnicalAssetSizeValues())
-		printExplainTypes("Technical Asset Technology", types.TechnicalAssetTechnologyValues())
-		printExplainTypes("Technical Asset Type", types.TechnicalAssetTypeValues())
-		printExplainTypes("Trust Boundary Type", types.TrustBoundaryTypeValues())
-		printExplainTypes("Usage", types.UsageValues())
-
-		os.Exit(0)
-	}
 	if *print3rdParty {
 		fmt.Println(docs.Logo + "\n\n" + docs.VersionText)
 		fmt.Println("Kudos & Credits to the following open-source projects:")
@@ -4572,14 +4543,6 @@ func (context *Context) ParseCommandlineArgs() {
 	}
 
 	context.ServerMode = (*context.serverPort > 0)
-}
-
-// explainTypes prints and explanation block and a header
-func printExplainTypes(title string, value []types.TypeEnum) {
-	fmt.Println(title)
-	for _, candidate := range value {
-		fmt.Printf("\t %v: %v\n", candidate, candidate.Explain())
-	}
 }
 
 func (context *Context) createExampleModelFile() error {

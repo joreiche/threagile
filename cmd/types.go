@@ -24,7 +24,23 @@ var listTypesCmd = &cobra.Command{
 		for name, values := range types.GetBuiltinTypeValues() {
 			cmd.Println(fmt.Sprintf("  %v: %v", name, values))
 		}
+	},
+}
 
-		types.TechnicalAssetTechnologyValues()
+var explainTypesCmd = &cobra.Command{
+	Use:   "explain-types",
+	Short: "Print type information (enum values to be used in models)",
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Println(docs.Logo + "\n\n" + docs.VersionText)
+		fmt.Println("Explanation for the types:")
+		cmd.Println()
+		cmd.Println("The following types are available (can be extended for custom rules):")
+		cmd.Println()
+		for name, values := range types.GetBuiltinTypeValues() {
+			cmd.Println(name)
+			for _, candidate := range values {
+				cmd.Printf("\t %v: %v\n", candidate, candidate.Explain())
+			}
+		}
 	},
 }

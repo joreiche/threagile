@@ -31,6 +31,7 @@ func init() {
 	rootCmd.AddCommand(listMacrosCmd)
 	rootCmd.AddCommand(explainMacrosCmd)
 	rootCmd.AddCommand(listTypesCmd)
+	rootCmd.AddCommand(explainTypesCmd)
 	rootCmd.AddCommand(listRiskRules)
 	rootCmd.AddCommand(explainRiskRules)
 }
