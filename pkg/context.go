@@ -1868,7 +1868,6 @@ func (context *Context) DoIt() {
 	context.parseModel()
 	introTextRAA := context.applyRAA()
 
-	// TODO: get raa.so from parameters
 	context.customRiskRules = risks.LoadCustomRiskRules(strings.Split(*context.riskRulesPlugins, ","), context.progressReporter)
 	context.applyRiskGeneration()
 	context.applyWildcardRiskTrackingEvaluation()
