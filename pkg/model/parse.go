@@ -3,15 +3,16 @@ package model
 import (
 	"errors"
 	"fmt"
-	"github.com/threagile/threagile/pkg/input"
-	"github.com/threagile/threagile/pkg/security/types"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/threagile/threagile/pkg/input"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
-func ParseModel(modelInput *input.ModelInput, builtinRiskRules map[string]types.RiskRule, customRiskRules map[string]*types.CustomRisk) (*types.ParsedModel, error) {
+func ParseModel(modelInput *input.ModelInput, builtinRiskRules map[string]RiskRule, customRiskRules map[string]*types.CustomRisk) (*ParsedModel, error) {
 	businessCriticality, err := types.ParseCriticality(modelInput.BusinessCriticality)
 	if err != nil {
 		return nil, errors.New("unknown 'business_criticality' value of application: " + modelInput.BusinessCriticality)
@@ -26,7 +27,7 @@ func ParseModel(modelInput *input.ModelInput, builtinRiskRules map[string]types.
 		}
 	}
 
-	parsedModel := types.ParsedModel{
+	parsedModel := ParsedModel{
 		Author:                         modelInput.Author,
 		Title:                          modelInput.Title,
 		Date:                           reportDate,

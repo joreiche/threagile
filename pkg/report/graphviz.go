@@ -13,10 +13,11 @@ import (
 	"strings"
 
 	"github.com/threagile/threagile/pkg/colors"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
-func WriteDataFlowDiagramGraphvizDOT(parsedModel *types.ParsedModel,
+func WriteDataFlowDiagramGraphvizDOT(parsedModel *model.ParsedModel,
 	diagramFilenameDOT string, dpi int, addModelTitle bool,
 	progressReporter progressReporter) (*os.File, error) {
 	progressReporter.Info("Writing data flow diagram input")
@@ -319,7 +320,7 @@ func GenerateDataFlowDiagramGraphvizImage(dotFile *os.File, targetDir string,
 	return nil
 }
 
-func makeDiagramSameRankNodeTweaks(parsedModel *types.ParsedModel) (string, error) {
+func makeDiagramSameRankNodeTweaks(parsedModel *model.ParsedModel) (string, error) {
 	// see https://stackoverflow.com/questions/25734244/how-do-i-place-nodes-on-the-same-level-in-dot
 	tweak := ""
 	if len(parsedModel.DiagramTweakSameRankAssets) > 0 {
@@ -345,7 +346,7 @@ func makeDiagramSameRankNodeTweaks(parsedModel *types.ParsedModel) (string, erro
 	return tweak, nil
 }
 
-func makeDiagramInvisibleConnectionsTweaks(parsedModel *types.ParsedModel) (string, error) {
+func makeDiagramInvisibleConnectionsTweaks(parsedModel *model.ParsedModel) (string, error) {
 	// see https://stackoverflow.com/questions/2476575/how-to-control-node-placement-in-graphviz-i-e-avoid-edge-crossings
 	tweak := ""
 	if len(parsedModel.DiagramTweakInvisibleConnectionsBetweenAssets) > 0 {
@@ -368,7 +369,7 @@ func makeDiagramInvisibleConnectionsTweaks(parsedModel *types.ParsedModel) (stri
 	return tweak, nil
 }
 
-func WriteDataAssetDiagramGraphvizDOT(parsedModel *types.ParsedModel, diagramFilenameDOT string, dpi int,
+func WriteDataAssetDiagramGraphvizDOT(parsedModel *model.ParsedModel, diagramFilenameDOT string, dpi int,
 	progressReporter progressReporter) (*os.File, error) {
 	progressReporter.Info("Writing data asset diagram input")
 
@@ -459,7 +460,7 @@ func WriteDataAssetDiagramGraphvizDOT(parsedModel *types.ParsedModel, diagramFil
 	return file, nil
 }
 
-func makeDataAssetNode(parsedModel *types.ParsedModel, dataAsset types.DataAsset) string {
+func makeDataAssetNode(parsedModel *model.ParsedModel, dataAsset types.DataAsset) string {
 	var color string
 	switch dataAsset.IdentifiedDataBreachProbabilityStillAtRisk(parsedModel) {
 	case types.Probable:
@@ -477,12 +478,12 @@ func makeDataAssetNode(parsedModel *types.ParsedModel, dataAsset types.DataAsset
 	return "  " + hash(dataAsset.Id) + ` [ label=<<b>` + encode(dataAsset.Title) + `</b>> penwidth="3.0" style="filled" fillcolor="` + color + `" color="` + color + "\"\n  ]; "
 }
 
-func makeTechAssetNode(parsedModel *types.ParsedModel, technicalAsset types.TechnicalAsset, simplified bool) string {
+func makeTechAssetNode(parsedModel *model.ParsedModel, technicalAsset types.TechnicalAsset, simplified bool) string {
 	if simplified {
 		color := colors.RgbHexColorOutOfScope()
 		if !technicalAsset.OutOfScope {
 			generatedRisks := technicalAsset.GeneratedRisks(parsedModel)
-			switch types.HighestSeverityStillAtRisk(parsedModel, generatedRisks) {
+			switch model.HighestSeverityStillAtRisk(parsedModel, generatedRisks) {
 			case types.CriticalSeverity:
 				color = colors.RgbHexColorCriticalRisk()
 			case types.HighSeverity:
@@ -496,7 +497,7 @@ func makeTechAssetNode(parsedModel *types.ParsedModel, technicalAsset types.Tech
 			default:
 				color = "#444444" // since black is too dark here as fill color
 			}
-			if len(types.ReduceToOnlyStillAtRisk(parsedModel, generatedRisks)) == 0 {
+			if len(model.ReduceToOnlyStillAtRisk(parsedModel, generatedRisks)) == 0 {
 				color = "#444444" // since black is too dark here as fill color
 			}
 		}

@@ -17,48 +17,49 @@ import (
 	"github.com/jung-kurt/gofpdf/contrib/gofpdi"
 	"github.com/threagile/threagile/pkg/colors"
 	"github.com/threagile/threagile/pkg/docs"
-	accidental_secret_leak "github.com/threagile/threagile/pkg/security/risks/built-in/accidental-secret-leak"
-	code_backdooring "github.com/threagile/threagile/pkg/security/risks/built-in/code-backdooring"
-	container_baseimage_backdooring "github.com/threagile/threagile/pkg/security/risks/built-in/container-baseimage-backdooring"
-	container_platform_escape "github.com/threagile/threagile/pkg/security/risks/built-in/container-platform-escape"
-	cross_site_request_forgery "github.com/threagile/threagile/pkg/security/risks/built-in/cross-site-request-forgery"
-	cross_site_scripting "github.com/threagile/threagile/pkg/security/risks/built-in/cross-site-scripting"
-	dos_risky_access_across_trust_boundary "github.com/threagile/threagile/pkg/security/risks/built-in/dos-risky-access-across-trust-boundary"
-	incomplete_model "github.com/threagile/threagile/pkg/security/risks/built-in/incomplete-model"
-	ldap_injection "github.com/threagile/threagile/pkg/security/risks/built-in/ldap-injection"
-	missing_authentication "github.com/threagile/threagile/pkg/security/risks/built-in/missing-authentication"
-	missing_authentication_second_factor "github.com/threagile/threagile/pkg/security/risks/built-in/missing-authentication-second-factor"
-	missing_build_infrastructure "github.com/threagile/threagile/pkg/security/risks/built-in/missing-build-infrastructure"
-	missing_cloud_hardening "github.com/threagile/threagile/pkg/security/risks/built-in/missing-cloud-hardening"
-	missing_file_validation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-file-validation"
-	missing_hardening "github.com/threagile/threagile/pkg/security/risks/built-in/missing-hardening"
-	missing_identity_propagation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-identity-propagation"
-	missing_identity_provider_isolation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-identity-provider-isolation"
-	missing_identity_store "github.com/threagile/threagile/pkg/security/risks/built-in/missing-identity-store"
-	missing_network_segmentation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-network-segmentation"
-	missing_vault "github.com/threagile/threagile/pkg/security/risks/built-in/missing-vault"
-	missing_vault_isolation "github.com/threagile/threagile/pkg/security/risks/built-in/missing-vault-isolation"
-	missing_waf "github.com/threagile/threagile/pkg/security/risks/built-in/missing-waf"
-	mixed_targets_on_shared_runtime "github.com/threagile/threagile/pkg/security/risks/built-in/mixed-targets-on-shared-runtime"
-	path_traversal "github.com/threagile/threagile/pkg/security/risks/built-in/path-traversal"
-	push_instead_of_pull_deployment "github.com/threagile/threagile/pkg/security/risks/built-in/push-instead-of-pull-deployment"
-	search_query_injection "github.com/threagile/threagile/pkg/security/risks/built-in/search-query-injection"
-	server_side_request_forgery "github.com/threagile/threagile/pkg/security/risks/built-in/server-side-request-forgery"
-	service_registry_poisoning "github.com/threagile/threagile/pkg/security/risks/built-in/service-registry-poisoning"
-	sql_nosql_injection "github.com/threagile/threagile/pkg/security/risks/built-in/sql-nosql-injection"
-	unchecked_deployment "github.com/threagile/threagile/pkg/security/risks/built-in/unchecked-deployment"
-	unencrypted_asset "github.com/threagile/threagile/pkg/security/risks/built-in/unencrypted-asset"
-	unencrypted_communication "github.com/threagile/threagile/pkg/security/risks/built-in/unencrypted-communication"
-	unguarded_access_from_internet "github.com/threagile/threagile/pkg/security/risks/built-in/unguarded-access-from-internet"
-	unguarded_direct_datastore_access "github.com/threagile/threagile/pkg/security/risks/built-in/unguarded-direct-datastore-access"
-	unnecessary_communication_link "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-communication-link"
-	unnecessary_data_asset "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-data-asset"
-	unnecessary_data_transfer "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-data-transfer"
-	unnecessary_technical_asset "github.com/threagile/threagile/pkg/security/risks/built-in/unnecessary-technical-asset"
-	untrusted_deserialization "github.com/threagile/threagile/pkg/security/risks/built-in/untrusted-deserialization"
-	wrong_communication_link_content "github.com/threagile/threagile/pkg/security/risks/built-in/wrong-communication-link-content"
-	wrong_trust_boundary_content "github.com/threagile/threagile/pkg/security/risks/built-in/wrong-trust-boundary-content"
-	xml_external_entity "github.com/threagile/threagile/pkg/security/risks/built-in/xml-external-entity"
+	"github.com/threagile/threagile/pkg/model"
+	accidental_secret_leak "github.com/threagile/threagile/pkg/model/risks/built-in/accidental-secret-leak"
+	code_backdooring "github.com/threagile/threagile/pkg/model/risks/built-in/code-backdooring"
+	container_baseimage_backdooring "github.com/threagile/threagile/pkg/model/risks/built-in/container-baseimage-backdooring"
+	container_platform_escape "github.com/threagile/threagile/pkg/model/risks/built-in/container-platform-escape"
+	cross_site_request_forgery "github.com/threagile/threagile/pkg/model/risks/built-in/cross-site-request-forgery"
+	cross_site_scripting "github.com/threagile/threagile/pkg/model/risks/built-in/cross-site-scripting"
+	dos_risky_access_across_trust_boundary "github.com/threagile/threagile/pkg/model/risks/built-in/dos-risky-access-across-trust-boundary"
+	incomplete_model "github.com/threagile/threagile/pkg/model/risks/built-in/incomplete-model"
+	ldap_injection "github.com/threagile/threagile/pkg/model/risks/built-in/ldap-injection"
+	missing_authentication "github.com/threagile/threagile/pkg/model/risks/built-in/missing-authentication"
+	missing_authentication_second_factor "github.com/threagile/threagile/pkg/model/risks/built-in/missing-authentication-second-factor"
+	missing_build_infrastructure "github.com/threagile/threagile/pkg/model/risks/built-in/missing-build-infrastructure"
+	missing_cloud_hardening "github.com/threagile/threagile/pkg/model/risks/built-in/missing-cloud-hardening"
+	missing_file_validation "github.com/threagile/threagile/pkg/model/risks/built-in/missing-file-validation"
+	missing_hardening "github.com/threagile/threagile/pkg/model/risks/built-in/missing-hardening"
+	missing_identity_propagation "github.com/threagile/threagile/pkg/model/risks/built-in/missing-identity-propagation"
+	missing_identity_provider_isolation "github.com/threagile/threagile/pkg/model/risks/built-in/missing-identity-provider-isolation"
+	missing_identity_store "github.com/threagile/threagile/pkg/model/risks/built-in/missing-identity-store"
+	missing_network_segmentation "github.com/threagile/threagile/pkg/model/risks/built-in/missing-network-segmentation"
+	missing_vault "github.com/threagile/threagile/pkg/model/risks/built-in/missing-vault"
+	missing_vault_isolation "github.com/threagile/threagile/pkg/model/risks/built-in/missing-vault-isolation"
+	missing_waf "github.com/threagile/threagile/pkg/model/risks/built-in/missing-waf"
+	mixed_targets_on_shared_runtime "github.com/threagile/threagile/pkg/model/risks/built-in/mixed-targets-on-shared-runtime"
+	path_traversal "github.com/threagile/threagile/pkg/model/risks/built-in/path-traversal"
+	push_instead_of_pull_deployment "github.com/threagile/threagile/pkg/model/risks/built-in/push-instead-of-pull-deployment"
+	search_query_injection "github.com/threagile/threagile/pkg/model/risks/built-in/search-query-injection"
+	server_side_request_forgery "github.com/threagile/threagile/pkg/model/risks/built-in/server-side-request-forgery"
+	service_registry_poisoning "github.com/threagile/threagile/pkg/model/risks/built-in/service-registry-poisoning"
+	sql_nosql_injection "github.com/threagile/threagile/pkg/model/risks/built-in/sql-nosql-injection"
+	unchecked_deployment "github.com/threagile/threagile/pkg/model/risks/built-in/unchecked-deployment"
+	unencrypted_asset "github.com/threagile/threagile/pkg/model/risks/built-in/unencrypted-asset"
+	unencrypted_communication "github.com/threagile/threagile/pkg/model/risks/built-in/unencrypted-communication"
+	unguarded_access_from_internet "github.com/threagile/threagile/pkg/model/risks/built-in/unguarded-access-from-internet"
+	unguarded_direct_datastore_access "github.com/threagile/threagile/pkg/model/risks/built-in/unguarded-direct-datastore-access"
+	unnecessary_communication_link "github.com/threagile/threagile/pkg/model/risks/built-in/unnecessary-communication-link"
+	unnecessary_data_asset "github.com/threagile/threagile/pkg/model/risks/built-in/unnecessary-data-asset"
+	unnecessary_data_transfer "github.com/threagile/threagile/pkg/model/risks/built-in/unnecessary-data-transfer"
+	unnecessary_technical_asset "github.com/threagile/threagile/pkg/model/risks/built-in/unnecessary-technical-asset"
+	untrusted_deserialization "github.com/threagile/threagile/pkg/model/risks/built-in/untrusted-deserialization"
+	wrong_communication_link_content "github.com/threagile/threagile/pkg/model/risks/built-in/wrong-communication-link-content"
+	wrong_trust_boundary_content "github.com/threagile/threagile/pkg/model/risks/built-in/wrong-trust-boundary-content"
+	xml_external_entity "github.com/threagile/threagile/pkg/model/risks/built-in/xml-external-entity"
 	"github.com/threagile/threagile/pkg/security/types"
 	"github.com/wcharczuk/go-chart"
 	"github.com/wcharczuk/go-chart/drawing"
@@ -101,7 +102,7 @@ func (r *pdfReporter) WriteReportPDF(reportFilename string,
 	introTextRAA string,
 	customRiskRules map[string]*types.CustomRisk,
 	tempFolder string,
-	model *types.ParsedModel) error {
+	model *model.ParsedModel) error {
 	r.initReport()
 	r.createPdfAndInitMetadata(model)
 	r.parseBackgroundTemplate(templateFilename)
@@ -147,7 +148,7 @@ func (r *pdfReporter) WriteReportPDF(reportFilename string,
 	return nil
 }
 
-func (r *pdfReporter) createPdfAndInitMetadata(model *types.ParsedModel) {
+func (r *pdfReporter) createPdfAndInitMetadata(model *model.ParsedModel) {
 	r.pdf = gofpdf.New("P", "mm", "A4", "")
 	r.pdf.SetCreator(model.Author.Homepage, true)
 	r.pdf.SetAuthor(model.Author.Name, true)
@@ -182,7 +183,7 @@ func (r *pdfReporter) createPdfAndInitMetadata(model *types.ParsedModel) {
 	r.linkCounter = 1 // link counting starts at 1 via r.pdf.AddLink
 }
 
-func (r *pdfReporter) addBreadcrumb(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) addBreadcrumb(parsedModel *model.ParsedModel) {
 	if len(r.currentChapterTitleBreadcrumb) > 0 {
 		uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 		r.pdf.SetFont("Helvetica", "", 10)
@@ -207,7 +208,7 @@ func (r *pdfReporter) parseBackgroundTemplate(templateFilename string) {
 	r.diagramLegendTemplateId = gofpdi.ImportPage(r.pdf, templateFilename, 3, "/MediaBox")
 }
 
-func (r *pdfReporter) createCover(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createCover(parsedModel *model.ParsedModel) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	r.pdf.AddPage()
 	gofpdi.UseImportedTemplate(r.pdf, r.coverTemplateId, 0, 0, 0, 300)
@@ -229,7 +230,7 @@ func (r *pdfReporter) createCover(parsedModel *types.ParsedModel) {
 	r.pdf.SetTextColor(0, 0, 0)
 }
 
-func (r *pdfReporter) createTableOfContents(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createTableOfContents(parsedModel *model.ParsedModel) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	r.pdf.AddPage()
 	r.currentChapterTitleBreadcrumb = "Table of Contents"
@@ -260,7 +261,7 @@ func (r *pdfReporter) createTableOfContents(parsedModel *types.ParsedModel) {
 
 	risksStr := "Risks"
 	catStr := "Categories"
-	count, catCount := types.TotalRiskCount(parsedModel), len(parsedModel.GeneratedRisksByCategory)
+	count, catCount := model.TotalRiskCount(parsedModel), len(parsedModel.GeneratedRisksByCategory)
 	if count == 1 {
 		risksStr = "Risk"
 	}
@@ -672,7 +673,7 @@ func (r *pdfReporter) createTableOfContents(parsedModel *types.ParsedModel) {
 	// by the current page number. --> See the "r.pdf.RegisterAlias()" calls during the PDF creation in this file
 }
 
-func sortedTechnicalAssetsByRiskSeverityAndTitle(parsedModel *types.ParsedModel) []types.TechnicalAsset {
+func sortedTechnicalAssetsByRiskSeverityAndTitle(parsedModel *model.ParsedModel) []types.TechnicalAsset {
 	assets := make([]types.TechnicalAsset, 0)
 	for _, asset := range parsedModel.TechnicalAssets {
 		assets = append(assets, asset)
@@ -681,7 +682,7 @@ func sortedTechnicalAssetsByRiskSeverityAndTitle(parsedModel *types.ParsedModel)
 	return assets
 }
 
-func sortedDataAssetsByDataBreachProbabilityAndTitle(parsedModel *types.ParsedModel) []types.DataAsset {
+func sortedDataAssetsByDataBreachProbabilityAndTitle(parsedModel *model.ParsedModel) []types.DataAsset {
 	assets := make([]types.DataAsset, 0)
 	for _, asset := range parsedModel.DataAssets {
 		assets = append(assets, asset)
@@ -703,7 +704,7 @@ func (r *pdfReporter) defineLinkTarget(alias string) {
 	r.linkCounter++
 }
 
-func (r *pdfReporter) createDisclaimer(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createDisclaimer(parsedModel *model.ParsedModel) {
 	r.pdf.AddPage()
 	r.currentChapterTitleBreadcrumb = "Disclaimer"
 	r.defineLinkTarget("{disclaimer}")
@@ -756,25 +757,25 @@ func (r *pdfReporter) createDisclaimer(parsedModel *types.ParsedModel) {
 	r.pdfColorBlack()
 }
 
-func (r *pdfReporter) createManagementSummary(parsedModel *types.ParsedModel, tempFolder string) error {
+func (r *pdfReporter) createManagementSummary(parsedModel *model.ParsedModel, tempFolder string) error {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	r.pdf.SetTextColor(0, 0, 0)
 	title := "Management Summary"
 	r.addHeadline(title, false)
 	r.defineLinkTarget("{management-summary}")
 	r.currentChapterTitleBreadcrumb = title
-	countCritical := len(types.FilteredByOnlyCriticalRisks(parsedModel))
-	countHigh := len(types.FilteredByOnlyHighRisks(parsedModel))
-	countElevated := len(types.FilteredByOnlyElevatedRisks(parsedModel))
-	countMedium := len(types.FilteredByOnlyMediumRisks(parsedModel))
-	countLow := len(types.FilteredByOnlyLowRisks(parsedModel))
+	countCritical := len(model.FilteredByOnlyCriticalRisks(parsedModel))
+	countHigh := len(model.FilteredByOnlyHighRisks(parsedModel))
+	countElevated := len(model.FilteredByOnlyElevatedRisks(parsedModel))
+	countMedium := len(model.FilteredByOnlyMediumRisks(parsedModel))
+	countLow := len(model.FilteredByOnlyLowRisks(parsedModel))
 
-	countStatusUnchecked := len(types.FilteredByRiskTrackingUnchecked(parsedModel))
-	countStatusInDiscussion := len(types.FilteredByRiskTrackingInDiscussion(parsedModel))
-	countStatusAccepted := len(types.FilteredByRiskTrackingAccepted(parsedModel))
-	countStatusInProgress := len(types.FilteredByRiskTrackingInProgress(parsedModel))
-	countStatusMitigated := len(types.FilteredByRiskTrackingMitigated(parsedModel))
-	countStatusFalsePositive := len(types.FilteredByRiskTrackingFalsePositive(parsedModel))
+	countStatusUnchecked := len(model.FilteredByRiskTrackingUnchecked(parsedModel))
+	countStatusInDiscussion := len(model.FilteredByRiskTrackingInDiscussion(parsedModel))
+	countStatusAccepted := len(model.FilteredByRiskTrackingAccepted(parsedModel))
+	countStatusInProgress := len(model.FilteredByRiskTrackingInProgress(parsedModel))
+	countStatusMitigated := len(model.FilteredByRiskTrackingMitigated(parsedModel))
+	countStatusFalsePositive := len(model.FilteredByRiskTrackingFalsePositive(parsedModel))
 
 	html := r.pdf.HTMLBasicNew()
 	html.Write(5, "Threagile toolkit was used to model the architecture of \""+uni(parsedModel.Title)+"\" "+
@@ -790,7 +791,7 @@ func (r *pdfReporter) createManagementSummary(parsedModel *types.ParsedModel, te
 		"the application in a Defense-in-Depth approach. Additionally, for each risk finding a "+
 		"link towards a matching OWASP Cheat Sheet or similar with technical details about how to implement a mitigation is given."+
 		"<br><br>"+
-		"In total <b>"+strconv.Itoa(types.TotalRiskCount(parsedModel))+" initial risks</b> in <b>"+strconv.Itoa(len(parsedModel.GeneratedRisksByCategory))+" categories</b> have "+
+		"In total <b>"+strconv.Itoa(model.TotalRiskCount(parsedModel))+" initial risks</b> in <b>"+strconv.Itoa(len(parsedModel.GeneratedRisksByCategory))+" categories</b> have "+
 		"been identified during the threat modeling process:<br><br>") // TODO plural singular stuff risk/s category/ies has/have
 
 	r.pdf.SetFont("Helvetica", "B", fontSizeBody)
@@ -951,7 +952,7 @@ func (r *pdfReporter) createManagementSummary(parsedModel *types.ParsedModel, te
 	return nil
 }
 
-func (r *pdfReporter) createRiskMitigationStatus(parsedModel *types.ParsedModel, tempFolder string) error {
+func (r *pdfReporter) createRiskMitigationStatus(parsedModel *model.ParsedModel, tempFolder string) error {
 	r.pdf.SetTextColor(0, 0, 0)
 	stillAtRisk := types.FilteredByStillAtRisk(parsedModel)
 	count := len(stillAtRisk)
@@ -1308,17 +1309,17 @@ func makeColor(hexColor string) drawing.Color {
 	return drawing.ColorFromHex(hexColor[i:]) // = remove first char, which is # in rgb hex here
 }
 
-func (r *pdfReporter) createImpactInitialRisks(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createImpactInitialRisks(parsedModel *model.ParsedModel) {
 	r.renderImpactAnalysis(parsedModel, true)
 }
 
-func (r *pdfReporter) createImpactRemainingRisks(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createImpactRemainingRisks(parsedModel *model.ParsedModel) {
 	r.renderImpactAnalysis(parsedModel, false)
 }
 
-func (r *pdfReporter) renderImpactAnalysis(parsedModel *types.ParsedModel, initialRisks bool) {
+func (r *pdfReporter) renderImpactAnalysis(parsedModel *model.ParsedModel, initialRisks bool) {
 	r.pdf.SetTextColor(0, 0, 0)
-	count, catCount := types.TotalRiskCount(parsedModel), len(parsedModel.GeneratedRisksByCategory)
+	count, catCount := model.TotalRiskCount(parsedModel), len(parsedModel.GeneratedRisksByCategory)
 	if !initialRisks {
 		count, catCount = len(types.FilteredByStillAtRisk(parsedModel)), len(types.CategoriesOfOnlyRisksStillAtRisk(parsedModel, parsedModel.GeneratedRisksByCategory))
 	}
@@ -1376,7 +1377,7 @@ func (r *pdfReporter) renderImpactAnalysis(parsedModel *types.ParsedModel, initi
 	r.pdf.SetDashPattern([]float64{}, 0)
 }
 
-func (r *pdfReporter) createOutOfScopeAssets(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createOutOfScopeAssets(parsedModel *model.ParsedModel) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	r.pdf.SetTextColor(0, 0, 0)
 	assets := "Assets"
@@ -1439,7 +1440,7 @@ func (r *pdfReporter) createOutOfScopeAssets(parsedModel *types.ParsedModel) {
 	r.pdf.SetDashPattern([]float64{}, 0)
 }
 
-func sortedTechnicalAssetsByRAAAndTitle(parsedModel *types.ParsedModel) []types.TechnicalAsset {
+func sortedTechnicalAssetsByRAAAndTitle(parsedModel *model.ParsedModel) []types.TechnicalAsset {
 	assets := make([]types.TechnicalAsset, 0)
 	for _, asset := range parsedModel.TechnicalAssets {
 		assets = append(assets, asset)
@@ -1448,7 +1449,7 @@ func sortedTechnicalAssetsByRAAAndTitle(parsedModel *types.ParsedModel) []types.
 	return assets
 }
 
-func (r *pdfReporter) createModelFailures(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createModelFailures(parsedModel *model.ParsedModel) {
 	r.pdf.SetTextColor(0, 0, 0)
 	modelFailures := types.FlattenRiskSlice(types.FilterByModelFailures(parsedModel, parsedModel.GeneratedRisksByCategory))
 	risksStr := "Risks"
@@ -1499,7 +1500,7 @@ func (r *pdfReporter) createModelFailures(parsedModel *types.ParsedModel) {
 	r.pdf.SetDashPattern([]float64{}, 0)
 }
 
-func (r *pdfReporter) createRAA(parsedModel *types.ParsedModel, introTextRAA string) {
+func (r *pdfReporter) createRAA(parsedModel *model.ParsedModel, introTextRAA string) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	r.pdf.SetTextColor(0, 0, 0)
 	chapTitle := "RAA Analysis"
@@ -1645,7 +1646,7 @@ func createDataRiskQuickWins() {
 }
 */
 
-func (r *pdfReporter) addCategories(parsedModel *types.ParsedModel, riskCategories []types.RiskCategory, severity types.RiskSeverity, bothInitialAndRemainingRisks bool, initialRisks bool, describeImpact bool, describeDescription bool) {
+func (r *pdfReporter) addCategories(parsedModel *model.ParsedModel, riskCategories []types.RiskCategory, severity types.RiskSeverity, bothInitialAndRemainingRisks bool, initialRisks bool, describeImpact bool, describeDescription bool) {
 	html := r.pdf.HTMLBasicNew()
 	var strBuilder strings.Builder
 	sort.Sort(types.ByRiskCategoryTitleSort(riskCategories))
@@ -1751,7 +1752,7 @@ func firstParagraph(text string) string {
 	return match[1]
 }
 
-func (r *pdfReporter) createAssignmentByFunction(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createAssignmentByFunction(parsedModel *model.ParsedModel) {
 	r.pdf.SetTextColor(0, 0, 0)
 	title := "Assignment by Function"
 	r.addHeadline(title, false)
@@ -1770,7 +1771,7 @@ func (r *pdfReporter) createAssignmentByFunction(parsedModel *types.ParsedModel)
 	var intro strings.Builder
 	intro.WriteString("This chapter clusters and assigns the risks by functions which are most likely able to " +
 		"check and mitigate them: " +
-		"In total <b>" + strconv.Itoa(types.TotalRiskCount(parsedModel)) + " potential risks</b> have been identified during the threat modeling process " +
+		"In total <b>" + strconv.Itoa(model.TotalRiskCount(parsedModel)) + " potential risks</b> have been identified during the threat modeling process " +
 		"of which <b>" + strconv.Itoa(countBusinessSideFunction) + " should be checked by " + types.BusinessSide.Title() + "</b>, " +
 		"<b>" + strconv.Itoa(countArchitectureFunction) + " should be checked by " + types.Architecture.Title() + "</b>, " +
 		"<b>" + strconv.Itoa(countDevelopmentFunction) + " should be checked by " + types.Development.Title() + "</b>, " +
@@ -1897,7 +1898,7 @@ func (r *pdfReporter) createAssignmentByFunction(parsedModel *types.ParsedModel)
 	r.pdf.SetDashPattern([]float64{}, 0)
 }
 
-func (r *pdfReporter) createSTRIDE(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createSTRIDE(parsedModel *model.ParsedModel) {
 	r.pdf.SetTextColor(0, 0, 0)
 	title := "STRIDE Classification of Identified Risks"
 	r.addHeadline(title, false)
@@ -1919,7 +1920,7 @@ func (r *pdfReporter) createSTRIDE(parsedModel *types.ParsedModel) {
 	countSTRIDEElevationOfPrivilege := types.CountRisks(risksSTRIDEElevationOfPrivilege)
 	var intro strings.Builder
 	intro.WriteString("This chapter clusters and classifies the risks by STRIDE categories: " +
-		"In total <b>" + strconv.Itoa(types.TotalRiskCount(parsedModel)) + " potential risks</b> have been identified during the threat modeling process " +
+		"In total <b>" + strconv.Itoa(model.TotalRiskCount(parsedModel)) + " potential risks</b> have been identified during the threat modeling process " +
 		"of which <b>" + strconv.Itoa(countSTRIDESpoofing) + " in the " + types.Spoofing.Title() + "</b> category, " +
 		"<b>" + strconv.Itoa(countSTRIDETampering) + " in the " + types.Tampering.Title() + "</b> category, " +
 		"<b>" + strconv.Itoa(countSTRIDERepudiation) + " in the " + types.Repudiation.Title() + "</b> category, " +
@@ -2102,7 +2103,7 @@ func (r *pdfReporter) createSTRIDE(parsedModel *types.ParsedModel) {
 	r.pdf.SetDashPattern([]float64{}, 0)
 }
 
-func (r *pdfReporter) createSecurityRequirements(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createSecurityRequirements(parsedModel *model.ParsedModel) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	r.pdf.SetTextColor(0, 0, 0)
 	chapTitle := "Security Requirements"
@@ -2134,7 +2135,7 @@ func (r *pdfReporter) createSecurityRequirements(parsedModel *types.ParsedModel)
 		"taken into account as well. Also custom individual security requirements might exist for the project.</i>")
 }
 
-func sortedKeysOfSecurityRequirements(parsedModel *types.ParsedModel) []string {
+func sortedKeysOfSecurityRequirements(parsedModel *model.ParsedModel) []string {
 	keys := make([]string, 0)
 	for k := range parsedModel.SecurityRequirements {
 		keys = append(keys, k)
@@ -2143,7 +2144,7 @@ func sortedKeysOfSecurityRequirements(parsedModel *types.ParsedModel) []string {
 	return keys
 }
 
-func (r *pdfReporter) createAbuseCases(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createAbuseCases(parsedModel *model.ParsedModel) {
 	r.pdf.SetTextColor(0, 0, 0)
 	chapTitle := "Abuse Cases"
 	r.addHeadline(chapTitle, false)
@@ -2174,7 +2175,7 @@ func (r *pdfReporter) createAbuseCases(parsedModel *types.ParsedModel) {
 		"taken into account as well. Also custom individual abuse cases might exist for the project.</i>")
 }
 
-func sortedKeysOfAbuseCases(parsedModel *types.ParsedModel) []string {
+func sortedKeysOfAbuseCases(parsedModel *model.ParsedModel) []string {
 	keys := make([]string, 0)
 	for k := range parsedModel.AbuseCases {
 		keys = append(keys, k)
@@ -2183,7 +2184,7 @@ func sortedKeysOfAbuseCases(parsedModel *types.ParsedModel) []string {
 	return keys
 }
 
-func (r *pdfReporter) createQuestions(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createQuestions(parsedModel *model.ParsedModel) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	r.pdf.SetTextColor(0, 0, 0)
 	questions := "Questions"
@@ -2231,7 +2232,7 @@ func (r *pdfReporter) createQuestions(parsedModel *types.ParsedModel) {
 	}
 }
 
-func sortedKeysOfQuestions(parsedModel *types.ParsedModel) []string {
+func sortedKeysOfQuestions(parsedModel *model.ParsedModel) []string {
 	keys := make([]string, 0)
 	for k := range parsedModel.Questions {
 		keys = append(keys, k)
@@ -2240,7 +2241,7 @@ func sortedKeysOfQuestions(parsedModel *types.ParsedModel) []string {
 	return keys
 }
 
-func (r *pdfReporter) createTagListing(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createTagListing(parsedModel *model.ParsedModel) {
 	r.pdf.SetTextColor(0, 0, 0)
 	chapTitle := "Tag Listing"
 	r.addHeadline(chapTitle, false)
@@ -2308,7 +2309,7 @@ func (r *pdfReporter) createTagListing(parsedModel *types.ParsedModel) {
 	}
 }
 
-func sortedSharedRuntimesByTitle(parsedModel *types.ParsedModel) []types.SharedRuntime {
+func sortedSharedRuntimesByTitle(parsedModel *model.ParsedModel) []types.SharedRuntime {
 	result := make([]types.SharedRuntime, 0)
 	for _, runtime := range parsedModel.SharedRuntimes {
 		result = append(result, runtime)
@@ -2317,7 +2318,7 @@ func sortedSharedRuntimesByTitle(parsedModel *types.ParsedModel) []types.SharedR
 	return result
 }
 
-func sortedTechnicalAssetsByTitle(parsedModel *types.ParsedModel) []types.TechnicalAsset {
+func sortedTechnicalAssetsByTitle(parsedModel *model.ParsedModel) []types.TechnicalAsset {
 	assets := make([]types.TechnicalAsset, 0)
 	for _, asset := range parsedModel.TechnicalAssets {
 		assets = append(assets, asset)
@@ -2326,7 +2327,7 @@ func sortedTechnicalAssetsByTitle(parsedModel *types.ParsedModel) []types.Techni
 	return assets
 }
 
-func (r *pdfReporter) createRiskCategories(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createRiskCategories(parsedModel *model.ParsedModel) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	// category title
 	title := "Identified Risks by Vulnerability Category"
@@ -2335,7 +2336,7 @@ func (r *pdfReporter) createRiskCategories(parsedModel *types.ParsedModel) {
 	r.defineLinkTarget("{intro-risks-by-vulnerability-category}")
 	html := r.pdf.HTMLBasicNew()
 	var text strings.Builder
-	text.WriteString("In total <b>" + strconv.Itoa(types.TotalRiskCount(parsedModel)) + " potential risks</b> have been identified during the threat modeling process " +
+	text.WriteString("In total <b>" + strconv.Itoa(model.TotalRiskCount(parsedModel)) + " potential risks</b> have been identified during the threat modeling process " +
 		"of which " +
 		"<b>" + strconv.Itoa(len(types.FilteredByOnlyCriticalRisks(parsedModel))) + " are rated as critical</b>, " +
 		"<b>" + strconv.Itoa(len(types.FilteredByOnlyHighRisks(parsedModel))) + " as high</b>, " +
@@ -2516,7 +2517,7 @@ func (r *pdfReporter) createRiskCategories(parsedModel *types.ParsedModel) {
 			default:
 				r.pdfColorBlack()
 			}
-			if !risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel).IsStillAtRisk() {
+			if !model.GetRiskTrackingStatusDefaultingUnchecked(parsedModel, risk).IsStillAtRisk() {
 				r.pdfColorBlack()
 			}
 			posY := r.pdf.GetY()
@@ -2546,7 +2547,7 @@ func (r *pdfReporter) createRiskCategories(parsedModel *types.ParsedModel) {
 	}
 }
 
-func (r *pdfReporter) writeRiskTrackingStatus(parsedModel *types.ParsedModel, risk types.Risk) {
+func (r *pdfReporter) writeRiskTrackingStatus(parsedModel *model.ParsedModel, risk types.Risk) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	tracking := risk.GetRiskTracking(parsedModel)
 	r.pdfColorBlack()
@@ -2593,7 +2594,7 @@ func (r *pdfReporter) writeRiskTrackingStatus(parsedModel *types.ParsedModel, ri
 	r.pdfColorBlack()
 }
 
-func (r *pdfReporter) createTechnicalAssets(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createTechnicalAssets(parsedModel *model.ParsedModel) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	// category title
 	title := "Identified Risks by Technical Asset"
@@ -2602,7 +2603,7 @@ func (r *pdfReporter) createTechnicalAssets(parsedModel *types.ParsedModel) {
 	r.defineLinkTarget("{intro-risks-by-technical-asset}")
 	html := r.pdf.HTMLBasicNew()
 	var text strings.Builder
-	text.WriteString("In total <b>" + strconv.Itoa(types.TotalRiskCount(parsedModel)) + " potential risks</b> have been identified during the threat modeling process " +
+	text.WriteString("In total <b>" + strconv.Itoa(model.TotalRiskCount(parsedModel)) + " potential risks</b> have been identified during the threat modeling process " +
 		"of which " +
 		"<b>" + strconv.Itoa(len(types.FilteredByOnlyCriticalRisks(parsedModel))) + " are rated as critical</b>, " +
 		"<b>" + strconv.Itoa(len(types.FilteredByOnlyHighRisks(parsedModel))) + " as high</b>, " +
@@ -3405,14 +3406,14 @@ func (r *pdfReporter) createTechnicalAssets(parsedModel *types.ParsedModel) {
 	}
 }
 
-func (r *pdfReporter) createDataAssets(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createDataAssets(parsedModel *model.ParsedModel) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	title := "Identified Data Breach Probabilities by Data Asset"
 	r.pdfColorBlack()
 	r.addHeadline(title, false)
 	r.defineLinkTarget("{intro-risks-by-data-asset}")
 	html := r.pdf.HTMLBasicNew()
-	html.Write(5, "In total <b>"+strconv.Itoa(types.TotalRiskCount(parsedModel))+" potential risks</b> have been identified during the threat modeling process "+
+	html.Write(5, "In total <b>"+strconv.Itoa(model.TotalRiskCount(parsedModel))+" potential risks</b> have been identified during the threat modeling process "+
 		"of which "+
 		"<b>"+strconv.Itoa(len(types.FilteredByOnlyCriticalRisks(parsedModel)))+" are rated as critical</b>, "+
 		"<b>"+strconv.Itoa(len(types.FilteredByOnlyHighRisks(parsedModel)))+" as high</b>, "+
@@ -3826,7 +3827,7 @@ func (r *pdfReporter) createDataAssets(parsedModel *types.ParsedModel) {
 	}
 }
 
-func (r *pdfReporter) createTrustBoundaries(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createTrustBoundaries(parsedModel *model.ParsedModel) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	title := "Trust Boundaries"
 	r.pdfColorBlack()
@@ -3945,7 +3946,7 @@ func (r *pdfReporter) createTrustBoundaries(parsedModel *types.ParsedModel) {
 	}
 }
 
-func questionsUnanswered(parsedModel *types.ParsedModel) int {
+func questionsUnanswered(parsedModel *model.ParsedModel) int {
 	result := 0
 	for _, answer := range parsedModel.Questions {
 		if len(strings.TrimSpace(answer)) == 0 {
@@ -3955,7 +3956,7 @@ func questionsUnanswered(parsedModel *types.ParsedModel) int {
 	return result
 }
 
-func (r *pdfReporter) createSharedRuntimes(parsedModel *types.ParsedModel) {
+func (r *pdfReporter) createSharedRuntimes(parsedModel *model.ParsedModel) {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	title := "Shared Runtimes"
 	r.pdfColorBlack()
@@ -4036,7 +4037,7 @@ func (r *pdfReporter) createSharedRuntimes(parsedModel *types.ParsedModel) {
 	}
 }
 
-func (r *pdfReporter) createRiskRulesChecked(parsedModel *types.ParsedModel, modelFilename string, skipRiskRules string, buildTimestamp string, modelHash string, customRiskRules map[string]*types.CustomRisk) {
+func (r *pdfReporter) createRiskRulesChecked(parsedModel *model.ParsedModel, modelFilename string, skipRiskRules string, buildTimestamp string, modelHash string, customRiskRules map[string]*types.CustomRisk) {
 	r.pdf.SetTextColor(0, 0, 0)
 	title := "Risk Rules Checked by Threagile"
 	r.addHeadline(title, false)
@@ -5572,7 +5573,7 @@ func (r *pdfReporter) createRiskRulesChecked(parsedModel *types.ParsedModel, mod
 	r.pdf.MultiCell(160, 6, xml_external_entity.Category().RiskAssessment, "0", "0", false)
 }
 
-func (r *pdfReporter) createTargetDescription(parsedModel *types.ParsedModel, baseFolder string) error {
+func (r *pdfReporter) createTargetDescription(parsedModel *model.ParsedModel, baseFolder string) error {
 	uni := r.pdf.UnicodeTranslatorFromDescriptor("")
 	r.pdf.SetTextColor(0, 0, 0)
 	title := "Application Overview"
@@ -5824,7 +5825,7 @@ func (r *pdfReporter) embedDataFlowDiagram(diagramFilenamePNG string, tempFolder
 	}
 }
 
-func sortedKeysOfIndividualRiskCategories(parsedModel *types.ParsedModel) []string {
+func sortedKeysOfIndividualRiskCategories(parsedModel *model.ParsedModel) []string {
 	keys := make([]string, 0)
 	for k := range parsedModel.IndividualRiskCategories {
 		keys = append(keys, k)

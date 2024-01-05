@@ -18,24 +18,22 @@ type Risk struct {
 	// TODO: refactor all "Id" here to "ID"?
 }
 
-func (what Risk) GetRiskTracking(model *ParsedModel) RiskTracking { // TODO: Unify function naming regarding Get etc.
-	var result RiskTracking
-	if riskTracking, ok := model.RiskTracking[what.SyntheticId]; ok {
-		result = riskTracking
+func HighestExploitationLikelihood(risks []Risk) RiskExploitationLikelihood {
+	result := Unlikely
+	for _, risk := range risks {
+		if risk.ExploitationLikelihood > result {
+			result = risk.ExploitationLikelihood
+		}
 	}
 	return result
 }
 
-func (what Risk) GetRiskTrackingStatusDefaultingUnchecked(model *ParsedModel) RiskStatus {
-	if riskTracking, ok := model.RiskTracking[what.SyntheticId]; ok {
-		return riskTracking.Status
+func HighestExploitationImpact(risks []Risk) RiskExploitationImpact {
+	result := LowImpact
+	for _, risk := range risks {
+		if risk.ExploitationImpact > result {
+			result = risk.ExploitationImpact
+		}
 	}
-	return Unchecked
-}
-
-func (what Risk) IsRiskTracked(model *ParsedModel) bool {
-	if _, ok := model.RiskTracking[what.SyntheticId]; ok {
-		return true
-	}
-	return false
+	return result
 }

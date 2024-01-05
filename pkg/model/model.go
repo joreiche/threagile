@@ -2,7 +2,7 @@
 Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 */
 
-package types
+package model
 
 import (
 	"errors"
@@ -13,45 +13,46 @@ import (
 	"time"
 
 	"github.com/threagile/threagile/pkg/input"
+	"github.com/threagile/threagile/pkg/security/types"
 )
 
 // TODO: move model out of types package and
 // rename parsedModel to model or something like this to emphasize that it's just a model
 // maybe
 type ParsedModel struct {
-	Author                                        input.Author                 `json:"author" yaml:"author"`
-	Title                                         string                       `json:"title,omitempty" yaml:"title"`
-	Date                                          time.Time                    `json:"date" yaml:"date"`
-	ManagementSummaryComment                      string                       `json:"management_summary_comment,omitempty" yaml:"management_summary_comment"`
-	BusinessOverview                              input.Overview               `json:"business_overview" yaml:"business_overview"`
-	TechnicalOverview                             input.Overview               `json:"technical_overview" yaml:"technical_overview"`
-	BusinessCriticality                           Criticality                  `json:"business_criticality,omitempty" yaml:"business_criticality"`
-	SecurityRequirements                          map[string]string            `json:"security_requirements,omitempty" yaml:"security_requirements"`
-	Questions                                     map[string]string            `json:"questions,omitempty" yaml:"questions"`
-	AbuseCases                                    map[string]string            `json:"abuse_cases,omitempty" yaml:"abuse_cases"`
-	TagsAvailable                                 []string                     `json:"tags_available,omitempty" yaml:"tags_available"`
-	DataAssets                                    map[string]DataAsset         `json:"data_assets,omitempty" yaml:"data_assets"`
-	TechnicalAssets                               map[string]TechnicalAsset    `json:"technical_assets,omitempty" yaml:"technical_assets"`
-	TrustBoundaries                               map[string]TrustBoundary     `json:"trust_boundaries,omitempty" yaml:"trust_boundaries"`
-	SharedRuntimes                                map[string]SharedRuntime     `json:"shared_runtimes,omitempty" yaml:"shared_runtimes"`
-	IndividualRiskCategories                      map[string]RiskCategory      `json:"individual_risk_categories,omitempty" yaml:"individual_risk_categories"`
-	BuiltInRiskCategories                         map[string]RiskCategory      `json:"built_in_risk_categories,omitempty" yaml:"built_in_risk_categories"`
-	RiskTracking                                  map[string]RiskTracking      `json:"risk_tracking,omitempty" yaml:"risk_tracking"`
-	CommunicationLinks                            map[string]CommunicationLink `json:"communication_links,omitempty" yaml:"communication_links"`
-	AllSupportedTags                              map[string]bool              `json:"all_supported_tags,omitempty" yaml:"all_supported_tags"`
-	DiagramTweakNodesep                           int                          `json:"diagram_tweak_nodesep,omitempty" yaml:"diagram_tweak_nodesep"`
-	DiagramTweakRanksep                           int                          `json:"diagram_tweak_ranksep,omitempty" yaml:"diagram_tweak_ranksep"`
-	DiagramTweakEdgeLayout                        string                       `json:"diagram_tweak_edge_layout,omitempty" yaml:"diagram_tweak_edge_layout"`
-	DiagramTweakSuppressEdgeLabels                bool                         `json:"diagram_tweak_suppress_edge_labels,omitempty" yaml:"diagram_tweak_suppress_edge_labels"`
-	DiagramTweakLayoutLeftToRight                 bool                         `json:"diagram_tweak_layout_left_to_right,omitempty" yaml:"diagram_tweak_layout_left_to_right"`
-	DiagramTweakInvisibleConnectionsBetweenAssets []string                     `json:"diagram_tweak_invisible_connections_between_assets,omitempty" yaml:"diagram_tweak_invisible_connections_between_assets"`
-	DiagramTweakSameRankAssets                    []string                     `json:"diagram_tweak_same_rank_assets,omitempty" yaml:"diagram_tweak_same_rank_assets"`
+	Author                                        input.Author                       `json:"author" yaml:"author"`
+	Title                                         string                             `json:"title,omitempty" yaml:"title"`
+	Date                                          time.Time                          `json:"date" yaml:"date"`
+	ManagementSummaryComment                      string                             `json:"management_summary_comment,omitempty" yaml:"management_summary_comment"`
+	BusinessOverview                              input.Overview                     `json:"business_overview" yaml:"business_overview"`
+	TechnicalOverview                             input.Overview                     `json:"technical_overview" yaml:"technical_overview"`
+	BusinessCriticality                           types.Criticality                  `json:"business_criticality,omitempty" yaml:"business_criticality"`
+	SecurityRequirements                          map[string]string                  `json:"security_requirements,omitempty" yaml:"security_requirements"`
+	Questions                                     map[string]string                  `json:"questions,omitempty" yaml:"questions"`
+	AbuseCases                                    map[string]string                  `json:"abuse_cases,omitempty" yaml:"abuse_cases"`
+	TagsAvailable                                 []string                           `json:"tags_available,omitempty" yaml:"tags_available"`
+	DataAssets                                    map[string]types.DataAsset         `json:"data_assets,omitempty" yaml:"data_assets"`
+	TechnicalAssets                               map[string]types.TechnicalAsset    `json:"technical_assets,omitempty" yaml:"technical_assets"`
+	TrustBoundaries                               map[string]types.TrustBoundary     `json:"trust_boundaries,omitempty" yaml:"trust_boundaries"`
+	SharedRuntimes                                map[string]types.SharedRuntime     `json:"shared_runtimes,omitempty" yaml:"shared_runtimes"`
+	IndividualRiskCategories                      map[string]types.RiskCategory      `json:"individual_risk_categories,omitempty" yaml:"individual_risk_categories"`
+	BuiltInRiskCategories                         map[string]types.RiskCategory      `json:"built_in_risk_categories,omitempty" yaml:"built_in_risk_categories"`
+	RiskTracking                                  map[string]types.RiskTracking      `json:"risk_tracking,omitempty" yaml:"risk_tracking"`
+	CommunicationLinks                            map[string]types.CommunicationLink `json:"communication_links,omitempty" yaml:"communication_links"`
+	AllSupportedTags                              map[string]bool                    `json:"all_supported_tags,omitempty" yaml:"all_supported_tags"`
+	DiagramTweakNodesep                           int                                `json:"diagram_tweak_nodesep,omitempty" yaml:"diagram_tweak_nodesep"`
+	DiagramTweakRanksep                           int                                `json:"diagram_tweak_ranksep,omitempty" yaml:"diagram_tweak_ranksep"`
+	DiagramTweakEdgeLayout                        string                             `json:"diagram_tweak_edge_layout,omitempty" yaml:"diagram_tweak_edge_layout"`
+	DiagramTweakSuppressEdgeLabels                bool                               `json:"diagram_tweak_suppress_edge_labels,omitempty" yaml:"diagram_tweak_suppress_edge_labels"`
+	DiagramTweakLayoutLeftToRight                 bool                               `json:"diagram_tweak_layout_left_to_right,omitempty" yaml:"diagram_tweak_layout_left_to_right"`
+	DiagramTweakInvisibleConnectionsBetweenAssets []string                           `json:"diagram_tweak_invisible_connections_between_assets,omitempty" yaml:"diagram_tweak_invisible_connections_between_assets"`
+	DiagramTweakSameRankAssets                    []string                           `json:"diagram_tweak_same_rank_assets,omitempty" yaml:"diagram_tweak_same_rank_assets"`
 
 	// TODO: those are generated based on items above and needs to be private
-	IncomingTechnicalCommunicationLinksMappedByTargetId   map[string][]CommunicationLink `json:"incoming_technical_communication_links_mapped_by_target_id,omitempty" yaml:"incoming_technical_communication_links_mapped_by_target_id"`
-	DirectContainingTrustBoundaryMappedByTechnicalAssetId map[string]TrustBoundary       `json:"direct_containing_trust_boundary_mapped_by_technical_asset_id,omitempty" yaml:"direct_containing_trust_boundary_mapped_by_technical_asset_id"`
-	GeneratedRisksByCategory                              map[string][]Risk              `json:"generated_risks_by_category,omitempty" yaml:"generated_risks_by_category"`
-	GeneratedRisksBySyntheticId                           map[string]Risk                `json:"generated_risks_by_synthetic_id,omitempty" yaml:"generated_risks_by_synthetic_id"`
+	IncomingTechnicalCommunicationLinksMappedByTargetId   map[string][]types.CommunicationLink `json:"incoming_technical_communication_links_mapped_by_target_id,omitempty" yaml:"incoming_technical_communication_links_mapped_by_target_id"`
+	DirectContainingTrustBoundaryMappedByTechnicalAssetId map[string]types.TrustBoundary       `json:"direct_containing_trust_boundary_mapped_by_technical_asset_id,omitempty" yaml:"direct_containing_trust_boundary_mapped_by_technical_asset_id"`
+	GeneratedRisksByCategory                              map[string][]types.Risk              `json:"generated_risks_by_category,omitempty" yaml:"generated_risks_by_category"`
+	GeneratedRisksBySyntheticId                           map[string]types.Risk                `json:"generated_risks_by_synthetic_id,omitempty" yaml:"generated_risks_by_synthetic_id"`
 }
 
 func (parsedModel *ParsedModel) AddToListOfSupportedTags(tags []string) {
@@ -60,8 +61,8 @@ func (parsedModel *ParsedModel) AddToListOfSupportedTags(tags []string) {
 	}
 }
 
-func (parsedModel *ParsedModel) GetDeferredRiskTrackingDueToWildcardMatching() map[string]RiskTracking {
-	deferredRiskTrackingDueToWildcardMatching := make(map[string]RiskTracking)
+func (parsedModel *ParsedModel) GetDeferredRiskTrackingDueToWildcardMatching() map[string]types.RiskTracking {
+	deferredRiskTrackingDueToWildcardMatching := make(map[string]types.RiskTracking)
 	for syntheticRiskId, riskTracking := range parsedModel.RiskTracking {
 		if strings.Contains(syntheticRiskId, "*") { // contains a wildcard char
 			deferredRiskTrackingDueToWildcardMatching[syntheticRiskId] = riskTracking
@@ -115,7 +116,7 @@ func (parsedModel *ParsedModel) CheckTags(tags []string, where string) ([]string
 }
 
 // TODO: refactor skipRiskRules to be a string array instead of a comma-separated string
-func (parsedModel *ParsedModel) ApplyRiskGeneration(customRiskRules map[string]*CustomRisk,
+func (parsedModel *ParsedModel) ApplyRiskGeneration(customRiskRules map[string]*types.CustomRisk,
 	builtinRiskRules map[string]RiskRule,
 	skipRiskRules string,
 	progressReporter progressReporter) {
@@ -179,7 +180,7 @@ func (parsedModel *ParsedModel) ApplyWildcardRiskTrackingEvaluation(ignoreOrphan
 		for syntheticRiskId := range parsedModel.GeneratedRisksBySyntheticId {
 			if matchingRiskIdExpression.Match([]byte(syntheticRiskId)) && parsedModel.HasNotYetAnyDirectNonWildcardRiskTracking(syntheticRiskId) {
 				foundSome = true
-				parsedModel.RiskTracking[syntheticRiskId] = RiskTracking{
+				parsedModel.RiskTracking[syntheticRiskId] = types.RiskTracking{
 					SyntheticRiskId: strings.TrimSpace(syntheticRiskId),
 					Justification:   riskTracking.Justification,
 					CheckedBy:       riskTracking.CheckedBy,
@@ -225,7 +226,7 @@ func (parsedModel *ParsedModel) CheckRiskTracking(ignoreOrphanedRiskTracking boo
 	for category := range parsedModel.GeneratedRisksByCategory {
 		for i := range parsedModel.GeneratedRisksByCategory[category] {
 			//			context.parsedModel.GeneratedRisksByCategory[category][i].CategoryId = category
-			parsedModel.GeneratedRisksByCategory[category][i].RiskStatus = parsedModel.GeneratedRisksByCategory[category][i].GetRiskTrackingStatusDefaultingUnchecked(parsedModel)
+			parsedModel.GeneratedRisksByCategory[category][i].RiskStatus = GetRiskTrackingStatusDefaultingUnchecked(parsedModel, parsedModel.GeneratedRisksByCategory[category][i])
 		}
 	}
 	return nil
@@ -288,25 +289,25 @@ func (parsedModel *ParsedModel) CheckNestedTrustBoundariesExisting() error {
 	return nil
 }
 
-func CalculateSeverity(likelihood RiskExploitationLikelihood, impact RiskExploitationImpact) RiskSeverity {
+func CalculateSeverity(likelihood types.RiskExploitationLikelihood, impact types.RiskExploitationImpact) types.RiskSeverity {
 	result := likelihood.Weight() * impact.Weight()
 	if result <= 1 {
-		return LowSeverity
+		return types.LowSeverity
 	}
 	if result <= 3 {
-		return MediumSeverity
+		return types.MediumSeverity
 	}
 	if result <= 8 {
-		return ElevatedSeverity
+		return types.ElevatedSeverity
 	}
 	if result <= 12 {
-		return HighSeverity
+		return types.HighSeverity
 	}
-	return CriticalSeverity
+	return types.CriticalSeverity
 }
 
-func (parsedModel *ParsedModel) InScopeTechnicalAssets() []TechnicalAsset {
-	result := make([]TechnicalAsset, 0)
+func (parsedModel *ParsedModel) InScopeTechnicalAssets() []types.TechnicalAsset {
+	result := make([]types.TechnicalAsset, 0)
 	for _, asset := range parsedModel.TechnicalAssets {
 		if !asset.OutOfScope {
 			result = append(result, asset)
@@ -338,8 +339,8 @@ func (parsedModel *ParsedModel) TagsActuallyUsed() []string {
 	return result
 }
 
-func (parsedModel *ParsedModel) TechnicalAssetsTaggedWithAny(tags ...string) []TechnicalAsset {
-	result := make([]TechnicalAsset, 0)
+func (parsedModel *ParsedModel) TechnicalAssetsTaggedWithAny(tags ...string) []types.TechnicalAsset {
+	result := make([]types.TechnicalAsset, 0)
 	for _, candidate := range parsedModel.TechnicalAssets {
 		if candidate.IsTaggedWithAny(tags...) {
 			result = append(result, candidate)
@@ -348,8 +349,8 @@ func (parsedModel *ParsedModel) TechnicalAssetsTaggedWithAny(tags ...string) []T
 	return result
 }
 
-func (parsedModel *ParsedModel) CommunicationLinksTaggedWithAny(tags ...string) []CommunicationLink {
-	result := make([]CommunicationLink, 0)
+func (parsedModel *ParsedModel) CommunicationLinksTaggedWithAny(tags ...string) []types.CommunicationLink {
+	result := make([]types.CommunicationLink, 0)
 	for _, asset := range parsedModel.TechnicalAssets {
 		for _, candidate := range asset.CommunicationLinks {
 			if candidate.IsTaggedWithAny(tags...) {
@@ -360,8 +361,8 @@ func (parsedModel *ParsedModel) CommunicationLinksTaggedWithAny(tags ...string) 
 	return result
 }
 
-func (parsedModel *ParsedModel) DataAssetsTaggedWithAny(tags ...string) []DataAsset {
-	result := make([]DataAsset, 0)
+func (parsedModel *ParsedModel) DataAssetsTaggedWithAny(tags ...string) []types.DataAsset {
+	result := make([]types.DataAsset, 0)
 	for _, candidate := range parsedModel.DataAssets {
 		if candidate.IsTaggedWithAny(tags...) {
 			result = append(result, candidate)
@@ -370,8 +371,8 @@ func (parsedModel *ParsedModel) DataAssetsTaggedWithAny(tags ...string) []DataAs
 	return result
 }
 
-func (parsedModel *ParsedModel) TrustBoundariesTaggedWithAny(tags ...string) []TrustBoundary {
-	result := make([]TrustBoundary, 0)
+func (parsedModel *ParsedModel) TrustBoundariesTaggedWithAny(tags ...string) []types.TrustBoundary {
+	result := make([]types.TrustBoundary, 0)
 	for _, candidate := range parsedModel.TrustBoundaries {
 		if candidate.IsTaggedWithAny(tags...) {
 			result = append(result, candidate)
@@ -380,8 +381,8 @@ func (parsedModel *ParsedModel) TrustBoundariesTaggedWithAny(tags ...string) []T
 	return result
 }
 
-func (parsedModel *ParsedModel) SharedRuntimesTaggedWithAny(tags ...string) []SharedRuntime {
-	result := make([]SharedRuntime, 0)
+func (parsedModel *ParsedModel) SharedRuntimesTaggedWithAny(tags ...string) []types.SharedRuntime {
+	result := make([]types.SharedRuntime, 0)
 	for _, candidate := range parsedModel.SharedRuntimes {
 		if candidate.IsTaggedWithAny(tags...) {
 			result = append(result, candidate)
@@ -390,23 +391,23 @@ func (parsedModel *ParsedModel) SharedRuntimesTaggedWithAny(tags ...string) []Sh
 	return result
 }
 
-func (parsedModel *ParsedModel) OutOfScopeTechnicalAssets() []TechnicalAsset {
-	assets := make([]TechnicalAsset, 0)
+func (parsedModel *ParsedModel) OutOfScopeTechnicalAssets() []types.TechnicalAsset {
+	assets := make([]types.TechnicalAsset, 0)
 	for _, asset := range parsedModel.TechnicalAssets {
 		if asset.OutOfScope {
 			assets = append(assets, asset)
 		}
 	}
-	sort.Sort(ByTechnicalAssetTitleSort(assets))
+	sort.Sort(types.ByTechnicalAssetTitleSort(assets))
 	return assets
 }
 
-func (parsedModel *ParsedModel) RisksOfOnlySTRIDEInformationDisclosure(risksByCategory map[string][]Risk) map[string][]Risk {
-	result := make(map[string][]Risk)
+func (parsedModel *ParsedModel) RisksOfOnlySTRIDEInformationDisclosure(risksByCategory map[string][]types.Risk) map[string][]types.Risk {
+	result := make(map[string][]types.Risk)
 	for categoryId, categoryRisks := range risksByCategory {
 		for _, risk := range categoryRisks {
 			category := GetRiskCategory(parsedModel, categoryId)
-			if category.STRIDE == InformationDisclosure {
+			if category.STRIDE == types.InformationDisclosure {
 				result[categoryId] = append(result[categoryId], risk)
 			}
 		}
@@ -414,12 +415,12 @@ func (parsedModel *ParsedModel) RisksOfOnlySTRIDEInformationDisclosure(risksByCa
 	return result
 }
 
-func (parsedModel *ParsedModel) RisksOfOnlySTRIDEDenialOfService(risksByCategory map[string][]Risk) map[string][]Risk {
-	result := make(map[string][]Risk)
+func (parsedModel *ParsedModel) RisksOfOnlySTRIDEDenialOfService(risksByCategory map[string][]types.Risk) map[string][]types.Risk {
+	result := make(map[string][]types.Risk)
 	for categoryId, categoryRisks := range risksByCategory {
 		for _, risk := range categoryRisks {
 			category := GetRiskCategory(parsedModel, categoryId)
-			if category.STRIDE == DenialOfService {
+			if category.STRIDE == types.DenialOfService {
 				result[categoryId] = append(result[categoryId], risk)
 			}
 		}
@@ -427,12 +428,12 @@ func (parsedModel *ParsedModel) RisksOfOnlySTRIDEDenialOfService(risksByCategory
 	return result
 }
 
-func (parsedModel *ParsedModel) RisksOfOnlySTRIDEElevationOfPrivilege(risksByCategory map[string][]Risk) map[string][]Risk {
-	result := make(map[string][]Risk)
+func (parsedModel *ParsedModel) RisksOfOnlySTRIDEElevationOfPrivilege(risksByCategory map[string][]types.Risk) map[string][]types.Risk {
+	result := make(map[string][]types.Risk)
 	for categoryId, categoryRisks := range risksByCategory {
 		for _, risk := range categoryRisks {
 			category := GetRiskCategory(parsedModel, categoryId)
-			if category.STRIDE == ElevationOfPrivilege {
+			if category.STRIDE == types.ElevationOfPrivilege {
 				result[categoryId] = append(result[categoryId], risk)
 			}
 		}
@@ -440,12 +441,12 @@ func (parsedModel *ParsedModel) RisksOfOnlySTRIDEElevationOfPrivilege(risksByCat
 	return result
 }
 
-func (parsedModel *ParsedModel) RisksOfOnlyBusinessSide(risksByCategory map[string][]Risk) map[string][]Risk {
-	result := make(map[string][]Risk)
+func (parsedModel *ParsedModel) RisksOfOnlyBusinessSide(risksByCategory map[string][]types.Risk) map[string][]types.Risk {
+	result := make(map[string][]types.Risk)
 	for categoryId, categoryRisks := range risksByCategory {
 		for _, risk := range categoryRisks {
 			category := GetRiskCategory(parsedModel, categoryId)
-			if category.Function == BusinessSide {
+			if category.Function == types.BusinessSide {
 				result[categoryId] = append(result[categoryId], risk)
 			}
 		}
@@ -453,12 +454,12 @@ func (parsedModel *ParsedModel) RisksOfOnlyBusinessSide(risksByCategory map[stri
 	return result
 }
 
-func (parsedModel *ParsedModel) RisksOfOnlyArchitecture(risksByCategory map[string][]Risk) map[string][]Risk {
-	result := make(map[string][]Risk)
+func (parsedModel *ParsedModel) RisksOfOnlyArchitecture(risksByCategory map[string][]types.Risk) map[string][]types.Risk {
+	result := make(map[string][]types.Risk)
 	for categoryId, categoryRisks := range risksByCategory {
 		for _, risk := range categoryRisks {
 			category := GetRiskCategory(parsedModel, categoryId)
-			if category.Function == Architecture {
+			if category.Function == types.Architecture {
 				result[categoryId] = append(result[categoryId], risk)
 			}
 		}
@@ -466,12 +467,12 @@ func (parsedModel *ParsedModel) RisksOfOnlyArchitecture(risksByCategory map[stri
 	return result
 }
 
-func (parsedModel *ParsedModel) RisksOfOnlyDevelopment(risksByCategory map[string][]Risk) map[string][]Risk {
-	result := make(map[string][]Risk)
+func (parsedModel *ParsedModel) RisksOfOnlyDevelopment(risksByCategory map[string][]types.Risk) map[string][]types.Risk {
+	result := make(map[string][]types.Risk)
 	for categoryId, categoryRisks := range risksByCategory {
 		for _, risk := range categoryRisks {
 			category := GetRiskCategory(parsedModel, categoryId)
-			if category.Function == Development {
+			if category.Function == types.Development {
 				result[categoryId] = append(result[categoryId], risk)
 			}
 		}
@@ -479,12 +480,12 @@ func (parsedModel *ParsedModel) RisksOfOnlyDevelopment(risksByCategory map[strin
 	return result
 }
 
-func (parsedModel *ParsedModel) RisksOfOnlyOperation(risksByCategory map[string][]Risk) map[string][]Risk {
-	result := make(map[string][]Risk)
+func (parsedModel *ParsedModel) RisksOfOnlyOperation(risksByCategory map[string][]types.Risk) map[string][]types.Risk {
+	result := make(map[string][]types.Risk)
 	for categoryId, categoryRisks := range risksByCategory {
 		for _, risk := range categoryRisks {
 			category := GetRiskCategory(parsedModel, categoryId)
-			if category.Function == Operations {
+			if category.Function == types.Operations {
 				result[categoryId] = append(result[categoryId], risk)
 			}
 		}
@@ -492,8 +493,26 @@ func (parsedModel *ParsedModel) RisksOfOnlyOperation(risksByCategory map[string]
 	return result
 }
 
-type progressReporter interface {
-	Info(a ...any)
-	Warn(a ...any)
-	Error(a ...any)
+func GetRiskTracking(model *ParsedModel, risk types.Risk) types.RiskTracking { // TODO: Unify function naming regarding Get etc.
+	var result types.RiskTracking
+	if riskTracking, ok := model.RiskTracking[risk.SyntheticId]; ok {
+		result = riskTracking
+	}
+	return result
+}
+
+func GetRiskTrackingStatusDefaultingUnchecked(model *ParsedModel, risk types.Risk) types.RiskStatus {
+	if riskTracking, ok := model.RiskTracking[risk.SyntheticId]; ok {
+		return riskTracking.Status
+	}
+	return types.Unchecked
+}
+
+func contains(a []string, x string) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
 }

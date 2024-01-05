@@ -6,8 +6,8 @@ import (
 
 	"github.com/threagile/threagile/pkg/common"
 	"github.com/threagile/threagile/pkg/input"
+	"github.com/threagile/threagile/pkg/model/risks"
 	"github.com/threagile/threagile/pkg/run"
-	"github.com/threagile/threagile/pkg/security/risks"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -19,9 +19,9 @@ type progressReporter interface {
 
 type ReadResult struct {
 	ModelInput       *input.ModelInput
-	ParsedModel      *types.ParsedModel
+	ParsedModel      *ParsedModel
 	IntroTextRAA     string
-	BuiltinRiskRules map[string]types.RiskRule
+	BuiltinRiskRules map[string]RiskRule
 	CustomRiskRules  map[string]*types.CustomRisk
 }
 
@@ -70,7 +70,7 @@ func ReadAndAnalyzeModel(config common.Config, progressReporter progressReporter
 	}, nil
 }
 
-func applyRAA(parsedModel *types.ParsedModel, binFolder, raaPlugin string, progressReporter progressReporter) string {
+func applyRAA(parsedModel *ParsedModel, binFolder, raaPlugin string, progressReporter progressReporter) string {
 	progressReporter.Info("Applying RAA calculation:", raaPlugin)
 
 	runner, loadError := new(run.Runner).Load(filepath.Join(binFolder, raaPlugin))

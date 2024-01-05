@@ -1,11 +1,12 @@
 package accidental_secret_leak
 
 import (
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
-func Rule() types.RiskRule {
-	return types.RiskRule{
+func Rule() model.RiskRule {
+	return model.RiskRule{
 		Category:      Category,
 		SupportedTags: SupportedTags,
 		GenerateRisks: GenerateRisks,
@@ -42,7 +43,7 @@ func SupportedTags() []string {
 	return []string{"git", "nexus"}
 }
 
-func GenerateRisks(parsedModel *types.ParsedModel) []types.Risk {
+func GenerateRisks(parsedModel *model.ParsedModel) []types.Risk {
 	risks := make([]types.Risk, 0)
 	for _, id := range parsedModel.SortedTechnicalAssetIDs() {
 		techAsset := parsedModel.TechnicalAssets[id]
@@ -60,7 +61,7 @@ func GenerateRisks(parsedModel *types.ParsedModel) []types.Risk {
 	return risks
 }
 
-func createRisk(parsedModel *types.ParsedModel, technicalAsset types.TechnicalAsset, prefix, details string) types.Risk {
+func createRisk(parsedModel *model.ParsedModel, technicalAsset types.TechnicalAsset, prefix, details string) types.Risk {
 	if len(prefix) > 0 {
 		prefix = " (" + prefix + ")"
 	}

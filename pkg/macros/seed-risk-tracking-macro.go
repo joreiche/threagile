@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/threagile/threagile/pkg/input"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 )
 
@@ -23,7 +24,7 @@ func (*seedRiskTrackingMacro) GetMacroDetails() MacroDetails {
 	}
 }
 
-func (*seedRiskTrackingMacro) GetNextQuestion(*types.ParsedModel) (nextQuestion MacroQuestion, err error) {
+func (*seedRiskTrackingMacro) GetNextQuestion(*model.ParsedModel) (nextQuestion MacroQuestion, err error) {
 	return NoMoreQuestions(), nil
 }
 
@@ -35,14 +36,14 @@ func (*seedRiskTrackingMacro) GoBack() (message string, validResult bool, err er
 	return "Cannot go back further", false, nil
 }
 
-func (*seedRiskTrackingMacro) GetFinalChangeImpact(_ *input.ModelInput, _ *types.ParsedModel) (changes []string, message string, validResult bool, err error) {
+func (*seedRiskTrackingMacro) GetFinalChangeImpact(_ *input.ModelInput, _ *model.ParsedModel) (changes []string, message string, validResult bool, err error) {
 	return []string{"seed the model file with with initial risk tracking entries for all untracked risks"}, "Changeset valid", true, err
 }
 
-func (*seedRiskTrackingMacro) Execute(modelInput *input.ModelInput, parsedModel *types.ParsedModel) (message string, validResult bool, err error) {
+func (*seedRiskTrackingMacro) Execute(modelInput *input.ModelInput, parsedModel *model.ParsedModel) (message string, validResult bool, err error) {
 	syntheticRiskIDsToCreateTrackingFor := make([]string, 0)
 	for id, risk := range parsedModel.GeneratedRisksBySyntheticId {
-		if !risk.IsRiskTracked(parsedModel) {
+		if !isRiskTracked(parsedModel, risk) {
 			syntheticRiskIDsToCreateTrackingFor = append(syntheticRiskIDsToCreateTrackingFor, id)
 		}
 	}
@@ -60,4 +61,11 @@ func (*seedRiskTrackingMacro) Execute(modelInput *input.ModelInput, parsedModel 
 		}
 	}
 	return "Model file seeding with " + strconv.Itoa(len(syntheticRiskIDsToCreateTrackingFor)) + " initial risk tracking successful", true, nil
+}
+
+func isRiskTracked(model *model.ParsedModel, risk types.Risk) bool {
+	if _, ok := model.RiskTracking[risk.SyntheticId]; ok {
+		return true
+	}
+	return false
 }

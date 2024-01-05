@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"github.com/threagile/threagile/pkg/colors"
+	"github.com/threagile/threagile/pkg/model"
 	"github.com/threagile/threagile/pkg/security/types"
 	"github.com/xuri/excelize/v2"
 )
 
-func WriteRisksExcelToFile(parsedModel *types.ParsedModel, filename string) error {
+func WriteRisksExcelToFile(parsedModel *model.ParsedModel, filename string) error {
 	excelRow := 0
 	excel := excelize.NewFile()
 	sheetName := parsedModel.Title
@@ -345,13 +346,13 @@ func WriteRisksExcelToFile(parsedModel *types.ParsedModel, filename string) erro
 	})
 
 	excelRow++ // as we have a header line
-	for _, category := range types.SortedRiskCategories(parsedModel) {
-		risks := types.SortedRisksOfCategory(parsedModel, category)
+	for _, category := range model.SortedRiskCategories(parsedModel) {
+		risks := model.SortedRisksOfCategory(parsedModel, category)
 		for _, risk := range risks {
 			excelRow++
 			techAsset := parsedModel.TechnicalAssets[risk.MostRelevantTechnicalAssetId]
 			commLink := parsedModel.CommunicationLinks[risk.MostRelevantCommunicationLinkId]
-			riskTrackingStatus := risk.GetRiskTrackingStatusDefaultingUnchecked(parsedModel)
+			riskTrackingStatus := model.GetRiskTrackingStatusDefaultingUnchecked(parsedModel, risk)
 			// content
 			err := excel.SetCellValue(sheetName, "A"+strconv.Itoa(excelRow), risk.Severity.Title())
 			err = excel.SetCellValue(sheetName, "B"+strconv.Itoa(excelRow), risk.ExploitationLikelihood.Title())
@@ -370,7 +371,7 @@ func WriteRisksExcelToFile(parsedModel *types.ParsedModel, filename string) erro
 			err = excel.SetCellValue(sheetName, "O"+strconv.Itoa(excelRow), risk.SyntheticId)
 			err = excel.SetCellValue(sheetName, "P"+strconv.Itoa(excelRow), riskTrackingStatus.Title())
 			if riskTrackingStatus != types.Unchecked {
-				riskTracking := risk.GetRiskTracking(parsedModel)
+				riskTracking := model.GetRiskTracking(parsedModel, risk)
 				err = excel.SetCellValue(sheetName, "Q"+strconv.Itoa(excelRow), riskTracking.Justification)
 				if !riskTracking.Date.IsZero() {
 					err = excel.SetCellValue(sheetName, "R"+strconv.Itoa(excelRow), riskTracking.Date.Format("2006-01-02"))
@@ -469,7 +470,7 @@ func WriteRisksExcelToFile(parsedModel *types.ParsedModel, filename string) erro
 	return nil
 }
 
-func WriteTagsExcelToFile(parsedModel *types.ParsedModel, filename string) error { // TODO: eventually when len(sortedTagsAvailable) == 0 is: write a hint in the Excel that no tags are used
+func WriteTagsExcelToFile(parsedModel *model.ParsedModel, filename string) error { // TODO: eventually when len(sortedTagsAvailable) == 0 is: write a hint in the Excel that no tags are used
 	excelRow := 0
 	excel := excelize.NewFile()
 	sheetName := parsedModel.Title
@@ -648,7 +649,7 @@ func WriteTagsExcelToFile(parsedModel *types.ParsedModel, filename string) error
 	return nil
 }
 
-func sortedTrustBoundariesByTitle(parsedModel *types.ParsedModel) []types.TrustBoundary {
+func sortedTrustBoundariesByTitle(parsedModel *model.ParsedModel) []types.TrustBoundary {
 	boundaries := make([]types.TrustBoundary, 0)
 	for _, boundary := range parsedModel.TrustBoundaries {
 		boundaries = append(boundaries, boundary)
@@ -657,7 +658,7 @@ func sortedTrustBoundariesByTitle(parsedModel *types.ParsedModel) []types.TrustB
 	return boundaries
 }
 
-func sortedDataAssetsByTitle(parsedModel *types.ParsedModel) []types.DataAsset {
+func sortedDataAssetsByTitle(parsedModel *model.ParsedModel) []types.DataAsset {
 	assets := make([]types.DataAsset, 0)
 	for _, asset := range parsedModel.DataAssets {
 		assets = append(assets, asset)

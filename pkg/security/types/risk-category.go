@@ -19,3 +19,13 @@ type RiskCategory struct {
 	ModelFailurePossibleReason bool         `json:"model_failure_possible_reason,omitempty"`
 	CWE                        int          `json:"cwe,omitempty"`
 }
+
+type ByRiskCategoryTitleSort []RiskCategory
+
+func (what ByRiskCategoryTitleSort) Len() int { return len(what) }
+func (what ByRiskCategoryTitleSort) Swap(i, j int) {
+	what[i], what[j] = what[j], what[i]
+}
+func (what ByRiskCategoryTitleSort) Less(i, j int) bool {
+	return what[i].Title < what[j].Title
+}
