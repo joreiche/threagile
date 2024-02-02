@@ -334,6 +334,32 @@ func ParseModel(modelInput *input.Model, builtinRiskRules map[string]risks.RiskR
 		}
 	}
 
+	// If CIA was not set (i.e. equals -1) it is implicitly set to its highest calculated value
+	for id, techAsset := range parsedModel.TechnicalAssets {
+		if techAsset.Confidentiality < 0 {
+			techAsset.Confidentiality = techAsset.HighestConfidentiality(&parsedModel)
+			if techAsset.Confidentiality < 0 {
+				// no data asset is processed or stored, thus falling back to the lowest level
+				techAsset.Confidentiality = types.Public
+			}
+		}
+		if techAsset.Integrity < 0 {
+			techAsset.Integrity = techAsset.HighestIntegrity(&parsedModel)
+			if techAsset.Integrity < 0 {
+				// no data asset is processed or stored, thus falling back to the lowest level
+				techAsset.Integrity = types.Archive
+			}
+		}
+		if techAsset.Availability < 0 {
+			techAsset.Availability = techAsset.HighestAvailability(&parsedModel)
+			if techAsset.Availability < 0 {
+				// no data asset is processed or stored, thus falling back to the lowest level
+				techAsset.Availability = types.Archive
+			}
+		}
+		parsedModel.TechnicalAssets[id] = techAsset
+	}
+
 	// Trust Boundaries ===============================================================================
 	checklistToAvoidAssetBeingModeledInMultipleTrustBoundaries := make(map[string]bool)
 	parsedModel.TrustBoundaries = make(map[string]types.TrustBoundary)
